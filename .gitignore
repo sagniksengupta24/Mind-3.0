@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing & Coverage
+.coverage
+.coverage.*
+coverage.xml
+.pytest_cache/
+
+# IDEs & OS
+.DS_Store
+.DS_Store?
+._*
+.vscode/
+*.swp
+*.swo
+
+# Mind runtime data
+.mind/
+transcript.jsonl

@@ -92,7 +92,7 @@ class LocalBwrapRunner(EDARunner):
 
 
 class RemoteSSHRunner(EDARunner):
-    """Offloads EDA compilation and formal verification to an enterprise cluster over SSH."""
+    """Offloads EDA compilation and formal verification to an enterprise cluster over SSH with bidirectional sync."""
 
     def __init__(
         self,
@@ -101,12 +101,14 @@ class RemoteSSHRunner(EDARunner):
         user: str = "eda_runner",
         key_file: Path | str | None = None,
         remote_workdir: str = "/tmp/mind3_remote_eda",
+        workspace: Path | str | None = None,
     ) -> None:
         self.host: str = host.strip()
         self.port: int = port
         self.user: str = user.strip()
         self.key_file: Path | None = Path(key_file).resolve() if key_file else None
         self.remote_workdir: str = remote_workdir.strip()
+        self.workspace: Path | None = Path(workspace).resolve() if workspace else None
 
     @property
     def runner_type(self) -> str:
@@ -115,12 +117,76 @@ class RemoteSSHRunner(EDARunner):
     def is_available(self) -> bool:
         return bool(self.host)
 
+    def sync_to_remote(self, workspace: Path | str) -> bool:
+        """Stream local workspace contents to the remote execution node via SSH."""
+        ws_path = Path(workspace).resolve()
+        if not ws_path.exists():
+            return False
+
+        ssh_cmd = [
+            "ssh",
+            "-o", "BatchMode=yes",
+            "-o", "StrictHostKeyChecking=no",
+            "-p", str(self.port),
+        ]
+        if self.key_file is not None and self.key_file.exists():
+            ssh_cmd.extend(["-i", str(self.key_file)])
+
+        remote_setup = f"mkdir -p {shlex.quote(self.remote_workdir)} && tar -xzf - -C {shlex.quote(self.remote_workdir)}"
+        ssh_cmd.extend([f"{self.user}@{self.host}", remote_setup])
+        tar_cmd = ["tar", "--exclude=.mind", "--exclude=.git", "-czf", "-", "-C", str(ws_path), "."]
+
+        try:
+            tar_proc = subprocess.Popen(tar_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            ssh_proc = subprocess.Popen(ssh_cmd, stdin=tar_proc.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if tar_proc.stdout:
+                tar_proc.stdout.close()
+            ssh_proc.communicate(timeout=45)
+            tar_proc.wait(timeout=10)
+            return ssh_proc.returncode == 0
+        except Exception:
+            return False
+
+    def sync_from_remote(self, workspace: Path | str) -> bool:
+        """Retrieve generated EDA artifacts (netlists, logs, coverage) back to local workspace."""
+        ws_path = Path(workspace).resolve()
+        if not ws_path.exists():
+            return False
+
+        ssh_cmd = [
+            "ssh",
+            "-o", "BatchMode=yes",
+            "-o", "StrictHostKeyChecking=no",
+            "-p", str(self.port),
+        ]
+        if self.key_file is not None and self.key_file.exists():
+            ssh_cmd.extend(["-i", str(self.key_file)])
+
+        remote_tar = f"tar -czf - -C {shlex.quote(self.remote_workdir)} ."
+        ssh_cmd.extend([f"{self.user}@{self.host}", remote_tar])
+        tar_extract = ["tar", "-xzf", "-", "-C", str(ws_path)]
+
+        try:
+            ssh_proc = subprocess.Popen(ssh_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            extract_proc = subprocess.Popen(tar_extract, stdin=ssh_proc.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if ssh_proc.stdout:
+                ssh_proc.stdout.close()
+            extract_proc.communicate(timeout=45)
+            ssh_proc.wait(timeout=10)
+            return extract_proc.returncode == 0
+        except Exception:
+            return False
+
     def run(
         self,
         command: list[str],
         timeout_sec: int = 60,
     ) -> subprocess.CompletedProcess[str]:
-        """Wrap command in SSH invocation targeting remote compute node."""
+        """Wrap command in SSH invocation targeting remote compute node with synchronization."""
+        # Synchronize workspace to remote compute node if workspace configured
+        if self.workspace is not None and self.workspace.exists():
+            self.sync_to_remote(self.workspace)
+
         remote_cmd_str = " ".join(shlex.quote(c) for c in command)
         remote_full = f"mkdir -p {shlex.quote(self.remote_workdir)} && cd {shlex.quote(self.remote_workdir)} && {remote_cmd_str}"
 
@@ -136,13 +202,17 @@ class RemoteSSHRunner(EDARunner):
         ssh_cmd.extend([f"{self.user}@{self.host}", remote_full])
 
         try:
-            return subprocess.run(
+            proc = subprocess.run(
                 ssh_cmd,
                 capture_output=True,
                 text=True,
                 timeout=timeout_sec,
                 check=False,
             )
+            # Retrieve generated artifacts back to local workspace
+            if self.workspace is not None and self.workspace.exists():
+                self.sync_from_remote(self.workspace)
+            return proc
         except subprocess.TimeoutExpired as exc:
             return subprocess.CompletedProcess(
                 args=command,
@@ -178,6 +248,7 @@ def get_eda_runner(
             port=port,
             user=user,
             key_file=key if key else None,
+            workspace=workspace,
         )
 
     return LocalBwrapRunner(workspace=workspace, sandbox=sandbox)

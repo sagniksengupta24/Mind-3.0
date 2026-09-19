@@ -113,8 +113,20 @@ class RunSkillScriptAction(BaseModel):
         return cleaned
 
 
+class WriteBatchFilesAction(BaseModel):
+    """Host-side atomic multi-file mutation action."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    action: Literal["write_batch_files"] = "write_batch_files"
+    files: list[WriteFileAction] = Field(
+        min_length=1,
+        description="List of WriteFileAction items to stage atomically",
+    )
+
+
 AgentAction = Annotated[
-    Union[WriteFileAction, RunCommandAction, RunSkillScriptAction],
+    Union[WriteFileAction, RunCommandAction, RunSkillScriptAction, WriteBatchFilesAction],
     Field(discriminator="action"),
 ]
 
@@ -163,11 +175,51 @@ class VerificationResult(BaseModel):
     )
     silicon_verified: bool = Field(
         default=False,
-        description="True if all 4 hierarchical signoff gates passed",
+        description="True if the configured OSS RTL-validation gates passed; not a tapeout claim",
+    )
+    tapeout_ready: bool = Field(
+        default=False,
+        description="True only when independently produced tapeout-readiness evidence is clean",
+    )
+    netlist_path: str | None = Field(
+        default=None,
+        description="Relative path to Gate 1 synthesized netlist if produced",
+    )
+    coverage_metrics: dict[str, float] = Field(
+        default_factory=dict,
+        description="Measured coverage values (e.g. line, branch, toggle)",
+    )
+    timing_metrics: dict[str, float] = Field(
+        default_factory=dict,
+        description="Measured timing metrics (e.g. wns, tns)",
     )
     gate_reports: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Detailed gate-by-gate verification diagnostics",
+    )
+    hold_metrics: dict[str, float] = Field(
+        default_factory=dict,
+        description="Hold-path timing metrics (e.g. hold_wns, hold_tns) from OpenSTA min-path analysis",
+    )
+    cdc_violations: list[str] = Field(
+        default_factory=list,
+        description="Clock-domain crossing warning messages emitted by Gate 6 Yosys CDC analysis",
+    )
+    dft_audit: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Advisory DFT scan-chain report: dff_count, has_scan_port, needs_scan, advisory messages",
+    )
+    tapeout_evidence: dict[str, bool] = Field(
+        default_factory=dict,
+        description="TapeoutReadinessVerifier receipt checklist: maps receipt key to presence boolean",
+    )
+    pnr_metrics: dict[str, Any] = Field(
+        default_factory=dict,
+        description="OpenROAD place-and-route metrics: pnr_complete, placement_overflow, routing_congestion",
+    )
+    commercial_signoff: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Commercial EDA signoff metrics across PrimeTime, Innovus, Calibre, Tessent",
     )
 
 
@@ -252,6 +304,8 @@ __all__ = [
     "PhaseEnum",
     "WriteFileAction",
     "RunCommandAction",
+    "RunSkillScriptAction",
+    "WriteBatchFilesAction",
     "AgentAction",
     "agent_action_adapter",
     "VerificationDomain",

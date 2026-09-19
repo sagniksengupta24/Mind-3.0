@@ -14,6 +14,7 @@ from .core.contracts import (
     VerificationHarnessGenerator,
 )
 from .core.driver import PhaseDriver
+from .core.assurance import AssuranceCheck, TapeoutReadinessPolicy, TapeoutReadinessVerifier
 from .core.types import (
     AgentAction,
     PhaseEnum,
@@ -23,6 +24,7 @@ from .core.types import (
     TraceRecord,
     VerificationDomain,
     VerificationResult,
+    WriteBatchFilesAction,
     WriteFileAction,
 )
 from .core.verifier import (
@@ -43,6 +45,9 @@ from .skills import Skill, SkillMatch, SkillMetadata, SkillReference, SkillRegis
 
 __all__ = [
     "PhaseDriver",
+    "AssuranceCheck",
+    "TapeoutReadinessPolicy",
+    "TapeoutReadinessVerifier",
     "BubblewrapSandbox",
     "EDARunner",
     "LocalBwrapRunner",
@@ -55,6 +60,7 @@ __all__ = [
     "SiliconSignoffVerifier",
     "PhaseEnum",
     "WriteFileAction",
+    "WriteBatchFilesAction",
     "RunCommandAction",
     "RunSkillScriptAction",
     "AgentAction",

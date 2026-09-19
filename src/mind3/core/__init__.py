@@ -12,7 +12,7 @@ from .contracts import (
     TimingConstraint,
     VerificationHarnessGenerator,
 )
-from .driver import PhaseDriver
+from .driver import PPAOptimizer, PPAPoint, PhaseDriver
 from .types import (
     AgentAction,
     PhaseEnum,
@@ -22,25 +22,55 @@ from .types import (
     TraceRecord,
     VerificationDomain,
     VerificationResult,
+    WriteBatchFilesAction,
     WriteFileAction,
 )
 from .verifier import (
     BaseVerifier,
+    CommercialSignoffVerifier,
     IndustryReportVerifier,
     RTLVerifier,
     SiliconSignoffVerifier,
     SoftwareVerifier,
+    TapeoutReadinessVerifier,
+)
+from .power import (
+    ClampValue,
+    IsolationLocation,
+    IsolationRule,
+    LevelShifterRule,
+    LevelShifterType,
+    LowPowerVerifier,
+    PowerDomainSpec,
+    PowerIntentContract,
+    PowerStateTable,
+    PowerSupplyNet,
+    PowerSwitchSpec,
+    RetentionRule,
+    UPFGenerator,
+)
+from .dft import (
+    ATPGSignoffVerifier,
+    IEEE1500Wrapper,
+    JTAGControllerConfig,
+    JTAGControllerGenerator,
+    JTAGInstruction,
 )
 
 __all__ = [
     "PhaseDriver",
+    "PPAOptimizer",
+    "PPAPoint",
     "BaseVerifier",
     "RTLVerifier",
     "SoftwareVerifier",
     "IndustryReportVerifier",
     "SiliconSignoffVerifier",
+    "TapeoutReadinessVerifier",
+    "CommercialSignoffVerifier",
     "PhaseEnum",
     "WriteFileAction",
+    "WriteBatchFilesAction",
     "RunCommandAction",
     "RunSkillScriptAction",
     "AgentAction",
@@ -56,4 +86,25 @@ __all__ = [
     "ContractSynthesizer",
     "RTLGenerator",
     "VerificationHarnessGenerator",
+    "PowerSupplyNet",
+    "PowerDomainSpec",
+    "PowerSwitchSpec",
+    "IsolationRule",
+    "LevelShifterRule",
+    "RetentionRule",
+    "PowerStateTable",
+    "PowerIntentContract",
+    "UPFGenerator",
+    "LowPowerVerifier",
+    "ClampValue",
+    "IsolationLocation",
+    "LevelShifterType",
+    "JTAGInstruction",
+    "JTAGControllerConfig",
+    "JTAGControllerGenerator",
+    "IEEE1500Wrapper",
+    "ATPGSignoffVerifier",
+    "AssuranceCheck",
+    "TapeoutReadinessPolicy",
 ]
+from .assurance import AssuranceCheck, TapeoutReadinessPolicy

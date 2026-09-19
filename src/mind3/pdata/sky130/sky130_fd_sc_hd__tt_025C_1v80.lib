@@ -1,0 +1,195 @@
+library (sky130_fd_sc_hd__tt_025C_1v80) {
+  delay_model : table_lookup;
+  in_place_swap_mode : match_footprint;
+  time_unit : "1ns";
+  voltage_unit : "1V";
+  current_unit : "1mA";
+  pulling_resistance_unit : "1kohm";
+  leakage_power_unit : "1pW";
+  capacitive_load_unit (1, pf);
+
+  nom_process : 1.0;
+  nom_temperature : 25.0;
+  nom_voltage : 1.80;
+
+  lu_table_template(delay_template_2x2) {
+    variable_1 : input_net_transition;
+    variable_2 : total_output_net_capacitance;
+    index_1 ("0.01, 0.5");
+    index_2 ("0.001, 0.1");
+  }
+
+  cell (sky130_fd_sc_hd__inv_1) {
+    area : 1.38;
+    pin(a) {
+      direction : input;
+      capacitance : 0.003;
+    }
+    pin(y) {
+      direction : output;
+      function : "!a";
+      timing() {
+        related_pin : "a";
+        timing_sense : negative_unate;
+        cell_rise(delay_template_2x2) {
+          values ("0.05, 0.20", "0.08, 0.35");
+        }
+        cell_fall(delay_template_2x2) {
+          values ("0.04, 0.18", "0.07, 0.30");
+        }
+        rise_transition(delay_template_2x2) {
+          values ("0.02, 0.10", "0.04, 0.20");
+        }
+        fall_transition(delay_template_2x2) {
+          values ("0.02, 0.08", "0.03, 0.18");
+        }
+      }
+    }
+  }
+
+  cell (sky130_fd_sc_hd__buf_1) {
+    area : 1.84;
+    pin(a) {
+      direction : input;
+      capacitance : 0.003;
+    }
+    pin(x) {
+      direction : output;
+      function : "a";
+      timing() {
+        related_pin : "a";
+        timing_sense : positive_unate;
+        cell_rise(delay_template_2x2) {
+          values ("0.06, 0.22", "0.09, 0.38");
+        }
+        cell_fall(delay_template_2x2) {
+          values ("0.05, 0.19", "0.08, 0.32");
+        }
+      }
+    }
+  }
+
+  cell (sky130_fd_sc_hd__nand2_1) {
+    area : 1.84;
+    pin(a) {
+      direction : input;
+      capacitance : 0.003;
+    }
+    pin(b) {
+      direction : input;
+      capacitance : 0.003;
+    }
+    pin(y) {
+      direction : output;
+      function : "!(a & b)";
+      timing() {
+        related_pin : "a";
+        timing_sense : negative_unate;
+        cell_rise(delay_template_2x2) {
+          values ("0.06, 0.25", "0.10, 0.40");
+        }
+        cell_fall(delay_template_2x2) {
+          values ("0.05, 0.20", "0.08, 0.35");
+        }
+      }
+      timing() {
+        related_pin : "b";
+        timing_sense : negative_unate;
+        cell_rise(delay_template_2x2) {
+          values ("0.06, 0.25", "0.10, 0.40");
+        }
+        cell_fall(delay_template_2x2) {
+          values ("0.05, 0.20", "0.08, 0.35");
+        }
+      }
+    }
+  }
+
+  cell (sky130_fd_sc_hd__nor2_1) {
+    area : 1.84;
+    pin(a) {
+      direction : input;
+      capacitance : 0.003;
+    }
+    pin(b) {
+      direction : input;
+      capacitance : 0.003;
+    }
+    pin(y) {
+      direction : output;
+      function : "!(a | b)";
+      timing() {
+        related_pin : "a";
+        timing_sense : negative_unate;
+        cell_rise(delay_template_2x2) {
+          values ("0.08, 0.30", "0.12, 0.50");
+        }
+        cell_fall(delay_template_2x2) {
+          values ("0.06, 0.22", "0.09, 0.38");
+        }
+      }
+      timing() {
+        related_pin : "b";
+        timing_sense : negative_unate;
+        cell_rise(delay_template_2x2) {
+          values ("0.08, 0.30", "0.12, 0.50");
+        }
+        cell_fall(delay_template_2x2) {
+          values ("0.06, 0.22", "0.09, 0.38");
+        }
+      }
+    }
+  }
+
+  cell (sky130_fd_sc_hd__dfxtp_1) {
+    area : 4.60;
+    ff(IQ, IQN) {
+      next_state : "d";
+      clocked_on : "clk";
+    }
+    pin(clk) {
+      direction : input;
+      capacitance : 0.004;
+      clock : true;
+    }
+    pin(d) {
+      direction : input;
+      capacitance : 0.003;
+      timing() {
+        related_pin : "clk";
+        timing_type : setup_rising;
+        rise_constraint(delay_template_2x2) {
+          values ("0.10, 0.12", "0.11, 0.14");
+        }
+        fall_constraint(delay_template_2x2) {
+          values ("0.08, 0.10", "0.09, 0.12");
+        }
+      }
+      timing() {
+        related_pin : "clk";
+        timing_type : hold_rising;
+        rise_constraint(delay_template_2x2) {
+          values ("0.01, 0.02", "0.01, 0.02");
+        }
+        fall_constraint(delay_template_2x2) {
+          values ("0.01, 0.02", "0.01, 0.02");
+        }
+      }
+    }
+    pin(q) {
+      direction : output;
+      function : "IQ";
+      timing() {
+        related_pin : "clk";
+        timing_type : rising_edge;
+        timing_sense : non_unate;
+        cell_rise(delay_template_2x2) {
+          values ("0.15, 0.40", "0.20, 0.55");
+        }
+        cell_fall(delay_template_2x2) {
+          values ("0.14, 0.38", "0.18, 0.50");
+        }
+      }
+    }
+  }
+}

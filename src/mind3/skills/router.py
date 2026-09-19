@@ -25,6 +25,11 @@ DOMAIN_PATTERNS: dict[str, dict[str, list[str]]] = {
             "sdc", "cts", "floorplan", "placement", "routing", "drc", "lvs", "antenna",
             "primetime", "genus", "innovus", "pvt", "corner", "lib", "lef", "def",
         ],
+        "cdc_dft": [
+            "cdc", "clock domain crossing", "clock domain", "synchronizer", "metastability",
+            "two-ff", "2ff", "dft", "scan", "atpg", "scan chain", "boundary scan",
+            "jtag", "bist", "scan_en", "scan_enable", "test mode", "dft insertion",
+        ],
         "device_concepts": [
             "mosfet", "transistor", "threshold voltage", "vt", "body effect", "dibl",
             "subthreshold", "leakage", "finfet", "gaa", "feol", "beol", "fabrication",
@@ -93,6 +98,10 @@ class SkillRouter:
                         elif subcategory == "physical_design" and "references/physical-design.md" in skill.references:
                             selected_refs.append(skill.references["references/physical-design.md"])
                             suggested_domain = "PHYSICAL_DESIGN"
+                        elif subcategory == "cdc_dft":
+                            if "references/cdc-dft.md" in skill.references:
+                                selected_refs.append(skill.references["references/cdc-dft.md"])
+                            suggested_domain = "CDC_DFT"
                         elif subcategory == "device_concepts" and "references/device-concepts.md" in skill.references:
                             selected_refs.append(skill.references["references/device-concepts.md"])
                             suggested_domain = "VLSI_DEVICE"

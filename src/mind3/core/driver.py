@@ -1043,7 +1043,12 @@ class PhaseDriver:
         )
         try:
             raw_rtl = self._query_model(rtl_messages)
-            rtl_code = _parse_model_code_response(raw_rtl)
+            cleaned_rtl = _sanitize_json_output(raw_rtl)
+            try:
+                action_obj = agent_action_adapter.validate_json(cleaned_rtl)
+                rtl_code = action_obj.content if isinstance(action_obj, WriteFileAction) else cleaned_rtl
+            except Exception:
+                rtl_code = cleaned_rtl
 
             rtl_action = WriteFileAction(path=f"{contract.module_name}.sv", content=rtl_code)
             self._policy_check(rtl_action)
@@ -1083,7 +1088,12 @@ class PhaseDriver:
                 )
                 try:
                     raw_repair = self._query_model(repair_messages)
-                    repaired_code = _parse_model_code_response(raw_repair)
+                    cleaned_repair = _sanitize_json_output(raw_repair)
+                    try:
+                        action_rep = agent_action_adapter.validate_json(cleaned_repair)
+                        repaired_code = action_rep.content if isinstance(action_rep, WriteFileAction) else cleaned_repair
+                    except Exception:
+                        repaired_code = cleaned_repair
 
                     rep_action = WriteFileAction(path=f"{contract.module_name}.sv", content=repaired_code)
                     self._policy_check(rep_action)

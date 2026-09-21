@@ -2346,9 +2346,208 @@ def test_run_silicon_pipeline_full_multi_agent_orchestration(monkeypatch: pytest
         assert "Principal RTL Design Engineer" in roles_recorded
 
 
+def test_silicon_pipeline_rtl_extraction_wrapped_json(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test run_silicon_pipeline extracts .content from wrapped WriteFileAction JSON response."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        mock_sb.mock_returncode = 0
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+
+        driver = PhaseDriver(
+            session_id="wrapped-json-test",
+            workspace=ws,
+            verifier=MockVerifier(should_pass=True),
+            sandbox=mock_sb,  # type: ignore
+        )
+
+        architect_json = json.dumps({
+            "module_name": "alu_unit",
+            "functional_spec": "Simple ALU",
+            "ports": [
+                {"name": "clk", "direction": "input", "width": 1, "description": "Clock"},
+                {"name": "rst_n", "direction": "input", "width": 1, "description": "Reset"},
+                {"name": "out", "direction": "output", "width": 8, "description": "Result"},
+            ],
+            "sva_properties": [],
+            "timing": {"clock_name": "clk", "period_ns": 5.0},
+        })
+
+        inner_rtl = "module alu_unit(input clk, input rst_n, output [7:0] out);\nassign out = 8'h42;\nendmodule\n"
+        wrapped_json_response = json.dumps({
+            "action": "write_file",
+            "path": "alu_unit.sv",
+            "content": inner_rtl,
+        })
+
+        query_count = 0
+
+        def mock_queries(messages: list[dict[str, str]]) -> str:
+            nonlocal query_count
+            query_count += 1
+            if query_count == 1:
+                return architect_json
+            return wrapped_json_response
+
+        monkeypatch.setattr(driver, "_query_ollama", mock_queries)
+
+        success = driver.run_silicon_pipeline("Synthesize alu_unit", liberty_path="sky130.lib")
+        assert success is True
+        written_content = (ws / "alu_unit.sv").read_text(encoding="utf-8")
+        assert written_content == inner_rtl
+        assert "action" not in written_content
+        assert "write_file" not in written_content
+
+
+def test_silicon_pipeline_rtl_extraction_raw_rtl_with_content_comment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test run_silicon_pipeline preserves raw RTL with literal 'content' substring in comment without misfiring."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        mock_sb.mock_returncode = 0
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+
+        driver = PhaseDriver(
+            session_id="content-comment-test",
+            workspace=ws,
+            verifier=MockVerifier(should_pass=True),
+            sandbox=mock_sb,  # type: ignore
+        )
+
+        architect_json = json.dumps({
+            "module_name": "comment_alu",
+            "functional_spec": "ALU with comment",
+            "ports": [
+                {"name": "clk", "direction": "input", "width": 1, "description": "Clock"},
+                {"name": "rst_n", "direction": "input", "width": 1, "description": "Reset"},
+                {"name": "out", "direction": "output", "width": 8, "description": "Result"},
+            ],
+            "sva_properties": [],
+            "timing": {"clock_name": "clk", "period_ns": 5.0},
+        })
+
+        raw_rtl_with_content_comment = (
+            "/* { Header content block: module contains 'content' in comment and starts with brace } */\n"
+            "module comment_alu(input clk, input rst_n, output [7:0] out);\n"
+            "  // Payload content definition\n"
+            "  assign out = 8'hA5;\n"
+            "endmodule\n"
+        )
+
+        query_count = 0
+
+        def mock_queries(messages: list[dict[str, str]]) -> str:
+            nonlocal query_count
+            query_count += 1
+            if query_count == 1:
+                return architect_json
+            return raw_rtl_with_content_comment
+
+        monkeypatch.setattr(driver, "_query_ollama", mock_queries)
+
+        success = driver.run_silicon_pipeline("Synthesize comment_alu", liberty_path="sky130.lib")
+        assert success is True
+        written_content = (ws / "comment_alu.sv").read_text(encoding="utf-8")
+        assert written_content == raw_rtl_with_content_comment.strip()
+        assert "Header content block" in written_content
+        assert "Payload content definition" in written_content
+
+
+def test_silicon_pipeline_repair_loop_rtl_extraction(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test run_silicon_pipeline repair loop handles both wrapped JSON and raw RTL with 'content' comment."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        mock_sb.mock_returncode = 0
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+
+        call_verifier_count = 0
+
+        class RepairSiliconVerifier(SiliconSignoffVerifier):
+            def __init__(self) -> None:
+                super().__init__(top_module="repaired_reg", allow_mock_fallback=True)
+
+            def verify(self, workspace: Path, sandbox: Any) -> VerificationResult:
+                nonlocal call_verifier_count
+                call_verifier_count += 1
+                if call_verifier_count == 1:
+                    return VerificationResult(
+                        passed=False,
+                        domain=VerificationDomain.RTL,
+                        exit_code=1,
+                        failure_reason="LATCH INFERRED",
+                        error_category="LATCH_INFERRED",
+                    )
+                return VerificationResult(
+                    passed=True,
+                    domain=VerificationDomain.RTL,
+                    exit_code=0,
+                    silicon_verified=True,
+                )
+
+        driver = PhaseDriver(
+            session_id="repair-json-test",
+            workspace=ws,
+            verifier=RepairSiliconVerifier(),
+            max_repairs=2,
+            sandbox=mock_sb,  # type: ignore
+        )
+
+        architect_json = json.dumps({
+            "module_name": "repaired_reg",
+            "functional_spec": "Repairable register",
+            "ports": [
+                {"name": "clk", "direction": "input", "width": 1, "description": "Clock"},
+                {"name": "rst_n", "direction": "input", "width": 1, "description": "Reset"},
+                {"name": "d", "direction": "input", "width": 8, "description": "Data"},
+                {"name": "q", "direction": "output", "width": 8, "description": "Output"},
+            ],
+            "sva_properties": [],
+            "timing": {"clock_name": "clk", "period_ns": 4.0},
+        })
+
+        initial_buggy_rtl = "module repaired_reg();\nendmodule"
+        repaired_rtl = (
+            "/* { content: repaired latch-free register } */\n"
+            "module repaired_reg(input clk, input rst_n, input [7:0] d, output reg [7:0] q);\n"
+            "  always @(posedge clk or negedge rst_n) begin\n"
+            "    if (!rst_n) q <= 8'h00;\n"
+            "    else q <= d;\n"
+            "  end\n"
+            "endmodule\n"
+        )
+        repaired_json_action = json.dumps({
+            "action": "write_file",
+            "path": "repaired_reg.sv",
+            "content": repaired_rtl,
+        })
+
+        query_count = 0
+
+        def mock_queries(messages: list[dict[str, str]]) -> str:
+            nonlocal query_count
+            query_count += 1
+            if query_count == 1:
+                return architect_json
+            if query_count == 2:
+                return initial_buggy_rtl
+            return repaired_json_action
+
+        monkeypatch.setattr(driver, "_query_ollama", mock_queries)
+
+        success = driver.run_silicon_pipeline("Synthesize repaired_reg", liberty_path="sky130.lib")
+        assert success is True
+        assert call_verifier_count == 2
+        written_content = (ws / "repaired_reg.sv").read_text(encoding="utf-8")
+        assert written_content == repaired_rtl
+        assert "content: repaired latch-free register" in written_content
+        assert "write_file" not in written_content
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # NEW TESTS: parse_opensta_timing, Gate 5 PnR, Gate 6 CDC, DFT, Tapeout, LFSR
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 
 def test_parse_opensta_timing_setup_wns() -> None:

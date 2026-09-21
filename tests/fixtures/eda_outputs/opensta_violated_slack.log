@@ -1,3 +1,7 @@
+# SYNTHETIC/REPRESENTATIVE PLACEHOLDER (NOT REAL CAPTURED EDA TOOL OUTPUT)
+# Constructed from known OpenSTA timing report conventions for parser testing pending live tool execution.
+# TODO: Regenerate with real tool execution using:
+#   sta -f sta_check_violated.tcl > tests/fixtures/eda_outputs/opensta_violated_slack.log 2>&1
 OpenSTA 2.6.0
 ==========================================================================
 Path 1: VIOLATED

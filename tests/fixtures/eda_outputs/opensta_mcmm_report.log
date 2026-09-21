@@ -1,3 +1,7 @@
+# SYNTHETIC/REPRESENTATIVE PLACEHOLDER (NOT REAL CAPTURED EDA TOOL OUTPUT)
+# Constructed from known OpenSTA MCMM report conventions for parser testing pending live tool execution.
+# TODO: Regenerate with real tool execution using:
+#   sta -f sta_mcmm.tcl > tests/fixtures/eda_outputs/opensta_mcmm_report.log 2>&1
 OpenSTA 2.6.0
 ==========================================================================
 Corner: tt_025c_1v80

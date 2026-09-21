@@ -1975,6 +1975,7 @@ class SiliconSignoffVerifier(BaseVerifier):
             "advisory_count": len(advisory_messages),
         }
 
+        is_missing_yosys = (proc.returncode != 0 and _is_binary_missing(proc, "yosys")) or proc.returncode == 127
         return {
             "gate": "DFT Scan Audit (Advisory)",
             "passed": True,
@@ -1982,14 +1983,58 @@ class SiliconSignoffVerifier(BaseVerifier):
             "stdout": proc.stdout,
             "stderr": proc.stderr,
             "details": (
-                f"DFT audit: {dff_count} DFFs, scan_port={'present' if has_scan_port else 'absent'}. "
+                ("DFT audit skipped: yosys unavailable. " if is_missing_yosys else "")
+                + f"DFT audit: {dff_count} DFFs, scan_port={'present' if has_scan_port else 'absent'}. "
                 + (f"Advisory: {'; '.join(advisory_messages)}" if advisory_messages else "No DFT advisories.")
             ),
             "error_category": None,
             "dft_audit": audit_report,
             "simulated": False,
-            "skipped": proc.returncode == 127,
+            "skipped": is_missing_yosys,
         }
+
+
+def get_gate_presentation_label(gate: dict[str, Any]) -> str:
+    """Derive [REAL EDA] vs [SIMULATED] vs [SKIPPED] directly from gate report fields.
+
+    Precedence:
+    1. If gate is skipped (`gate.get("skipped", False)` is True) -> "[SKIPPED]"
+    2. Else if gate is simulated/mocked (`gate.get("simulated", False)` is True) -> "[SIMULATED]"
+    3. Else (`skipped` is False and `simulated` is False) -> "[REAL EDA]"
+
+    Raises:
+        ValueError: If gate fields are contradictory (e.g. both skipped=True and simulated=True).
+    """
+    skipped = bool(gate.get("skipped", False))
+    simulated = bool(gate.get("simulated", False))
+    if skipped and simulated:
+        raise ValueError(
+            f"Contradictory gate report flags: both 'skipped' and 'simulated' are True for gate '{gate.get('gate', 'unknown')}'"
+        )
+    if skipped:
+        return "[SKIPPED]"
+    if simulated:
+        return "[SIMULATED]"
+    return "[REAL EDA]"
+
+
+def format_gate_report_row(gate: dict[str, Any], idx: int | None = None) -> str:
+    """Format a single gate report row for CLI presentation.
+
+    Derives both status tag and tool provenance tag directly from gate report flags:
+    - Status: [SKIP] if skipped, [PASS] if passed, [FAIL] if not passed.
+    - Provenance: [SKIPPED], [SIMULATED], or [REAL EDA] via get_gate_presentation_label.
+    """
+    label = get_gate_presentation_label(gate)
+    if gate.get("skipped", False):
+        status = "[SKIP]"
+    elif gate.get("passed", False):
+        status = "[PASS]"
+    else:
+        status = "[FAIL]"
+    name = gate.get("gate", f"Gate {idx}" if idx is not None else "Gate")
+    details = gate.get("details", "")
+    return f"  {status} {label} {name}: {details}"
 
 
 __all__ = [
@@ -1999,8 +2044,16 @@ __all__ = [
     "IndustryReportVerifier",
     "SiliconSignoffVerifier",
     "TapeoutReadinessVerifier",
+    "CommercialSignoffVerifier",
     "parse_opensta_timing",
     "parse_opensta_wns",
+    "parse_opensta_mcmm",
+    "parse_openroad_pnr",
+    "parse_openroad_irdrop",
+    "parse_verilator_coverage",
+    "parse_yosys_cdc",
+    "get_gate_presentation_label",
+    "format_gate_report_row",
 ]
 
 

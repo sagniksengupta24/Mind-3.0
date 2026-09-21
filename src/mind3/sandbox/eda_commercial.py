@@ -60,7 +60,7 @@ class FlexLMMonitor:
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             output = f"{res.stdout}\n{res.stderr}"
         except (subprocess.SubprocessError, FileNotFoundError):
-            # In simulated or air-gapped test environments where lmutil is absent
+            # In simulated or loopback-only test environments where lmutil is absent
             return {
                 "feature": feature,
                 "available": True,

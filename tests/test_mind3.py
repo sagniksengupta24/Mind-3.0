@@ -2986,13 +2986,24 @@ def test_gate4_multi_corner_simulated_pvt_corners() -> None:
 
 
 def test_air_gapped_forbids_cloud_provider() -> None:
-    """air_gapped=True must forbid cloud LLM providers (e.g. openrouter)."""
+    """loopback_only=True (and air_gapped=True alias) must forbid cloud LLM providers."""
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
         verifier = MockVerifier(should_pass=True)
-        with pytest.raises(ValueError, match="Air-gapped security violation"):
+        # Test loopback_only=True directly
+        with pytest.raises(ValueError, match="Loopback-only endpoint violation"):
             PhaseDriver(
-                session_id="airgap-test",
+                session_id="loopback-test-1",
+                workspace=ws,
+                verifier=verifier,
+                provider="openrouter",
+                api_key="sk-fake",
+                loopback_only=True,
+            )
+        # Test air_gapped=True alias
+        with pytest.raises(ValueError, match="Loopback-only endpoint violation"):
+            PhaseDriver(
+                session_id="airgap-test-2",
                 workspace=ws,
                 verifier=verifier,
                 provider="openrouter",
@@ -3002,39 +3013,129 @@ def test_air_gapped_forbids_cloud_provider() -> None:
 
 
 def test_air_gapped_forbids_non_loopback_base_url() -> None:
-    """air_gapped=True must forbid non-loopback base URLs."""
+    """loopback_only=True (and air_gapped=True alias) must forbid non-loopback base URLs."""
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
         verifier = MockVerifier(should_pass=True)
-        with pytest.raises(ValueError, match="Air-gapped security violation"):
+        with pytest.raises(ValueError, match="Loopback-only endpoint violation"):
             PhaseDriver(
-                session_id="airgap-test",
+                session_id="loopback-test-3",
                 workspace=ws,
                 verifier=verifier,
                 provider="ollama",
                 base_url="http://192.168.1.100:11434",
-                air_gapped=True,
+                loopback_only=True,
             )
 
 
 def test_air_gapped_emits_cryptographic_attestation() -> None:
-    """air_gapped=True must inject air_gapped_attestation SHA-256 into trace events."""
+    """loopback_only=True must inject loopback_attestation SHA-256 into trace events."""
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
         verifier = MockVerifier(should_pass=True)
         mock_sb = MockSandbox(ws)
         driver = PhaseDriver(
-            session_id="airgap-attest",
+            session_id="loopback-attest",
             workspace=ws,
             verifier=verifier,
             provider="ollama",
             base_url="http://127.0.0.1:11434",
             sandbox=mock_sb,  # type: ignore
-            air_gapped=True,
+            loopback_only=True,
         )
         rec = driver._emit_trace(PhaseEnum.INTAKE, {"input": "clean RTL"})
+        assert "loopback_attestation" in rec.event.payload
+        assert len(rec.event.payload["loopback_attestation"]) == 64
+        # Backwards compatibility alias
         assert "air_gapped_attestation" in rec.event.payload
-        assert len(rec.event.payload["air_gapped_attestation"]) == 64
+        assert rec.event.payload["air_gapped_attestation"] == rec.event.payload["loopback_attestation"]
+
+
+def test_gate_presentation_label_contradiction_detection() -> None:
+    """Presentation tags ([REAL EDA], [SIMULATED], [SKIPPED]) must derive strictly from gate flags.
+
+    Fails if any gate report's presentation label contradicts its own skipped/simulated flags,
+    or if contradictory flags (both skipped and simulated True) are provided.
+    """
+    from mind3.core.verifier import format_gate_report_row, get_gate_presentation_label
+
+    # 1. Authoritative derivation unit tests
+    # Skipped gate must return [SKIPPED] and never [REAL EDA] or [SIMULATED]
+    skipped_gate = {"gate": "Gate 5: PnR", "passed": True, "skipped": True, "simulated": False, "details": "Opt-out"}
+    assert get_gate_presentation_label(skipped_gate) == "[SKIPPED]"
+    row_skipped = format_gate_report_row(skipped_gate, 5)
+    assert "[SKIPPED]" in row_skipped
+    assert "[REAL EDA]" not in row_skipped
+    assert "[SIMULATED]" not in row_skipped
+    assert "[SKIP]" in row_skipped
+
+    # Simulated gate must return [SIMULATED] and never [REAL EDA] or [SKIPPED]
+    simulated_gate = {"gate": "Gate 1: Yosys", "passed": True, "skipped": False, "simulated": True, "details": "Simulated"}
+    assert get_gate_presentation_label(simulated_gate) == "[SIMULATED]"
+    row_sim = format_gate_report_row(simulated_gate, 1)
+    assert "[SIMULATED]" in row_sim
+    assert "[REAL EDA]" not in row_sim
+    assert "[SKIPPED]" not in row_sim
+    assert "[PASS]" in row_sim
+
+    # Real EDA gate must return [REAL EDA] and never [SIMULATED] or [SKIPPED]
+    real_gate = {"gate": "Gate 1: Yosys", "passed": True, "skipped": False, "simulated": False, "details": "Live Yosys AST clean"}
+    assert get_gate_presentation_label(real_gate) == "[REAL EDA]"
+    row_real = format_gate_report_row(real_gate, 1)
+    assert "[REAL EDA]" in row_real
+    assert "[SIMULATED]" not in row_real
+    assert "[SKIPPED]" not in row_real
+    assert "[PASS]" in row_real
+
+    # Contradictory flags must raise ValueError
+    contradictory_gate = {"gate": "Bad Gate", "passed": True, "skipped": True, "simulated": True}
+    with pytest.raises(ValueError, match="Contradictory gate report flags"):
+        get_gate_presentation_label(contradictory_gate)
+
+    with pytest.raises(ValueError, match="Contradictory gate report flags"):
+        format_gate_report_row(contradictory_gate)
+
+    # 2. Comprehensive verification test across full signoff oracle output
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        rtl_file = ws / "test.sv"
+        rtl_file.write_text("module test(input wire clk, output reg [7:0] q); always @(posedge clk) q <= q + 1; endmodule\n")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="test",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=True,
+            require_formal=False,
+            require_coverage=False,
+            require_pnr=False,
+            require_cdc=False,
+            require_lec=False,
+        )
+        mock_runner = LocalBwrapRunner(ws)
+        res = verifier.verify(ws, mock_runner)
+
+        # Audit EVERY single gate report for presentation contradiction
+        for idx, gate in enumerate(res.gate_reports, 1):
+            lbl = get_gate_presentation_label(gate)
+            row = format_gate_report_row(gate, idx)
+            is_skipped = bool(gate.get("skipped", False))
+            is_sim = bool(gate.get("simulated", False))
+
+            if is_skipped:
+                assert lbl == "[SKIPPED]", f"Contradiction in {gate['gate']}: skipped=True but label={lbl}"
+                assert "[SKIPPED]" in row, f"Contradiction in row: {row}"
+                assert "[REAL EDA]" not in row, f"Contradiction in row: {row}"
+                assert "[SIMULATED]" not in row, f"Contradiction in row: {row}"
+            elif is_sim:
+                assert lbl == "[SIMULATED]", f"Contradiction in {gate['gate']}: simulated=True but label={lbl}"
+                assert "[SIMULATED]" in row, f"Contradiction in row: {row}"
+                assert "[REAL EDA]" not in row, f"Contradiction in row: {row}"
+                assert "[SKIPPED]" not in row, f"Contradiction in row: {row}"
+            else:
+                assert lbl == "[REAL EDA]", f"Contradiction in {gate['gate']}: live gate but label={lbl}"
+                assert "[REAL EDA]" in row, f"Contradiction in row: {row}"
+                assert "[SIMULATED]" not in row, f"Contradiction in row: {row}"
+                assert "[SKIPPED]" not in row, f"Contradiction in row: {row}"
 
 
 def test_scan_chain_synthesizer_port_injection() -> None:

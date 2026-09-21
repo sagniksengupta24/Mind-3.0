@@ -108,7 +108,7 @@ The default repair budget is set to `max_repairs=3`. This is a deliberately rest
 - **No Mock Fallback by Default**: `allow_mock_fallback=False` by default. If any required EDA binary (`yosys`, `sby`, `verilator`, `sta`) is missing on the runner, verification immediately fails with `EDA_BINARY_MISSING`.
 - **Required Liberty Path**: Callers must explicitly specify `liberty_path` (as a path string or list of corner liberty paths) to support multi-corner timing signoff without hardcoded PDK assumptions.
 - **Verification Artifacts**: Formal verification and coverage signoff require corresponding `.sby` and `.cpp` testbench artifacts unless explicitly opted out via `require_formal=False` or `require_coverage=False`.
-- **Air-Gapped IP Isolation**: `PhaseDriver(..., air_gapped=True)` strictly blocks external network egress, requires local inference (e.g. Ollama on loopback), and stamps each trace transition with a cryptographic SHA-256 attestation.
+- **Loopback-Only Inference Endpoint Enforcement**: `PhaseDriver(..., loopback_only=True)` enforces loopback-only inference endpoint enforcement (requiring 127.0.0.1 or localhost, e.g. Ollama, forbidding cloud API providers) and records each transition in a hash-chained, tamper-evident trace record.
 - **Parser Canary Fixtures**: Test fixtures in `tests/fixtures/eda_outputs/` are clearly marked synthetic representative samples constructed from documented tool output conventions for unit testing in environments without EDA installations; each file includes exact CLI commands for regeneration against live tools.
 
 ## Tapeout-readiness boundary

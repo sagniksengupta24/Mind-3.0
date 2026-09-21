@@ -7,7 +7,7 @@ Executes the complete 11-phase deterministic hardware workflow:
 3. Verification Harness Generation (Zero RTL Access)
 4. RTL Design Implementation (Zero Harness Access)
 5. 6-Gate Silicon Signoff Oracle Evaluation
-6. Canonical SHA-256 Hash-Chained Audit Trail
+6. Canonical SHA-256 Hash-Chained, Tamper-Evident Trace Record
 """
 
 import sys
@@ -29,7 +29,7 @@ from mind3.core.contracts import (
     VerificationHarnessGenerator,
 )
 from mind3.core.driver import PhaseDriver
-from mind3.core.verifier import SiliconSignoffVerifier
+from mind3.core.verifier import SiliconSignoffVerifier, format_gate_report_row
 from mind3.sandbox.bwrap import BubblewrapSandbox
 
 
@@ -182,11 +182,7 @@ endmodule
         print(f"Silicon Verified: {result.silicon_verified} (Honest simulated/mock tracking)")
         print("\nHierarchical Gate Reports:")
         for idx, gate in enumerate(result.gate_reports, 1):
-            name = gate.get("gate", f"Gate {idx}")
-            status = "PASS" if gate.get("passed", False) else "FAIL"
-            sim = " [SIMULATED]" if gate.get("simulated", False) else " [REAL EDA]"
-            details = gate.get("details", "")
-            print(f"  [{status}]{sim} {name}: {details}")
+            print(format_gate_report_row(gate, idx))
 
         print("\n" + "=" * 78)
         print("Demo complete: All architectural invariants and gates evaluated successfully.")

@@ -204,7 +204,8 @@ class PhaseDriver:
         provider: str = "ollama",
         api_key: str | None = None,
         base_url: str | None = None,
-        air_gapped: bool = False,
+        loopback_only: bool = False,
+        air_gapped: bool | None = None,
     ) -> None:
         """Initialize the driver runtime.
 
@@ -225,7 +226,8 @@ class PhaseDriver:
             provider: LLM backend provider ("ollama" or "openrouter", default: "ollama").
             api_key: API authorization key (defaults to OPENROUTER_API_KEY env var for OpenRouter).
             base_url: Optional custom provider API base URL.
-            air_gapped: When True, strictly blocks all outbound network egress and requires local inference.
+            loopback_only: When True, enforces loopback-only inference endpoint enforcement (127.0.0.1 or localhost) and forbids cloud LLM providers.
+            air_gapped: Alias for loopback_only.
         """
         self.session_id: str = session_id
         self.workspace: Path = Path(workspace).resolve()
@@ -234,15 +236,17 @@ class PhaseDriver:
         self.max_repairs: int = max_repairs
         self.ollama_url: str = ollama_url.rstrip("/")
         self.model: str = model
-        self.air_gapped: bool = air_gapped
+        resolved_loopback_only = air_gapped if air_gapped is not None else loopback_only
+        self.loopback_only: bool = resolved_loopback_only
+        self.air_gapped: bool = resolved_loopback_only
 
         self.provider: str = provider.lower()
         if self.provider not in {"ollama", "openrouter"}:
             raise ValueError(f"Unsupported provider '{provider}'. Must be 'ollama' or 'openrouter'.")
 
-        if self.air_gapped and self.provider == "openrouter":
+        if self.loopback_only and self.provider == "openrouter":
             raise ValueError(
-                "Air-gapped security violation: external cloud provider 'openrouter' is forbidden when air_gapped=True. "
+                "Loopback-only endpoint violation (air-gapped): external cloud provider 'openrouter' is forbidden when loopback_only=True. "
                 "Use local inference engine ('ollama') with localhost/loopback address."
             )
 
@@ -258,12 +262,12 @@ class PhaseDriver:
         else:
             self.base_url = (base_url or self.ollama_url).rstrip("/")
 
-        if self.air_gapped:
+        if self.loopback_only:
             base_lower = self.base_url.lower()
             if not ("127.0.0.1" in base_lower or "localhost" in base_lower or "::1" in base_lower):
                 raise ValueError(
-                    f"Air-gapped security violation: endpoint '{self.base_url}' is not a local loopback interface. "
-                    "Air-gapped isolation requires 127.0.0.1 or localhost."
+                    f"Loopback-only endpoint violation (air-gapped): endpoint '{self.base_url}' is not a local loopback interface. "
+                    "Loopback-only inference endpoint enforcement requires 127.0.0.1 or localhost."
                 )
 
         # Initialize Skills subsystem (Heart integration)
@@ -316,10 +320,12 @@ class PhaseDriver:
     # ── Trace & Canonical Hashing (Invariant 4) ──────────────────────────
 
     def _emit_trace(self, phase: PhaseEnum, payload: dict[str, Any]) -> TraceRecord:
-        """Construct, hash, and persist an immutable trace record to transcript.jsonl."""
-        if self.air_gapped:
-            attestation_content = f"{self.session_id}|{self.turn}|{self.step_index}|AIR_GAPPED_NO_EGRESS|{self.prev_hash}"
-            payload["air_gapped_attestation"] = hashlib.sha256(attestation_content.encode("utf-8")).hexdigest()
+        """Construct, hash, and persist a hash-chained, tamper-evident trace record to transcript.jsonl."""
+        if self.loopback_only:
+            attestation_content = f"{self.session_id}|{self.turn}|{self.step_index}|LOOPBACK_ONLY_NO_EGRESS|{self.prev_hash}"
+            attestation_hash = hashlib.sha256(attestation_content.encode("utf-8")).hexdigest()
+            payload["loopback_attestation"] = attestation_hash
+            payload["air_gapped_attestation"] = attestation_hash  # Backwards compatibility alias
 
         event = TelemetryEvent(
             session_id=self.session_id,

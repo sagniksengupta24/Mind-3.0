@@ -33,6 +33,8 @@ from .verifier import (
     SiliconSignoffVerifier,
     SoftwareVerifier,
     TapeoutReadinessVerifier,
+    format_gate_report_row,
+    get_gate_presentation_label,
 )
 from .power import (
     ClampValue,
@@ -69,6 +71,8 @@ __all__ = [
     "SiliconSignoffVerifier",
     "TapeoutReadinessVerifier",
     "CommercialSignoffVerifier",
+    "get_gate_presentation_label",
+    "format_gate_report_row",
     "PhaseEnum",
     "WriteFileAction",
     "WriteBatchFilesAction",

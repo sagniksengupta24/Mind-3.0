@@ -392,6 +392,153 @@ def parse_opensta_wns(output: str) -> float | None:
     return parse_opensta_timing(output)["setup_wns"]
 
 
+def parse_verilator_coverage(output: str) -> dict[str, float | None]:
+    """Parse line, branch, and toggle coverage percentages from Verilator output.
+
+    Returns:
+        dict with keys 'branch', 'toggle', 'line'. Each is a float in [0.0, 100.0] or None if absent.
+    """
+    branch_cov: float | None = None
+    toggle_cov: float | None = None
+    line_cov: float | None = None
+
+    branch_match = re.search(
+        r"\bbranch(?:\s+coverage)?\s*[:=]?\s*(\d+(?:\.\d+)?)%", output, re.IGNORECASE
+    )
+    if branch_match:
+        branch_cov = float(branch_match.group(1))
+
+    toggle_match = re.search(
+        r"\btoggle(?:\s+coverage)?\s*[:=]?\s*(\d+(?:\.\d+)?)%", output, re.IGNORECASE
+    )
+    if toggle_match:
+        toggle_cov = float(toggle_match.group(1))
+
+    line_match = re.search(
+        r"\bline(?:\s+coverage)?\s*[:=]?\s*(\d+(?:\.\d+)?)%", output, re.IGNORECASE
+    )
+    if line_match:
+        line_cov = float(line_match.group(1))
+
+    return {"branch": branch_cov, "toggle": toggle_cov, "line": line_cov}
+
+
+def parse_yosys_lec(output: str) -> dict[str, Any]:
+    """Parse Yosys formal equivalence checking (equiv_status) output.
+
+    Returns:
+        dict with keys:
+            equivalent: bool (True if equivalence successfully proven, False otherwise).
+            proven_points: int | None (number of proved equivalence points).
+            unproven_points: int | None (number of unproved equivalence points).
+            error: str | None.
+    """
+    proven_points: int | None = None
+    unproven_points: int | None = None
+
+    prov_match = re.search(r"Proved\s+(\d+)\s+equivalence\s+points", output, re.IGNORECASE)
+    if prov_match:
+        proven_points = int(prov_match.group(1))
+
+    unprov_match = re.search(r"Found\s+(\d+)\s+unproven\s+\$equiv\s+cells", output, re.IGNORECASE)
+    if unprov_match:
+        unproven_points = int(unprov_match.group(1))
+    else:
+        err_match = re.search(r"ERROR:\s*Found\s+(\d+)\s+unproven\s+points", output, re.IGNORECASE)
+        if err_match:
+            unproven_points = int(err_match.group(1))
+
+    equivalent = (
+        "Equivalence successfully proven!" in output
+        or (unproven_points == 0 and proven_points is not None and proven_points > 0)
+    ) and "ERROR:" not in output
+
+    error_msg = None
+    if not equivalent:
+        if unproven_points is not None and unproven_points > 0:
+            error_msg = f"{unproven_points} unproven equivalence points found."
+        elif "ERROR:" in output:
+            err_line = next((line for line in output.splitlines() if "ERROR:" in line), "LEC error")
+            error_msg = err_line.strip()
+        else:
+            error_msg = "Equivalence could not be proven."
+
+    return {
+        "equivalent": equivalent,
+        "proven_points": proven_points,
+        "unproven_points": unproven_points,
+        "error": error_msg,
+    }
+
+
+def parse_openroad_pnr(output: str) -> dict[str, Any]:
+    """Parse OpenROAD place-and-route logs for completion, overflow, and congestion metrics.
+
+    Returns:
+        dict with keys:
+            passed: bool (True if PNR completed without fatal overflow or errors).
+            pnr_complete: bool (True if PNR_COMPLETE banner reached).
+            placement_overflow: float | None.
+            routing_congestion: float | None.
+            errors: list of error strings found.
+    """
+    pnr_complete = "PNR_COMPLETE" in output
+
+    overflow_match = re.search(
+        r"(?:overflow(?:ed)?[:\s]+([0-9.]+)|([0-9.]+)\s+(?:instances\s+)?overflowed)",
+        output,
+        re.IGNORECASE,
+    )
+    placement_overflow = None
+    if overflow_match:
+        val_str = overflow_match.group(1) or overflow_match.group(2)
+        if val_str:
+            placement_overflow = float(val_str)
+
+    congestion_match = re.search(r"GRT-0043.*?congestion[:\s]+([0-9.]+)%", output, re.IGNORECASE)
+    routing_congestion = float(congestion_match.group(1)) if congestion_match else None
+
+    errors: list[str] = []
+    for line in output.splitlines():
+        if "[ERROR" in line or line.strip().startswith("ERROR:"):
+            errors.append(line.strip())
+
+    passed = pnr_complete and len(errors) == 0 and (placement_overflow is None or placement_overflow == 0.0)
+
+    return {
+        "passed": passed,
+        "pnr_complete": pnr_complete,
+        "placement_overflow": placement_overflow,
+        "routing_congestion": routing_congestion,
+        "errors": errors,
+    }
+
+
+def parse_yosys_cdc(output: str) -> dict[str, Any]:
+    """Parse Yosys CDC analysis output for unregistered clock-domain crossings.
+
+    Returns:
+        dict with keys:
+            passed: bool (True if zero CDC violations found).
+            violations: list of CDC violation descriptions.
+    """
+    cdc_patterns = [
+        re.compile(r"CDC\s+WARNING[:\s]+(.*?)$", re.IGNORECASE | re.MULTILINE),
+        re.compile(r"\[cdc\]\s+(?:warning|issue)[:\s]+(.*?)$", re.IGNORECASE | re.MULTILINE),
+        re.compile(r"Found\s+CDC\s+(?:issue|violation)[:\s]+(.*?)$", re.IGNORECASE | re.MULTILINE),
+    ]
+    violations: list[str] = []
+    for pattern in cdc_patterns:
+        for match in pattern.finditer(output):
+            msg = match.group(1).strip()
+            if msg and msg not in violations:
+                violations.append(msg)
+
+    passed = len(violations) == 0 and "CDC analysis failed" not in output
+    return {"passed": passed, "violations": violations}
+
+
+
 def _is_binary_missing(proc: Any, binary: str) -> bool:
     """Detect whether a subshell execution failed because an EDA binary was missing."""
     if proc.returncode == 127:
@@ -897,26 +1044,28 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "skipped": False,
             }
 
-        if "Equivalence successfully proven!" in combined or (proc.returncode == 0 and "ERROR" not in combined):
+        lec_result = parse_yosys_lec(combined)
+        if lec_result["equivalent"] and proc.returncode == 0:
             return {
                 "gate": "Gate 1b: Logic Equivalence Checking (LEC)",
                 "passed": True,
                 "exit_code": 0,
                 "stdout": proc.stdout,
                 "stderr": proc.stderr,
-                "details": "Equivalence formally proved between golden RTL and synthesized netlist.",
+                "details": f"Equivalence formally proved between golden RTL and synthesized netlist ({lec_result.get('proven_points', 'all')} points proved).",
                 "error_category": None,
                 "simulated": False,
                 "skipped": False,
             }
         else:
+            err_detail = lec_result.get("error") or "Unproven equivalence points between RTL and gate netlist."
             return {
                 "gate": "Gate 1b: Logic Equivalence Checking (LEC)",
                 "passed": False,
                 "exit_code": proc.returncode if proc.returncode != 0 else 1,
                 "stdout": proc.stdout,
                 "stderr": proc.stderr,
-                "details": "Formal LEC failed: Unproven equivalence points between RTL and gate netlist.",
+                "details": f"Formal LEC failed: {err_detail}",
                 "error_category": "LEC_VERIFICATION_FAILED",
                 "simulated": False,
             }
@@ -1186,17 +1335,10 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "simulated": False,
                 }
 
-        # Parse coverage percentage if reported in output
-        branch_cov = 100.0
-        toggle_cov = 100.0
         cov_combined = f"{proc.stdout}\n{sim_stdout}"
-
-        branch_match = re.search(r"branch(?:\s+coverage)?\s*[:=]?\s*(\d+(?:\.\d+)?)%", cov_combined, re.IGNORECASE)
-        if branch_match:
-            branch_cov = float(branch_match.group(1))
-        toggle_match = re.search(r"toggle(?:\s+coverage)?\s*[:=]?\s*(\d+(?:\.\d+)?)%", cov_combined, re.IGNORECASE)
-        if toggle_match:
-            toggle_cov = float(toggle_match.group(1))
+        cov_metrics = parse_verilator_coverage(cov_combined)
+        branch_cov = cov_metrics["branch"] if cov_metrics["branch"] is not None else 100.0
+        toggle_cov = cov_metrics["toggle"] if cov_metrics["toggle"] is not None else 100.0
 
         if branch_cov < self.min_branch_coverage or toggle_cov < self.min_toggle_coverage:
             return {
@@ -1516,27 +1658,22 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "simulated": False,
             }
 
-        pnr_complete = "PNR_COMPLETE" in combined
-        overflow_match = re.search(r"DPL-0020.*?overflow[:\s]+([0-9.]+)", combined, re.IGNORECASE)
-        congestion_match = re.search(r"GRT-0043.*?congestion[:\s]+([0-9.]+)%", combined, re.IGNORECASE)
+        pnr_parsed = parse_openroad_pnr(combined)
         metrics: dict[str, Any] = {
-            "pnr_complete": pnr_complete,
-            "placement_overflow": float(overflow_match.group(1)) if overflow_match else None,
-            "routing_congestion": float(congestion_match.group(1)) if congestion_match else None,
+            "pnr_complete": pnr_parsed["pnr_complete"],
+            "placement_overflow": pnr_parsed["placement_overflow"],
+            "routing_congestion": pnr_parsed["routing_congestion"],
         }
 
-        fatal_found = bool(
-            re.search(r"\[ERROR\]", combined)
-            or re.search(r"DPL-0020.*?overflow:\s*[1-9]", combined, re.IGNORECASE)
-        )
-        if proc.returncode != 0 or fatal_found:
+        if proc.returncode != 0 or not pnr_parsed["passed"]:
+            err_msg = pnr_parsed["errors"][0] if pnr_parsed["errors"] else "placement overflow or routing error detected"
             return {
                 "gate": "Gate 5: OpenROAD Place-and-Route",
                 "passed": False,
-                "exit_code": proc.returncode,
+                "exit_code": proc.returncode if proc.returncode != 0 else 1,
                 "stdout": proc.stdout,
                 "stderr": proc.stderr,
-                "details": "OpenROAD PnR failed: placement overflow or routing error detected.",
+                "details": f"OpenROAD PnR failed: {err_msg}.",
                 "error_category": "PNR_PLACEMENT_FAILED",
                 "metrics": metrics,
                 "skipped": False,
@@ -1608,20 +1745,10 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "simulated": False,
             }
 
-        # Parse CDC warnings from Yosys output
-        cdc_patterns = [
-            re.compile(r"CDC\s+WARNING[:\s]+(.*?)$", re.IGNORECASE | re.MULTILINE),
-            re.compile(r"\[cdc\]\s+(?:warning|issue)[:\s]+(.*?)$", re.IGNORECASE | re.MULTILINE),
-            re.compile(r"Found\s+CDC\s+(?:issue|violation)[:\s]+(.*?)$", re.IGNORECASE | re.MULTILINE),
-        ]
-        violations: list[str] = []
-        for pattern in cdc_patterns:
-            for match in pattern.finditer(combined):
-                msg = match.group(1).strip()
-                if msg and msg not in violations:
-                    violations.append(msg)
+        cdc_result = parse_yosys_cdc(combined)
+        violations = cdc_result["violations"]
 
-        if violations:
+        if not cdc_result["passed"]:
             return {
                 "gate": "Gate 6: Yosys CDC Static Analysis",
                 "passed": False,

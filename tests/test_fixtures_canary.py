@@ -18,8 +18,12 @@ from mind3.core.driver import (
 )
 from mind3.core.verifier import (
     detect_eda_tool_versions,
+    parse_openroad_pnr,
     parse_opensta_timing,
     parse_opensta_wns,
+    parse_verilator_coverage,
+    parse_yosys_cdc,
+    parse_yosys_lec,
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "eda_outputs"
@@ -169,3 +173,93 @@ def test_openrouter_registry_fail_closed_on_unreachable_network(monkeypatch: pyt
 
     assert "Failed to query OpenRouter model registry" in str(exc_info.value)
     assert "fail-closed mode" in str(exc_info.value)
+
+
+def test_yosys_equiv_pass_fixture() -> None:
+    """Validate Yosys LEC parser on captured passing formal equivalence output."""
+    log_text = (FIXTURES_DIR / "yosys_equiv_pass.log").read_text(encoding="utf-8")
+    lec = parse_yosys_lec(log_text)
+    assert lec["equivalent"] is True
+    assert lec["proven_points"] == 8
+    assert lec["unproven_points"] == 0
+    assert lec["error"] is None
+
+
+def test_yosys_equiv_fail_fixture() -> None:
+    """Validate Yosys LEC parser on captured failing formal equivalence output."""
+    log_text = (FIXTURES_DIR / "yosys_equiv_fail.log").read_text(encoding="utf-8")
+    lec = parse_yosys_lec(log_text)
+    assert lec["equivalent"] is False
+    assert lec["proven_points"] == 6
+    assert lec["unproven_points"] == 2
+    assert lec["error"] is not None
+    assert "2 unproven equivalence points" in lec["error"]
+
+
+def test_verilator_coverage_clean_fixture() -> None:
+    """Validate Verilator coverage parser on captured 100% coverage log."""
+    log_text = (FIXTURES_DIR / "verilator_coverage_clean.log").read_text(encoding="utf-8")
+    cov = parse_verilator_coverage(log_text)
+    assert cov["branch"] == 100.0
+    assert cov["toggle"] == 100.0
+
+
+def test_verilator_coverage_deficit_fixture() -> None:
+    """Validate Verilator coverage parser on captured low-coverage log."""
+    log_text = (FIXTURES_DIR / "verilator_coverage_deficit.log").read_text(encoding="utf-8")
+    cov = parse_verilator_coverage(log_text)
+    assert cov["branch"] == 78.5
+    assert cov["toggle"] == 65.0
+
+
+def test_openroad_pnr_clean_fixture() -> None:
+    """Validate OpenROAD PnR parser on clean place-and-route output."""
+    log_text = (FIXTURES_DIR / "openroad_pnr_clean.log").read_text(encoding="utf-8")
+    pnr = parse_openroad_pnr(log_text)
+    assert pnr["passed"] is True
+    assert pnr["pnr_complete"] is True
+    assert pnr["placement_overflow"] is None
+    assert len(pnr["errors"]) == 0
+
+
+def test_openroad_placement_overflow_fixture() -> None:
+    """Validate OpenROAD PnR parser on detailed placement overflow failure."""
+    log_text = (FIXTURES_DIR / "openroad_placement_overflow.log").read_text(encoding="utf-8")
+    pnr = parse_openroad_pnr(log_text)
+    assert pnr["passed"] is False
+    assert pnr["pnr_complete"] is False
+    assert pnr["placement_overflow"] == 14.0
+    assert len(pnr["errors"]) >= 3
+    assert any("DPL-0020" in err for err in pnr["errors"])
+
+
+def test_yosys_cdc_clean_fixture() -> None:
+    """Validate Yosys CDC parser on clean synchronous design output."""
+    log_text = (FIXTURES_DIR / "yosys_cdc_clean.log").read_text(encoding="utf-8")
+    cdc = parse_yosys_cdc(log_text)
+    assert cdc["passed"] is True
+    assert len(cdc["violations"]) == 0
+
+
+def test_yosys_cdc_violation_fixture() -> None:
+    """Validate Yosys CDC parser detects multiple cross-domain warnings."""
+    log_text = (FIXTURES_DIR / "yosys_cdc_violation.log").read_text(encoding="utf-8")
+    cdc = parse_yosys_cdc(log_text)
+    assert cdc["passed"] is False
+    assert len(cdc["violations"]) >= 2
+    assert any("clk_tx" in v and "clk_rx" in v for v in cdc["violations"])
+
+
+def test_environment_eda_tool_availability_honesty() -> None:
+    """Honesty check: detect_eda_tool_versions truthfully reflects host availability without faking versions."""
+    from mind3.sandbox.remote_eda import LocalBwrapRunner
+
+    versions = detect_eda_tool_versions(LocalBwrapRunner(workspace=Path.cwd()))
+    for tool_name in ["yosys", "sta", "verilator", "sby", "openroad"]:
+        assert tool_name in versions
+        # Must be either a non-empty string or 'missing', never empty or None
+        assert isinstance(versions[tool_name], str)
+        assert len(versions[tool_name]) > 0
+        # In this macOS execution environment, EDA binaries are not installed on PATH; must honestly report 'missing'
+        assert versions[tool_name] == "missing"
+

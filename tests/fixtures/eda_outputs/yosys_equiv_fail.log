@@ -1,0 +1,14 @@
+1. Executing EQUIV_STATUS pass (analyzing equivalence status).
+Found 8 $equiv cells in equiv:
+  Proved 6 equivalence points:
+    \alu_gold.result[0] === \alu_gate.result[0]
+    \alu_gold.result[1] === \alu_gate.result[1]
+    \alu_gold.result[2] === \alu_gate.result[2]
+    \alu_gold.result[3] === \alu_gate.result[3]
+    \alu_gold.result[4] === \alu_gate.result[4]
+    \alu_gold.result[5] === \alu_gate.result[5]
+  Unproven 2 equivalence points:
+    \alu_gold.result[6] !== \alu_gate.result[6]
+    \alu_gold.result[7] !== \alu_gate.result[7]
+Found 2 unproven $equiv cells (8 total) in equiv.
+ERROR: Found 2 unproven points!

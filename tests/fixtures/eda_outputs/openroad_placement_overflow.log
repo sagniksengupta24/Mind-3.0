@@ -1,0 +1,8 @@
+OpenROAD 2.0-11235 (git sha1 9f8a3c2)
+[INFO ODB-0128] Design: complex_mac
+[INFO ODB-0130] Placed 1850 instances.
+[INFO IFP-0001] Initialized floorplan with 85% utilization.
+[INFO GPL-0002] Global placement completed with HPWL 98200 um.
+[ERROR DPL-0020] Detailed placement failed with 14 instances overflowed.
+[ERROR DPL-0033] Target density 0.85 exceeded available cell rows.
+[ERROR] Placement failed due to core utilization constraints.

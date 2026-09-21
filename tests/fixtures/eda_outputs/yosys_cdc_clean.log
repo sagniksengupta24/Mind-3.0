@@ -1,0 +1,16 @@
+-- Yosys 0.36 (git sha1 c850be45, clang++ 14.0.0)
+1. Executing Verilog-2005 frontend: sync_fifo.sv
+Parsing SystemVerilog input `sync_fifo.sv' to AST representation.
+Generating RTLIL representation for module `\sync_fifo'.
+Successfully finished Verilog frontend.
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+Top module:  \sync_fifo
+
+3. Executing CDC pass (clock-domain crossing analysis).
+Checking clock domain crossings in \sync_fifo...
+Found 1 unique clock domains: \clk
+All 48 internal flip-flops clocked synchronously by \clk.
+0 cross-clock domain crossings detected.
+CDC analysis clean: 0 violations.
+Logged 0 warnings, 0 errors.

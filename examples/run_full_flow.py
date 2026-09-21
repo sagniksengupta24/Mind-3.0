@@ -73,7 +73,6 @@ def run_full_flow() -> None:
             timing=TimingConstraint(
                 clock_name="clk",
                 period_ns=2.0,
-                target_library="sky130_fd_sc_hd__tt_025C_1v80.lib",
                 pvt_corners=["tt_025c_1v80", "ff_n40c_1v95", "ss_125c_1v60"],
             ),
         )

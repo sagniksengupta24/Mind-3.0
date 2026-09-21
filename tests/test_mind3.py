@@ -2663,3 +2663,17 @@ def test_sby_config_property_depth_override() -> None:
     )
     assert "depth 100" in sby
 
+
+def test_timing_constraint_target_library_removed() -> None:
+    """TimingConstraint must not contain target_library; extra fields are forbidden by schema."""
+    tc = TimingConstraint(clock_name="clk", period_ns=4.0)
+    assert not hasattr(tc, "target_library")
+
+    with pytest.raises(ValidationError):
+        TimingConstraint(clock_name="clk", period_ns=4.0, target_library="sky130.lib")  # type: ignore
+
+    sdc = tc.to_sdc()
+    assert "read_liberty" not in sdc
+    assert "target_library" not in sdc
+    assert "create_clock -name clk -period 4.000 [get_ports clk]" in sdc
+

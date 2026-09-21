@@ -480,9 +480,6 @@ class SiliconSignoffVerifier(BaseVerifier):
                     raise ValueError("liberty_path list must contain at least one non-empty path.")
             else:
                 raise TypeError("liberty_path must be a str or list[str].")
-        elif contract and contract.timing and contract.timing.target_library:
-            stripped = str(contract.timing.target_library).strip()
-            self.liberty_paths = [stripped] if stripped else []
         else:
             self.liberty_paths = []
 

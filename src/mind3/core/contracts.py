@@ -75,13 +75,6 @@ class TimingConstraint(BaseModel):
 
     clock_name: str = Field(default="clk", description="Primary clock signal name")
     period_ns: float = Field(default=10.0, gt=0.0, description="Clock period target in nanoseconds")
-    target_library: str | None = Field(
-        default=None,
-        description=(
-            "Optional reference Liberty (.lib) cell library path. When provided, informs Gate 4 STA "
-            "and Gate 5 PnR if no explicit liberty_path is passed to SiliconSignoffVerifier."
-        ),
-    )
     pvt_corners: list[str] = Field(
         default_factory=lambda: ["tt_025c_1v80", "ff_n40c_1v95", "ss_125c_1v60"],
         description="PVT corner identifiers for MCMM timing analysis (TT, FF, SS)",

@@ -204,6 +204,7 @@ class PhaseDriver:
         provider: str = "ollama",
         api_key: str | None = None,
         base_url: str | None = None,
+        air_gapped: bool = False,
     ) -> None:
         """Initialize the driver runtime.
 
@@ -224,6 +225,7 @@ class PhaseDriver:
             provider: LLM backend provider ("ollama" or "openrouter", default: "ollama").
             api_key: API authorization key (defaults to OPENROUTER_API_KEY env var for OpenRouter).
             base_url: Optional custom provider API base URL.
+            air_gapped: When True, strictly blocks all outbound network egress and requires local inference.
         """
         self.session_id: str = session_id
         self.workspace: Path = Path(workspace).resolve()
@@ -232,10 +234,17 @@ class PhaseDriver:
         self.max_repairs: int = max_repairs
         self.ollama_url: str = ollama_url.rstrip("/")
         self.model: str = model
+        self.air_gapped: bool = air_gapped
 
         self.provider: str = provider.lower()
         if self.provider not in {"ollama", "openrouter"}:
             raise ValueError(f"Unsupported provider '{provider}'. Must be 'ollama' or 'openrouter'.")
+
+        if self.air_gapped and self.provider == "openrouter":
+            raise ValueError(
+                "Air-gapped security violation: external cloud provider 'openrouter' is forbidden when air_gapped=True. "
+                "Use local inference engine ('ollama') with localhost/loopback address."
+            )
 
         self.api_key: str | None = api_key
         if self.provider == "openrouter":
@@ -248,6 +257,14 @@ class PhaseDriver:
             self.base_url: str = (base_url or "https://openrouter.ai/api/v1").rstrip("/")
         else:
             self.base_url = (base_url or self.ollama_url).rstrip("/")
+
+        if self.air_gapped:
+            base_lower = self.base_url.lower()
+            if not ("127.0.0.1" in base_lower or "localhost" in base_lower or "::1" in base_lower):
+                raise ValueError(
+                    f"Air-gapped security violation: endpoint '{self.base_url}' is not a local loopback interface. "
+                    "Air-gapped isolation requires 127.0.0.1 or localhost."
+                )
 
         # Initialize Skills subsystem (Heart integration)
         resolved_skills_dir: Path | None = None
@@ -300,6 +317,10 @@ class PhaseDriver:
 
     def _emit_trace(self, phase: PhaseEnum, payload: dict[str, Any]) -> TraceRecord:
         """Construct, hash, and persist an immutable trace record to transcript.jsonl."""
+        if self.air_gapped:
+            attestation_content = f"{self.session_id}|{self.turn}|{self.step_index}|AIR_GAPPED_NO_EGRESS|{self.prev_hash}"
+            payload["air_gapped_attestation"] = hashlib.sha256(attestation_content.encode("utf-8")).hexdigest()
+
         event = TelemetryEvent(
             session_id=self.session_id,
             phase=phase,
@@ -512,10 +533,15 @@ class PhaseDriver:
     def _policy_check(self, action: AgentAction) -> None:
         """Enforce canonical path resolution and sandbox policy boundaries."""
         if action.action == "write_file":
+            if "\x00" in action.path:
+                raise ValueError("Security violation: null bytes in path are forbidden.")
             resolved_ws = self.workspace.resolve()
             target_path = (self.workspace / action.path).resolve()
 
-            if not target_path.is_relative_to(resolved_ws):
+            if (
+                not target_path.is_relative_to(resolved_ws)
+                or os.path.commonpath([str(resolved_ws), str(target_path)]) != str(resolved_ws)
+            ):
                 raise PermissionError(
                     f"Security violation: path traversal blocked for path: {action.path}"
                 )

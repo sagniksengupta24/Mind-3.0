@@ -408,6 +408,26 @@ def test_policy_traversal_and_directory_protection() -> None:
             driver._policy_check(WriteFileAction(path="sub_dir", content="x"))
         assert "existing directory" in str(exc5.value)
 
+        # 6. Null byte path injection blocked
+        with pytest.raises(ValueError) as exc6:
+            driver._policy_check(WriteFileAction(path="bad\x00file.txt", content="x"))
+        assert "null bytes" in str(exc6.value).lower()
+
+        # 7. Symlink escape outside workspace blocked
+        outside_dir = Path(tmpdir).parent / "outside_sandbox_tmp"
+        outside_dir.mkdir(exist_ok=True)
+        symlink_path = ws / "escape_symlink"
+        try:
+            symlink_path.symlink_to(outside_dir)
+            with pytest.raises(PermissionError) as exc7:
+                driver._policy_check(WriteFileAction(path="escape_symlink/leak.txt", content="x"))
+            assert "path traversal blocked" in str(exc7.value)
+        finally:
+            if symlink_path.is_symlink():
+                symlink_path.unlink()
+            if outside_dir.exists():
+                outside_dir.rmdir()
+
 
 # ── Snapshot & Rollback Lifecycle Tests ──────────────────────────────────────
 
@@ -2963,5 +2983,58 @@ def test_gate4_multi_corner_simulated_pvt_corners() -> None:
         assert report["simulated"] is True
         assert "c_typ" in report["metrics"]["corners"]
         assert "c_slow" in report["metrics"]["corners"]
+
+
+def test_air_gapped_forbids_cloud_provider() -> None:
+    """air_gapped=True must forbid cloud LLM providers (e.g. openrouter)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        verifier = MockVerifier(should_pass=True)
+        with pytest.raises(ValueError, match="Air-gapped security violation"):
+            PhaseDriver(
+                session_id="airgap-test",
+                workspace=ws,
+                verifier=verifier,
+                provider="openrouter",
+                api_key="sk-fake",
+                air_gapped=True,
+            )
+
+
+def test_air_gapped_forbids_non_loopback_base_url() -> None:
+    """air_gapped=True must forbid non-loopback base URLs."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        verifier = MockVerifier(should_pass=True)
+        with pytest.raises(ValueError, match="Air-gapped security violation"):
+            PhaseDriver(
+                session_id="airgap-test",
+                workspace=ws,
+                verifier=verifier,
+                provider="ollama",
+                base_url="http://192.168.1.100:11434",
+                air_gapped=True,
+            )
+
+
+def test_air_gapped_emits_cryptographic_attestation() -> None:
+    """air_gapped=True must inject air_gapped_attestation SHA-256 into trace events."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        verifier = MockVerifier(should_pass=True)
+        mock_sb = MockSandbox(ws)
+        driver = PhaseDriver(
+            session_id="airgap-attest",
+            workspace=ws,
+            verifier=verifier,
+            provider="ollama",
+            base_url="http://127.0.0.1:11434",
+            sandbox=mock_sb,  # type: ignore
+            air_gapped=True,
+        )
+        rec = driver._emit_trace(PhaseEnum.INTAKE, {"input": "clean RTL"})
+        assert "air_gapped_attestation" in rec.event.payload
+        assert len(rec.event.payload["air_gapped_attestation"]) == 64
+
 
 

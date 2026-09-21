@@ -8,12 +8,13 @@ import re
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 
 from mind3.core.driver import (
-    OPENROUTER_FREE_MODELS,
-    OPENROUTER_KNOWN_FREE_MODELS,
     OpenRouterModelRegistry,
+    OpenRouterModelRegistryError,
+    fetch_openrouter_free_models,
 )
 from mind3.core.verifier import (
     detect_eda_tool_versions,
@@ -137,9 +138,34 @@ def test_self_audit_no_fabricated_claims() -> None:
             assert not matches, f"Found forbidden fabricated pattern {matches} in {py_file}"
 
 
-def test_openrouter_known_models_authenticity() -> None:
-    """Verify that all entries in OPENROUTER_KNOWN_FREE_MODELS are authentic, existing free slugs."""
-    for name, slug in OPENROUTER_KNOWN_FREE_MODELS.items():
-        assert slug.endswith(":free")
-        assert "/" in slug
-        assert not any(fake in slug for fake in ["gemma-4", "glm-5.2", "nemotron-3.5"])
+def test_openrouter_registry_fail_closed_on_unreachable_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify OpenRouterModelRegistry raises OpenRouterModelRegistryError and never falls back to hardcoded models."""
+    import mind3.core.driver as driver_mod
+
+    # Guardrail: Ensure no hardcoded model dicts exist in driver module
+    assert not hasattr(driver_mod, "OPENROUTER_FREE_MODELS")
+    assert not hasattr(driver_mod, "OPENROUTER_KNOWN_FREE_MODELS")
+
+    OpenRouterModelRegistry._cached_models = []
+    OpenRouterModelRegistry._last_fetch_time = 0.0
+
+    class FailingClient:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def __enter__(self) -> "FailingClient":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            pass
+
+        def get(self, url: str, headers: dict[str, str]) -> Any:
+            raise httpx.ConnectError("Network unreachable")
+
+    monkeypatch.setattr(httpx, "Client", FailingClient)
+
+    with pytest.raises(OpenRouterModelRegistryError) as exc_info:
+        fetch_openrouter_free_models(force_refresh=True)
+
+    assert "Failed to query OpenRouter model registry" in str(exc_info.value)
+    assert "fail-closed mode" in str(exc_info.value)

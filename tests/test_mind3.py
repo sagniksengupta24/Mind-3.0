@@ -18,12 +18,12 @@ import pytest
 from pydantic import ValidationError
 
 from mind3.core.driver import (
-    OPENROUTER_FREE_MODELS,
-    OPENROUTER_KNOWN_FREE_MODELS,
     OpenRouterModelRegistry,
+    OpenRouterModelRegistryError,
     PhaseDriver,
     _parse_model_code_response,
     _sanitize_json_output,
+    fetch_openrouter_free_models,
 )
 from mind3.core.types import (
     AgentAction,
@@ -1859,24 +1859,91 @@ def test_ollama_provider_regression(monkeypatch: pytest.MonkeyPatch) -> None:
         assert (ws / "reg.v").exists()
 
 
-def test_openrouter_free_models_config() -> None:
-    """Verify OPENROUTER_FREE_MODELS dictionary contains genuine known free model references."""
-    assert isinstance(OPENROUTER_FREE_MODELS, dict)
-    assert len(OPENROUTER_FREE_MODELS) >= 5
-
-    # Check real, non-fabricated reference slugs
-    expected_slugs = {
-        "qwen-2.5-coder-32b": "qwen/qwen-2.5-coder-32b-instruct:free",
-        "llama-3.3-70b": "meta-llama/llama-3.3-70b-instruct:free",
-        "deepseek-r1": "deepseek/deepseek-r1:free",
-        "mistral-7b": "mistralai/mistral-7b-instruct:free",
-        "gemini-2.0-flash": "google/gemini-2.0-flash-exp:free",
+def test_openrouter_free_models_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify fetch_openrouter_free_models queries API, filters free models, respects TTL, and fails closed."""
+    call_count = 0
+    fake_catalog = {
+        "data": [
+            {"id": "meta-llama/llama-3.3-70b-instruct:free", "pricing": {"prompt": "0", "completion": "0"}},
+            {"id": "qwen/qwen-2.5-coder-32b-instruct:free", "pricing": {"prompt": "0", "completion": "0"}},
+            {"id": "open-source/custom-zero-cost", "pricing": {"prompt": "0", "completion": "0"}},
+            {"id": "anthropic/claude-3.5-sonnet", "pricing": {"prompt": "0.003", "completion": "0.015"}},
+            {"id": "openai/gpt-4o", "pricing": {"prompt": "0.005", "completion": "0.015"}},
+        ]
     }
 
-    for key, slug in expected_slugs.items():
-        assert key in OPENROUTER_FREE_MODELS
-        assert OPENROUTER_FREE_MODELS[key] == slug
-        assert slug.endswith(":free")
+    class MockResponse:
+        status_code = 200
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, Any]:
+            return fake_catalog
+
+    class CountingMockClient:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            return None
+
+        def __enter__(self) -> "CountingMockClient":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            return None
+
+        def get(self, url: str, headers: dict[str, str]) -> MockResponse:
+            nonlocal call_count
+            call_count += 1
+            assert "models" in url
+            return MockResponse()
+
+    monkeypatch.setattr(httpx, "Client", CountingMockClient)
+
+    # 1. Successful query and free-tier filtering
+    OpenRouterModelRegistry._cached_models = []
+    OpenRouterModelRegistry._last_fetch_time = 0.0
+    free_models = fetch_openrouter_free_models(ttl_seconds=3600.0, force_refresh=True)
+    assert len(free_models) == 3
+    assert "meta-llama/llama-3.3-70b-instruct:free" in free_models
+    assert "qwen/qwen-2.5-coder-32b-instruct:free" in free_models
+    assert "open-source/custom-zero-cost" in free_models
+    assert "anthropic/claude-3.5-sonnet" not in free_models
+    assert "openai/gpt-4o" not in free_models
+    assert call_count == 1
+
+    # 2. TTL caching: Repeated call within TTL returns cached result without querying API
+    cached_free = fetch_openrouter_free_models(ttl_seconds=3600.0)
+    assert cached_free == free_models
+    assert call_count == 1  # No additional network query
+
+    # 3. Configurable TTL expiry: When TTL is expired, a new query is dispatched
+    expired_free = fetch_openrouter_free_models(ttl_seconds=0.0, force_refresh=True)
+    assert expired_free == free_models
+    assert call_count == 2  # New network query dispatched
+
+    # 4. Fail-closed typed exception on query failure with no valid cache
+    class FailingClient:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            return None
+
+        def __enter__(self) -> "FailingClient":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            return None
+
+        def get(self, url: str, headers: dict[str, str]) -> Any:
+            raise httpx.ConnectError("Connection refused")
+
+    monkeypatch.setattr(httpx, "Client", FailingClient)
+    OpenRouterModelRegistry._cached_models = []
+    OpenRouterModelRegistry._last_fetch_time = 0.0
+
+    with pytest.raises(OpenRouterModelRegistryError) as exc_info:
+        fetch_openrouter_free_models(force_refresh=True)
+
+    assert "Failed to query OpenRouter model registry" in str(exc_info.value)
+    assert "fail-closed mode" in str(exc_info.value)
 
 
 def test_openrouter_model_registry_dynamic_query(monkeypatch: pytest.MonkeyPatch) -> None:

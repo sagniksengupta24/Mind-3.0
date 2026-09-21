@@ -102,12 +102,16 @@ NON_REPAIRABLE_CATEGORIES: set[str] = {
 }
 
 
+class OpenRouterModelRegistryError(Exception):
+    """Raised when querying the OpenRouter model registry fails and no valid cache exists."""
+
+
 class OpenRouterModelRegistry:
     """Dynamic, fail-closed model registry for OpenRouter endpoints.
 
     Queries the live OpenRouter API (https://openrouter.ai/api/v1/models) to discover
-    active models without hardcoded or fabricated slugs. Implements TTL caching
-    and strictly validates availability before dispatch.
+    active models without hardcoded or fabricated slugs. Implements configurable TTL
+    caching and strictly validates availability before dispatch.
     """
 
     DEFAULT_CACHE_TTL_SEC: float = 3600.0  # 1 hour
@@ -120,14 +124,16 @@ class OpenRouterModelRegistry:
         api_key: str | None = None,
         base_url: str = "https://openrouter.ai/api/v1",
         timeout: float = 10.0,
+        ttl_seconds: float = DEFAULT_CACHE_TTL_SEC,
         force_refresh: bool = False,
     ) -> list[dict[str, Any]]:
-        """Fetch models from OpenRouter API with TTL caching.
+        """Fetch models from OpenRouter API with configurable TTL caching.
 
         Fails closed on HTTP error or unreachable endpoint unless cached data is valid.
+        Raises OpenRouterModelRegistryError on query failure with no valid cache.
         """
         now = time.time()
-        if not force_refresh and cls._cached_models and (now - cls._last_fetch_time) < cls.DEFAULT_CACHE_TTL_SEC:
+        if not force_refresh and cls._cached_models and (now - cls._last_fetch_time) < ttl_seconds:
             return cls._cached_models
 
         headers = {"Accept": "application/json"}
@@ -146,11 +152,11 @@ class OpenRouterModelRegistry:
                 cls._last_fetch_time = now
                 return models
         except Exception as exc:
-            if cls._cached_models:
+            if not force_refresh and cls._cached_models and (now - cls._last_fetch_time) < ttl_seconds:
                 return cls._cached_models
-            raise RuntimeError(
+            raise OpenRouterModelRegistryError(
                 f"Failed to query OpenRouter model registry at {base_url}/models: {exc}. "
-                "OpenRouterModelRegistry operates in fail-closed mode and does not fabricate model availability."
+                "OpenRouterModelRegistry operates in fail-closed mode without silent fallback to hardcoded lists."
             ) from exc
 
     @classmethod
@@ -159,10 +165,17 @@ class OpenRouterModelRegistry:
         api_key: str | None = None,
         base_url: str = "https://openrouter.ai/api/v1",
         timeout: float = 10.0,
+        ttl_seconds: float = DEFAULT_CACHE_TTL_SEC,
         force_refresh: bool = False,
     ) -> list[str]:
         """Return IDs of currently active free models on OpenRouter."""
-        models = cls.fetch_models(api_key=api_key, base_url=base_url, timeout=timeout, force_refresh=force_refresh)
+        models = cls.fetch_models(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=timeout,
+            ttl_seconds=ttl_seconds,
+            force_refresh=force_refresh,
+        )
         free_ids: list[str] = []
         for m in models:
             model_id = m.get("id", "")
@@ -174,17 +187,25 @@ class OpenRouterModelRegistry:
         return sorted(free_ids)
 
 
-# Real, verified free model slugs observed on OpenRouter as reference baselines for offline development.
-# In live execution, use OpenRouterModelRegistry.get_free_models() to query the active catalog dynamically.
-OPENROUTER_KNOWN_FREE_MODELS: dict[str, str] = {
-    "qwen-2.5-coder-32b": "qwen/qwen-2.5-coder-32b-instruct:free",
-    "llama-3.3-70b": "meta-llama/llama-3.3-70b-instruct:free",
-    "deepseek-r1": "deepseek/deepseek-r1:free",
-    "mistral-7b": "mistralai/mistral-7b-instruct:free",
-    "gemini-2.0-flash": "google/gemini-2.0-flash-exp:free",
-}
-# Backward compatibility alias
-OPENROUTER_FREE_MODELS = OPENROUTER_KNOWN_FREE_MODELS
+def fetch_openrouter_free_models(
+    api_key: str | None = None,
+    base_url: str = "https://openrouter.ai/api/v1",
+    timeout: float = 10.0,
+    ttl_seconds: float = 3600.0,
+    force_refresh: bool = False,
+) -> list[str]:
+    """Query https://openrouter.ai/api/v1/models, filter for free-tier models, and cache with configurable TTL.
+
+    Raises:
+        OpenRouterModelRegistryError: On query failure with no valid cache.
+    """
+    return OpenRouterModelRegistry.get_free_models(
+        api_key=api_key,
+        base_url=base_url,
+        timeout=timeout,
+        ttl_seconds=ttl_seconds,
+        force_refresh=force_refresh,
+    )
 
 
 class PhaseDriver:
@@ -1268,8 +1289,8 @@ class PPAOptimizer:
 __all__ = [
     "PhaseDriver",
     "OpenRouterModelRegistry",
-    "OPENROUTER_KNOWN_FREE_MODELS",
-    "OPENROUTER_FREE_MODELS",
+    "OpenRouterModelRegistryError",
+    "fetch_openrouter_free_models",
     "PPAPoint",
     "PPAOptimizer",
 ]

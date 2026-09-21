@@ -2598,6 +2598,8 @@ def test_verilator_testbench_lfsr_stimulus() -> None:
     assert "0xB4BCD35Cu" in tb, "LFSR polynomial must be present"
     assert "lfsr" in tb
     assert "uint32_t" in tb
+    assert "Galois LFSR" in tb, "Comment must accurately identify Galois LFSR topology"
+    assert "Fibonacci" not in tb, "Comment must not misidentify Galois implementation as Fibonacci"
 
 
 def test_verilator_testbench_boundary_sweep() -> None:

@@ -163,6 +163,11 @@ endmodule
         verifier = SiliconSignoffVerifier(
             top_module=contract.module_name,
             contract=contract,
+            liberty_path=[
+                "sky130_fd_sc_hd__tt_025C_1v80.lib",
+                "sky130_fd_sc_hd__ff_n40C_1v95.lib",
+                "sky130_fd_sc_hd__ss_125C_1v60.lib",
+            ],
             runner=runner,
             allow_mock_fallback=True,
             require_formal=True,

@@ -2799,7 +2799,8 @@ def test_verilator_testbench_lfsr_stimulus() -> None:
     assert "lfsr" in tb
     assert "uint32_t" in tb
     assert "Galois LFSR" in tb, "Comment must accurately identify Galois LFSR topology"
-    assert "see mask for exact taps" in tb, "Comment must reference mask rather than unverified polynomial term enumeration"
+    assert "A fixed 32-bit Galois LFSR (mask 0xB4BCD35C) used for pseudo-random stimulus." in tb
+    assert "maximal-length" not in tb, "Must not claim maximal-length without mathematical verification"
     assert "Fibonacci" not in tb, "Comment must not misidentify Galois implementation as Fibonacci"
 
 

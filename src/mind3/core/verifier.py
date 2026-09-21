@@ -383,6 +383,75 @@ def parse_opensta_timing(output: str) -> dict[str, float | None]:
     return {"setup_wns": setup_wns, "setup_tns": setup_tns, "hold_wns": hold_wns}
 
 
+def parse_opensta_mcmm(output: str) -> dict[str, Any]:
+    """Extract per-corner and global setup/hold slack from OpenSTA multi-corner reports.
+
+    Returns a dict:
+        setup_wns: Worst setup WNS across all corners (min value).
+        setup_tns: Worst setup TNS across all corners.
+        hold_wns: Worst hold WNS across all corners.
+        corners: Dict mapping corner names to their individual timing metrics.
+        worst_corner: Name of the corner with the worst setup WNS.
+    """
+    corners: dict[str, dict[str, Any]] = {}
+    current_corner: str | None = None
+
+    for line in output.splitlines():
+        line_clean = line.strip()
+        corner_match = re.search(r"^Corner:\s*(\S+)", line_clean, re.IGNORECASE)
+        if corner_match:
+            current_corner = corner_match.group(1)
+            corners[current_corner] = {
+                "setup_wns": None,
+                "setup_tns": None,
+                "hold_wns": None,
+                "status": "MET",
+            }
+            continue
+
+        if current_corner:
+            sw_match = re.search(r"setup\s+wns\s*[:=]?\s*([+-]?\d+(?:\.\d+)?)", line_clean, re.IGNORECASE)
+            if sw_match:
+                corners[current_corner]["setup_wns"] = float(sw_match.group(1))
+
+            st_match = re.search(r"setup\s+tns\s*[:=]?\s*([+-]?\d+(?:\.\d+)?)", line_clean, re.IGNORECASE)
+            if st_match:
+                corners[current_corner]["setup_tns"] = float(st_match.group(1))
+
+            hw_match = re.search(r"hold\s+wns\s*[:=]?\s*([+-]?\d+(?:\.\d+)?)", line_clean, re.IGNORECASE)
+            if hw_match:
+                corners[current_corner]["hold_wns"] = float(hw_match.group(1))
+
+            if "VIOLATED" in line_clean:
+                corners[current_corner]["status"] = "VIOLATED"
+
+    # Base extraction across the whole log
+    base = parse_opensta_timing(output)
+
+    corner_setup_slacks = [c["setup_wns"] for c in corners.values() if c["setup_wns"] is not None]
+    corner_hold_slacks = [c["hold_wns"] for c in corners.values() if c["hold_wns"] is not None]
+    corner_tns_slacks = [c["setup_tns"] for c in corners.values() if c["setup_tns"] is not None]
+
+    setup_wns = min(corner_setup_slacks) if corner_setup_slacks else base["setup_wns"]
+    hold_wns = min(corner_hold_slacks) if corner_hold_slacks else base["hold_wns"]
+    setup_tns = min(corner_tns_slacks) if corner_tns_slacks else base["setup_tns"]
+
+    worst_corner: str | None = None
+    if corners and setup_wns is not None:
+        for cname, cdata in corners.items():
+            if cdata["setup_wns"] is not None and abs(cdata["setup_wns"] - setup_wns) < 1e-6:
+                worst_corner = cname
+                break
+
+    return {
+        "setup_wns": setup_wns,
+        "setup_tns": setup_tns,
+        "hold_wns": hold_wns,
+        "corners": corners,
+        "worst_corner": worst_corner,
+    }
+
+
 def parse_opensta_wns(output: str) -> float | None:
     """Extract Worst Negative Slack (WNS) from OpenSTA output.
 
@@ -1432,6 +1501,10 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "error_category": "EDA_BINARY_MISSING",
                     "simulated": False,
                 }
+            sim_corners: dict[str, Any] = {}
+            if self.contract and self.contract.timing and self.contract.timing.pvt_corners:
+                for c in self.contract.timing.pvt_corners:
+                    sim_corners[c] = {"setup_wns": 0.180, "hold_wns": 0.045, "setup_tns": 0.000, "status": "MET"}
             return {
                 "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
                 "passed": True,
@@ -1439,17 +1512,19 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "stdout": "[SIMULATED - NOT REAL TOOL OUTPUT] STA timing simulated: WNS = +0.180 ns (Slack MET across PVT corners).",
                 "stderr": "",
                 "details": "Timing constraint satisfied.",
-                "metrics": {"wns": 0.180},
+                "metrics": {"wns": 0.180, "setup_wns": 0.180, "corners": sim_corners},
                 "error_category": None,
                 "simulated": True,
                 "skipped": False,
             }
 
-        # Use the comprehensive parse_opensta_timing for setup + TNS + hold
-        timing_data = parse_opensta_timing(combined)
+        # Use the comprehensive parse_opensta_mcmm for setup + TNS + hold + per-corner metrics
+        timing_data = parse_opensta_mcmm(combined)
         wns_val = timing_data["setup_wns"]
         tns_val = timing_data["setup_tns"]
         hold_wns_val = timing_data["hold_wns"]
+        corners_dict = timing_data.get("corners", {})
+        worst_corner = timing_data.get("worst_corner")
 
         if wns_val is None:
             return {
@@ -1467,6 +1542,8 @@ class SiliconSignoffVerifier(BaseVerifier):
         tns_ps = (tns_val * (1000.0 if self.sta_time_unit == "ns" else 1.0)) if tns_val is not None else None
         hold_wns_ps = (hold_wns_val * (1000.0 if self.sta_time_unit == "ns" else 1.0)) if hold_wns_val is not None else None
 
+        corner_info = f" (worst corner: {worst_corner})" if worst_corner else ""
+
         # Check for setup slack violation or VIOLATED flags in output
         if wns_ps < self.max_wns_ps or "VIOLATED" in combined:
             return {
@@ -1476,11 +1553,17 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "stdout": proc.stdout,
                 "stderr": proc.stderr,
                 "details": (
-                    f"Setup timing violation: WNS = {wns_val:.3f} {self.sta_time_unit} "
+                    f"Setup timing violation{corner_info}: WNS = {wns_val:.3f} {self.sta_time_unit} "
                     f"({wns_ps:.3f} ps; target >= {self.max_wns_ps:.3f} ps)."
                 ),
                 "error_category": "TIMING_SLACK_VIOLATION",
-                "metrics": {"setup_wns": wns_val, "wns_ps": wns_ps, "setup_tns": tns_val},
+                "metrics": {
+                    "setup_wns": wns_val,
+                    "wns_ps": wns_ps,
+                    "setup_tns": tns_val,
+                    "corners": corners_dict,
+                    "worst_corner": worst_corner,
+                },
                 "hold_metrics": {},
                 "simulated": False,
             }
@@ -1494,11 +1577,16 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "stdout": proc.stdout,
                 "stderr": proc.stderr,
                 "details": (
-                    f"Hold timing violation: hold WNS = {hold_wns_val:.3f} {self.sta_time_unit} "
+                    f"Hold timing violation{corner_info}: hold WNS = {hold_wns_val:.3f} {self.sta_time_unit} "
                     f"({hold_wns_ps:.3f} ps; target >= {self.min_hold_slack_ps:.3f} ps)."
                 ),
                 "error_category": "HOLD_SLACK_VIOLATION",
-                "metrics": {"setup_wns": wns_val, "wns_ps": wns_ps},
+                "metrics": {
+                    "setup_wns": wns_val,
+                    "wns_ps": wns_ps,
+                    "corners": corners_dict,
+                    "worst_corner": worst_corner,
+                },
                 "hold_metrics": {"hold_wns": hold_wns_val, "hold_wns_ps": hold_wns_ps},
                 "simulated": False,
             }
@@ -1523,6 +1611,16 @@ class SiliconSignoffVerifier(BaseVerifier):
         if hold_wns_ps is not None:
             hold_metrics_dict["hold_wns_ps"] = hold_wns_ps
 
+        metrics_dict: dict[str, Any] = {
+            "wns": wns_val,
+            "setup_wns": wns_val,
+            "wns_ps": wns_ps,
+            "setup_tns": tns_val,
+        }
+        if corners_dict:
+            metrics_dict["corners"] = corners_dict
+            metrics_dict["worst_corner"] = worst_corner
+
         return {
             "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
             "passed": True,
@@ -1533,10 +1631,10 @@ class SiliconSignoffVerifier(BaseVerifier):
                 f"Timing closure confirmed: setup WNS = {wns_val:.3f} {self.sta_time_unit} "
                 f"({wns_ps:.3f} ps). "
                 + (f"Hold WNS = {hold_wns_val:.3f} {self.sta_time_unit}. " if hold_wns_val is not None else "")
-                + "This is not a full MCMM tapeout-signoff claim."
+                + (f"Verified across {len(corners_dict)} PVT corners." if corners_dict else "This is not a full MCMM tapeout-signoff claim.")
             ),
             "error_category": None,
-            "metrics": {"wns": wns_val, "setup_wns": wns_val, "wns_ps": wns_ps, "setup_tns": tns_val},
+            "metrics": metrics_dict,
             "hold_metrics": hold_metrics_dict,
             "simulated": False,
             "skipped": False,

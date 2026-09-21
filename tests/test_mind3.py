@@ -57,6 +57,7 @@ from mind3.core.verifier import (
     SiliconSignoffVerifier,
     SoftwareVerifier,
     TapeoutReadinessVerifier,
+    parse_opensta_mcmm,
     parse_opensta_wns,
 )
 from mind3.sandbox.bwrap import BubblewrapSandbox
@@ -2878,4 +2879,89 @@ def test_timing_constraint_target_library_removed() -> None:
     assert "read_liberty" not in sdc
     assert "target_library" not in sdc
     assert "create_clock -name clk -period 4.000 [get_ports clk]" in sdc
+
+
+def test_parse_opensta_mcmm_report() -> None:
+    """Validate parse_opensta_mcmm extracts per-corner slacks and global worst slack."""
+    fixtures_dir = Path(__file__).parent / "fixtures" / "eda_outputs"
+    log_text = (fixtures_dir / "opensta_mcmm_report.log").read_text(encoding="utf-8")
+    mcmm = parse_opensta_mcmm(log_text)
+
+    assert "tt_025c_1v80" in mcmm["corners"]
+    assert "ff_n40c_1v95" in mcmm["corners"]
+    assert "ss_125c_1v60" in mcmm["corners"]
+
+    assert mcmm["corners"]["tt_025c_1v80"]["setup_wns"] == 0.180
+    assert mcmm["corners"]["ff_n40c_1v95"]["setup_wns"] == 0.320
+    assert mcmm["corners"]["ss_125c_1v60"]["setup_wns"] == 0.025
+
+    assert mcmm["corners"]["tt_025c_1v80"]["hold_wns"] == 0.045
+    assert mcmm["corners"]["ff_n40c_1v95"]["hold_wns"] == 0.012
+    assert mcmm["corners"]["ss_125c_1v60"]["hold_wns"] == 0.060
+
+    assert mcmm["setup_wns"] == 0.025
+    assert mcmm["hold_wns"] == 0.012
+    assert mcmm["worst_corner"] == "ss_125c_1v60"
+
+
+def test_gate4_multi_corner_slack_violation_attribution() -> None:
+    """Gate 4 multi-corner STA must attribute setup violation to the specific worst corner."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.v").write_text("module top(); endmodule\n", encoding="utf-8")
+        mock_sb = MockSandbox(ws)
+        mock_sb.mock_returncode = 0
+        mock_sb.mock_stdout = (
+            "OpenSTA 2.6.0\n"
+            "Corner: fast_corner\n"
+            "  setup wns: 0.150 ns\n"
+            "Corner: slow_corner\n"
+            "  setup wns: -0.220 ns\n"
+            "Worst setup WNS across all corners: -0.220 ns (VIOLATED)\n"
+        )
+        runner = LocalBwrapRunner(ws, mock_sb)  # type: ignore
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path=["fast.lib", "slow.lib"],
+            allow_mock_fallback=False,
+        )
+        report = verifier._run_gate4_timing(runner, [ws / "top.v"], ws)
+
+        assert report["passed"] is False
+        assert report["error_category"] == "TIMING_SLACK_VIOLATION"
+        assert "slow_corner" in report["details"]
+        assert report["metrics"]["worst_corner"] == "slow_corner"
+        assert report["metrics"]["setup_wns"] == -0.220
+
+
+def test_gate4_multi_corner_simulated_pvt_corners() -> None:
+    """Gate 4 mock fallback must populate simulated metrics for all contract-declared PVT corners."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.v").write_text("module top(); endmodule\n", encoding="utf-8")
+        mock_sb = MockSandbox(ws)
+        mock_sb.mock_returncode = 127
+        mock_sb.mock_stderr = "sta: command not found"
+        runner = LocalBwrapRunner(ws, mock_sb)  # type: ignore
+
+        contract = InterfaceContract(
+            module_name="top",
+            functional_spec="Test top",
+            ports=[PortDefinition(name="clk", direction=PortDirection.INPUT, width=1)],
+            timing=TimingConstraint(clock_name="clk", period_ns=5.0, pvt_corners=["c_typ", "c_slow"]),
+        )
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            contract=contract,
+            liberty_path="typ.lib",
+            allow_mock_fallback=True,
+        )
+        report = verifier._run_gate4_timing(runner, [ws / "top.v"], ws)
+
+        assert report["passed"] is True
+        assert report["simulated"] is True
+        assert "c_typ" in report["metrics"]["corners"]
+        assert "c_slow" in report["metrics"]["corners"]
+
 

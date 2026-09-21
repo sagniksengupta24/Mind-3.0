@@ -1,0 +1,36 @@
+# REAL CAPTURED EDA TOOL OUTPUT
+# Captured from live SBY 0.69 (with z3) running: sby -f bad_fifo.sby
+SBY  4:51:39 [bad_fifo] Removing directory '/Users/sagniksengupta/.gemini/antigravity-ide/brain/0fbe4a48-377b-44bc-972c-a13068a6c85c/scratch/fixture_regen_test/bad_fifo'.
+SBY  4:51:39 [bad_fifo] Copy '/Users/sagniksengupta/.gemini/antigravity-ide/brain/0fbe4a48-377b-44bc-972c-a13068a6c85c/scratch/fixture_regen_test/bad_fifo.sv' to '/Users/sagniksengupta/.gemini/antigravity-ide/brain/0fbe4a48-377b-44bc-972c-a13068a6c85c/scratch/fixture_regen_test/bad_fifo/src/bad_fifo.sv'.
+SBY  4:51:39 [bad_fifo] engine_0: smtbmc z3
+SBY  4:51:39 [bad_fifo] base: starting process "cd bad_fifo/src; yosys -ql ../model/design.log ../model/design.ys"
+SBY  4:51:39 [bad_fifo] base: finished (returncode=0)
+SBY  4:51:39 [bad_fifo] prep: starting process "cd bad_fifo/model; yosys -ql design_prep.log design_prep.ys"
+SBY  4:51:39 [bad_fifo] prep: finished (returncode=0)
+SBY  4:51:39 [bad_fifo] smt2: starting process "cd bad_fifo/model; yosys -ql design_smt2.log design_smt2.ys"
+SBY  4:51:39 [bad_fifo] smt2: finished (returncode=0)
+SBY  4:51:39 [bad_fifo] engine_0: starting process "cd bad_fifo; yosys-smtbmc -s z3 --presat --noprogress -t 5  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2"
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Solver: z3
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Checking assumptions in step 0..
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Checking assertions in step 0..
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Checking assumptions in step 1..
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Checking assertions in step 1..
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Checking assumptions in step 2..
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Checking assertions in step 2..
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Checking assumptions in step 3..
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Checking assertions in step 3..
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  BMC failed!
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Assert failed in bad_fifo: bad_fifo.sv:11.9-11.28 (_witness_.check_assert_bad_fifo_sv_11_3)
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw
+SBY  4:51:39 [bad_fifo] engine_0: ##   0:00:00  Status: failed
+SBY  4:51:39 [bad_fifo] engine_0: finished (returncode=1)
+SBY  4:51:39 [bad_fifo] engine_0: Status returned by engine: FAIL
+SBY  4:51:39 [bad_fifo] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  4:51:39 [bad_fifo] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  4:51:39 [bad_fifo] summary: engine_0 (smtbmc z3) returned FAIL
+SBY  4:51:39 [bad_fifo] summary: counterexample trace: bad_fifo/engine_0/trace.vcd
+SBY  4:51:39 [bad_fifo] summary:   failed assertion bad_fifo._witness_.check_assert_bad_fifo_sv_11_3 at bad_fifo.sv:11.9-11.28 step 3
+SBY  4:51:39 [bad_fifo] DONE (FAIL, rc=2)

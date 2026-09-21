@@ -110,6 +110,7 @@ The default repair budget is set to `max_repairs=3`. This is a deliberately rest
 - **Verification Artifacts**: Formal verification and coverage signoff require corresponding `.sby` and `.cpp` testbench artifacts unless explicitly opted out via `require_formal=False` or `require_coverage=False`.
 - **Loopback-Only Inference Endpoint Enforcement**: `PhaseDriver(..., loopback_only=True)` enforces loopback-only inference endpoint enforcement (requiring 127.0.0.1 or localhost, e.g. Ollama, forbidding cloud API providers) and records each transition in a hash-chained, tamper-evident trace record.
 - **Parser Canary Fixtures**: Test fixtures in `tests/fixtures/eda_outputs/` are clearly marked synthetic representative samples constructed from documented tool output conventions for unit testing in environments without EDA installations; each file includes exact CLI commands for regeneration against live tools.
+- **EDA Version-Drift Canary CI Workflow**: `.github/workflows/eda_version_drift_canary.yml` tests all six signoff gate parsers across a parameterized matrix of pinned tool versions (`baseline_pinned` vs `vnext_pinned` targeting Yosys 0.69+, SBY 0.69+, Verilator 5.050+, OpenSTA 2.7.0+, OpenROAD 2.0+). *Note*: The workflow must run on an environment with live network and tool package installation access to validate full tool-regeneration execution end-to-end; do not assume parser fidelity against unverified future tool updates without running the canary.
 
 ## Tapeout-readiness boundary
 

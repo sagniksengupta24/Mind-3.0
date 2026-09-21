@@ -3166,29 +3166,26 @@ def test_gate_presentation_label_contradiction_detection() -> None:
         )
         res_present = verifier_present.verify(ws, mock_runner_present)  # type: ignore
 
-        real_count = 0
-        skip_count = 0
-        for idx, gate in enumerate(res_present.gate_reports, 1):
-            lbl = get_gate_presentation_label(gate)
-            row = format_gate_report_row(gate, idx)
-            is_skipped = bool(gate.get("skipped", False))
-            is_sim = bool(gate.get("simulated", False))
+        real_gates = [g["gate"] for g in res_present.gate_reports if not g.get("skipped") and not g.get("simulated")]
+        skipped_gates = [g["gate"] for g in res_present.gate_reports if g.get("skipped")]
+        simulated_gates = [g["gate"] for g in res_present.gate_reports if g.get("simulated")]
 
-            if is_skipped:
-                skip_count += 1
-                assert lbl == "[SKIPPED]"
-                assert "[SKIPPED]" in row and "[REAL EDA]" not in row and "[SIMULATED]" not in row
-            elif is_sim:
-                assert lbl == "[SIMULATED]"
-                assert "[SIMULATED]" in row and "[REAL EDA]" not in row and "[SKIPPED]" not in row
-            else:
-                real_count += 1
-                assert lbl == "[REAL EDA]"
-                assert "[REAL EDA]" in row and "[SIMULATED]" not in row and "[SKIPPED]" not in row
+        # Exact count assertions to catch silent regressions:
+        assert len(res_present.gate_reports) == 7, f"Expected exactly 7 gates, got {len(res_present.gate_reports)}"
+        assert len(real_gates) == 6, f"Expected exactly 6 REAL EDA gates, got {len(real_gates)}: {real_gates}"
+        assert len(skipped_gates) == 1, f"Expected exactly 1 SKIPPED gate, got {len(skipped_gates)}: {skipped_gates}"
+        assert len(simulated_gates) == 0, f"Expected 0 SIMULATED gates, got {len(simulated_gates)}: {simulated_gates}"
 
-        # Verify that both REAL EDA and SKIPPED gates were evaluated and validated
-        assert real_count >= 4, f"Expected at least 4 REAL EDA gates, got {real_count}"
-        assert skip_count >= 1, f"Expected at least 1 SKIPPED gate (Gate 5), got {skip_count}"
+        # Exact gate name assertions:
+        assert skipped_gates == ["Gate 5: OpenROAD Place-and-Route"]
+        assert real_gates == [
+            "Gate 1: Yosys Elaboration & Latch Trap",
+            "Gate 2: SymbiYosys Formal Property Verification",
+            "Gate 3: Verilator Coverage Signoff",
+            "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+            "Gate 6: Yosys CDC Static Analysis",
+            "DFT Scan Audit (Advisory)",
+        ]
 
 
 def test_scan_chain_synthesizer_port_injection() -> None:

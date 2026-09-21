@@ -1,0 +1,70 @@
+name: EDA Version Drift Canary
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly on Sunday midnight to catch upstream tool packaging & format drift
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      tool_version_profile:
+        description: 'EDA Tool Version Profile to test'
+        required: true
+        default: 'vnext_pinned'
+        type: choice
+        options:
+          - baseline_pinned
+          - vnext_pinned
+
+jobs:
+  version-drift-canary:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+        eda-profile:
+          - name: "baseline_pinned"
+            yosys: "0.36"
+            sby: "0.36"
+            verilator: "5.020"
+            sta: "2.6.0"
+            openroad: "2.0-11235"
+            test_target: "tests/test_fixtures_canary.py"
+          - name: "vnext_pinned"
+            yosys: "0.69"
+            sby: "0.69"
+            verilator: "5.052"
+            sta: "2.7.0"
+            openroad: "2.0-13500"
+            test_target: "tests/test_version_drift_canary.py"
+
+    steps:
+      - name: Checkout Mind 3.0 Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest httpx pydantic pyyaml
+
+      - name: Execute EDA Version-Drift Canary (${{ matrix.eda-profile.name }})
+        env:
+          EDA_PROFILE: ${{ matrix.eda-profile.name }}
+          TARGET_YOSYS_VERSION: ${{ matrix.eda-profile.yosys }}
+          TARGET_SBY_VERSION: ${{ matrix.eda-profile.sby }}
+          TARGET_VERILATOR_VERSION: ${{ matrix.eda-profile.verilator }}
+          TARGET_STA_VERSION: ${{ matrix.eda-profile.sta }}
+          TARGET_OPENROAD_VERSION: ${{ matrix.eda-profile.openroad }}
+        run: |
+          echo "Running version-drift canary for profile: $EDA_PROFILE"
+          echo "Target Pinned Versions: Yosys=$TARGET_YOSYS_VERSION, SBY=$TARGET_SBY_VERSION, Verilator=$TARGET_VERILATOR_VERSION, OpenSTA=$TARGET_STA_VERSION, OpenROAD=$TARGET_OPENROAD_VERSION"
+          pytest -v ${{ matrix.eda-profile.test_target }}

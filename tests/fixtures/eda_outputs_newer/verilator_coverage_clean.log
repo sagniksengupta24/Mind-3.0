@@ -1,0 +1,12 @@
+# SYNTHETIC/REPRESENTATIVE PLACEHOLDER (NOT REAL CAPTURED EDA TOOL OUTPUT)
+# Constructed from known Verilator coverage summary conventions for parser testing pending live tool execution.
+# TODO: Regenerate with real tool execution using:
+#   verilator --binary --sv -Wall --coverage-line --coverage-toggle -top-module alu alu.sv full_tb.cpp -o Valu && ./obj_dir/Valu > tests/fixtures/eda_outputs/verilator_coverage_clean.log 2>&1
+ALL TESTS PASSED: FSM-aware stimulus complete (reset+boundary+LFSR+recovery).
+Verilator Coverage Summary:
+  Total coverage points: 42
+  Covered points: 42
+  Branch coverage: 100.0% (42/42)
+  Toggle coverage: 100.0% (84/84)
+Coverage data written to logs/coverage.dat
+Simulation finished at cycle 480.

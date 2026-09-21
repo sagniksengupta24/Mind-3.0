@@ -1,0 +1,439 @@
+# REAL CAPTURED EDA TOOL OUTPUT
+# Captured from live Yosys 0.69 running: yosys -p "read_verilog -sv alu.sv; proc; opt; rename alu gold; read_verilog netlist.v; proc; opt; rename alu gate; equiv_make gold gate equiv; prep -top equiv; equiv_simple; equiv_status -assert"
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)
+
+-- Running command `read_verilog -sv alu.sv; proc; opt; rename alu gold; read_verilog netlist.v; proc; opt; rename alu gate; equiv_make gold gate equiv; prep -top equiv; equiv_simple; equiv_status -assert' --
+
+1. Executing Verilog-2005 frontend: alu.sv
+Parsing SystemVerilog input from `alu.sv' to AST representation.
+Generating RTLIL representation for module `\alu'.
+Successfully finished Verilog frontend.
+
+2. Executing PROC pass (convert processes to netlists).
+
+2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed 1 dead cases from process $proc$alu.sv:7$1 in module alu.
+Marked 1 switch rules as full_case in process $proc$alu.sv:7$1 in module alu.
+Removed a total of 1 dead cases.
+
+2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 1 assignment to connection.
+
+2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~1 debug messages>
+
+2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\alu.$proc$alu.sv:7$1'.
+     1/1: $1\out[3:0]
+
+2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\alu.\out' from process `\alu.$proc$alu.sv:7$1'.
+
+2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\alu.$proc$alu.sv:7$1'.
+Removing empty process `alu.$proc$alu.sv:7$1'.
+Cleaned up 1 empty switch.
+
+2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module alu.
+<suppressed ~1 debug messages>
+
+3. Executing OPT pass (performing simple optimizations).
+
+3.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module alu.
+
+3.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\alu'.
+Computing hashes of 9 cells of `\alu'.
+Finding duplicate cells in `\alu'.
+Removed a total of 0 cells.
+
+3.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \alu..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~2 debug messages>
+
+3.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \alu.
+Performed a total of 0 changes.
+
+3.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\alu'.
+Computing hashes of 9 cells of `\alu'.
+Finding duplicate cells in `\alu'.
+Removed a total of 0 cells.
+
+3.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \alu..
+Removed 0 unused cells and 3 unused wires.
+<suppressed ~1 debug messages>
+
+3.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module alu.
+
+3.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \alu..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~2 debug messages>
+
+3.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \alu.
+Performed a total of 0 changes.
+
+3.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\alu'.
+Computing hashes of 9 cells of `\alu'.
+Finding duplicate cells in `\alu'.
+Removed a total of 0 cells.
+
+3.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \alu..
+
+3.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module alu.
+
+3.16. Finished fast OPT passes. (There is nothing left to do.)
+Renaming module \alu to \gold.
+
+4. Executing Verilog-2005 frontend: netlist.v
+Parsing Verilog input from `netlist.v' to AST representation.
+Generating RTLIL representation for module `\alu'.
+Successfully finished Verilog frontend.
+
+5. Executing PROC pass (convert processes to netlists).
+
+5.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+5.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+5.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+5.4. Executing PROC_INIT pass (extract init attributes).
+
+5.5. Executing PROC_ARST pass (detect async resets in processes).
+
+5.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+5.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+5.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+5.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+5.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+5.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+5.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module alu.
+Optimizing module gold.
+
+6. Executing OPT pass (performing simple optimizations).
+
+6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module alu.
+Optimizing module gold.
+
+6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\alu'.
+Computing hashes of 82 cells of `\alu'.
+Finding duplicate cells in `\alu'.
+Computing hashes of 81 cells of `\alu'.
+Finding duplicate cells in `\alu'.
+<suppressed ~3 debug messages>
+Finding identical cells in module `\gold'.
+Computing hashes of 9 cells of `\gold'.
+Finding duplicate cells in `\gold'.
+Removed a total of 1 cells.
+
+6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \alu..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Running muxtree optimizer on module \gold..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~2 debug messages>
+
+6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \alu.
+  Optimizing cells in module \gold.
+Performed a total of 0 changes.
+
+6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\alu'.
+Computing hashes of 81 cells of `\alu'.
+Finding duplicate cells in `\alu'.
+Finding identical cells in module `\gold'.
+Computing hashes of 9 cells of `\gold'.
+Finding duplicate cells in `\gold'.
+Removed a total of 0 cells.
+
+6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \alu..
+Finding unused cells or wires in module \gold..
+Removed 0 unused cells and 52 unused wires.
+<suppressed ~1 debug messages>
+
+6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module alu.
+Optimizing module gold.
+
+6.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+6.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \alu..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Running muxtree optimizer on module \gold..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~2 debug messages>
+
+6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \alu.
+  Optimizing cells in module \gold.
+Performed a total of 0 changes.
+
+6.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\alu'.
+Computing hashes of 81 cells of `\alu'.
+Finding duplicate cells in `\alu'.
+Finding identical cells in module `\gold'.
+Computing hashes of 9 cells of `\gold'.
+Finding duplicate cells in `\gold'.
+Removed a total of 0 cells.
+
+6.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \alu..
+Finding unused cells or wires in module \gold..
+
+6.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module alu.
+Optimizing module gold.
+
+6.16. Finished fast OPT passes. (There is nothing left to do.)
+Renaming module \alu to \gate.
+
+7. Executing EQUIV_MAKE pass (creating equiv checking module).
+Presumably equivalent wires: out_gold (\out_gold), out_gate (\out_gate) -> out
+Presumably equivalent wires: op_gold (\op_gold), op_gate (\op_gate) -> op
+Presumably equivalent wires: b_gold (\b_gold), b_gate (\b_gate) -> b
+Presumably equivalent wires: a_gold (\a_gold), a_gate (\a_gate) -> a
+
+8. Executing PREP pass.
+
+8.1. Executing HIERARCHY pass (managing design hierarchy).
+
+8.1.1. Analyzing design hierarchy..
+Top module:  \equiv
+
+8.1.2. Analyzing design hierarchy..
+Top module:  \equiv
+Removing unused module `\gate'.
+Removing unused module `\gold'.
+Removed 2 unused modules.
+
+8.2. Executing PROC pass (convert processes to netlists).
+
+8.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+8.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+8.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+8.2.4. Executing PROC_INIT pass (extract init attributes).
+
+8.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+8.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+8.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+8.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+8.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+8.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+8.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+8.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module equiv.
+
+8.3. Executing FUTURE pass.
+
+8.4. Executing OPT_EXPR pass (perform const folding).
+Optimizing module equiv.
+
+8.5. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \equiv..
+
+8.6. Executing CHECK pass (checking for obvious problems).
+Checking module equiv...
+Found and reported 0 problems.
+
+8.7. Executing OPT pass (performing simple optimizations).
+
+8.7.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module equiv.
+
+8.7.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\equiv'.
+Computing hashes of 94 cells of `\equiv'.
+Finding duplicate cells in `\equiv'.
+Removed a total of 0 cells.
+
+8.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \equiv..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~2 debug messages>
+
+8.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \equiv.
+Performed a total of 0 changes.
+
+8.7.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\equiv'.
+Computing hashes of 94 cells of `\equiv'.
+Finding duplicate cells in `\equiv'.
+Removed a total of 0 cells.
+
+8.7.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \equiv..
+
+8.7.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module equiv.
+
+8.7.8. Finished fast OPT passes. (There is nothing left to do.)
+
+8.8. Executing WREDUCE pass (reducing word size of cells).
+Removed top 1 bits (of 2) from port B of cell equiv.$procmux$9_CMP0_gold ($eq).
+
+8.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \equiv..
+
+8.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+8.11. Executing OPT pass (performing simple optimizations).
+
+8.11.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module equiv.
+
+8.11.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\equiv'.
+Computing hashes of 94 cells of `\equiv'.
+Finding duplicate cells in `\equiv'.
+Removed a total of 0 cells.
+
+8.11.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \equiv..
+
+8.11.4. Finished fast OPT passes.
+
+8.12. Executing SORT pass.
+
+8.13. Printing statistics.
+
+=== equiv ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       97 wires
+      139 wire bits
+       59 public wires
+       89 public wire bits
+        4 ports
+       14 port bits
+       94 cells
+        1   $add
+       31   $and
+        3   $eq
+        4   $equiv
+        1   $logic_not
+       31   $not
+       11   $or
+        1   $pmux
+        1   $sub
+       10   $xor
+
+8.14. Executing CHECK pass (checking for obvious problems).
+Checking module equiv...
+Found and reported 0 problems.
+
+9. Executing EQUIV_SIMPLE pass.
+Found 4 unproven $equiv cells (1 groups) in equiv:
+ Grouping SAT models for \out:
+  Trying to prove $equiv for \out [0]:ezsat
+ success!
+  Trying to prove $equiv for \out [1]:ezsat
+ success!
+  Trying to prove $equiv for \out [2]:ezsat
+ success!
+  Trying to prove $equiv for \out [3]:ezsat
+ success!
+Proved 4 previously unproven $equiv cells.
+
+10. Executing EQUIV_STATUS pass.
+Found 4 $equiv cells in equiv:
+  Of those cells 4 are proven and 0 are unproven.
+  Equivalence successfully proven!
+
+End of script. Logfile hash: 01628d8d39, time: 0.01s, user: 0.02s, system: 0.00s, MEM: 16.62 MB peak
+Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)
+Time spent: 22% 1x equiv_simple (0 sec), 16% 4x read_verilog (0 sec), ...

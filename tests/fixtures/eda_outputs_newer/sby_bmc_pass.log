@@ -1,0 +1,31 @@
+# REAL CAPTURED EDA TOOL OUTPUT
+# Captured from live SBY 0.69 (with z3) running: sby -f alu.sby
+SBY  4:51:32 [alu] Removing directory '/Users/sagniksengupta/.gemini/antigravity-ide/brain/0fbe4a48-377b-44bc-972c-a13068a6c85c/scratch/fixture_regen_test/alu'.
+SBY  4:51:32 [alu] Copy '/Users/sagniksengupta/.gemini/antigravity-ide/brain/0fbe4a48-377b-44bc-972c-a13068a6c85c/scratch/fixture_regen_test/alu.sv' to '/Users/sagniksengupta/.gemini/antigravity-ide/brain/0fbe4a48-377b-44bc-972c-a13068a6c85c/scratch/fixture_regen_test/alu/src/alu.sv'.
+SBY  4:51:32 [alu] engine_0: smtbmc z3
+SBY  4:51:32 [alu] base: starting process "cd alu/src; yosys -ql ../model/design.log ../model/design.ys"
+SBY  4:51:32 [alu] base: finished (returncode=0)
+SBY  4:51:32 [alu] prep: starting process "cd alu/model; yosys -ql design_prep.log design_prep.ys"
+SBY  4:51:32 [alu] prep: finished (returncode=0)
+SBY  4:51:32 [alu] smt2: starting process "cd alu/model; yosys -ql design_smt2.log design_smt2.ys"
+SBY  4:51:32 [alu] smt2: finished (returncode=0)
+SBY  4:51:32 [alu] engine_0: starting process "cd alu; yosys-smtbmc -s z3 --presat --noprogress -t 5  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2"
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Solver: z3
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assumptions in step 0..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assertions in step 0..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assumptions in step 1..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assertions in step 1..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assumptions in step 2..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assertions in step 2..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assumptions in step 3..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assertions in step 3..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assumptions in step 4..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Checking assertions in step 4..
+SBY  4:51:32 [alu] engine_0: ##   0:00:00  Status: passed
+SBY  4:51:32 [alu] engine_0: finished (returncode=0)
+SBY  4:51:32 [alu] engine_0: Status returned by engine: pass
+SBY  4:51:32 [alu] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  4:51:32 [alu] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  4:51:32 [alu] summary: engine_0 (smtbmc z3) returned pass
+SBY  4:51:32 [alu] summary: engine_0 did not produce any traces
+SBY  4:51:32 [alu] DONE (PASS, rc=0)

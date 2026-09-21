@@ -505,17 +505,24 @@ def parse_yosys_lec(output: str) -> dict[str, Any]:
     proven_points: int | None = None
     unproven_points: int | None = None
 
-    prov_match = re.search(r"Proved\s+(\d+)\s+equivalence\s+points", output, re.IGNORECASE)
-    if prov_match:
-        proven_points = int(prov_match.group(1))
-
-    unprov_match = re.search(r"Found\s+(\d+)\s+unproven\s+\$equiv\s+cells", output, re.IGNORECASE)
-    if unprov_match:
-        unproven_points = int(unprov_match.group(1))
+    modern_cells_match = re.search(
+        r"Of those cells\s+(\d+)\s+are proven and\s+(\d+)\s+are unproven", output, re.IGNORECASE
+    )
+    if modern_cells_match:
+        proven_points = int(modern_cells_match.group(1))
+        unproven_points = int(modern_cells_match.group(2))
     else:
-        err_match = re.search(r"ERROR:\s*Found\s+(\d+)\s+unproven\s+points", output, re.IGNORECASE)
-        if err_match:
-            unproven_points = int(err_match.group(1))
+        prov_match = re.search(r"Proved\s+(\d+)\s+equivalence\s+points", output, re.IGNORECASE)
+        if prov_match:
+            proven_points = int(prov_match.group(1))
+
+        unprov_match = re.search(r"Found\s+(\d+)\s+unproven\s+\$equiv\s+cells", output, re.IGNORECASE)
+        if unprov_match:
+            unproven_points = int(unprov_match.group(1))
+        else:
+            err_match = re.search(r"ERROR:\s*Found\s+(\d+)\s+unproven\s+points", output, re.IGNORECASE)
+            if err_match:
+                unproven_points = int(err_match.group(1))
 
     equivalent = (
         "Equivalence successfully proven!" in output
@@ -1047,8 +1054,8 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "simulated": False,
             }
 
-        # Check for combinational loops or multi-driven nets
-        if "Warning: combinational loop" in combined_output:
+        # Check for combinational loops or multi-driven nets (supports legacy and modern Yosys syntax)
+        if "Warning: combinational loop" in combined_output or "Warning: found logic loop" in combined_output:
             return {
                 "gate": "Gate 1: Yosys Elaboration & Latch Trap",
                 "passed": False,
@@ -1286,10 +1293,10 @@ class SiliconSignoffVerifier(BaseVerifier):
             }
 
         if proc.returncode != 0 or "Assert failed" in combined or "FAIL" in combined:
-            # Parse counterexample timestamp
-            t_fail_match = re.search(r"step\s+(\d+)\s+FAILED", combined)
+            # Parse counterexample timestamp (supports legacy 'step X FAILED' and modern SBY 'step X')
+            t_fail_match = re.search(r"step\s+(\d+)\s+FAILED", combined) or re.search(r"failed assertion.*?\bstep\s+(\d+)", combined)
             t_fail = t_fail_match.group(1) if t_fail_match else "unknown"
-            prop_match = re.search(r"(?:Assert failed in \S+:|Assertion failed:)\s*(\S+)", combined)
+            prop_match = re.search(r"(?:Assert failed in \S+:|Assertion failed:|failed assertion\s+)(\S+)", combined)
             prop_name = prop_match.group(1) if prop_match else None
             return {
                 "gate": "Gate 2: SymbiYosys Formal Property Verification",
@@ -1975,7 +1982,7 @@ class SiliconSignoffVerifier(BaseVerifier):
             "advisory_count": len(advisory_messages),
         }
 
-        is_missing_yosys = (proc.returncode != 0 and _is_binary_missing(proc, "yosys")) or proc.returncode == 127
+        is_missing_yosys = proc.returncode != 0 and _is_binary_missing(proc, "yosys")
         return {
             "gate": "DFT Scan Audit (Advisory)",
             "passed": True,

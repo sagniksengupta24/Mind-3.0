@@ -253,6 +253,7 @@ def test_yosys_cdc_violation_fixture() -> None:
 
 def test_environment_eda_tool_availability_honesty() -> None:
     """Honesty check: detect_eda_tool_versions truthfully reflects host availability without faking versions."""
+    import shutil
     from mind3.sandbox.remote_eda import LocalBwrapRunner
 
     versions = detect_eda_tool_versions(LocalBwrapRunner(workspace=Path.cwd()))
@@ -261,6 +262,12 @@ def test_environment_eda_tool_availability_honesty() -> None:
         # Must be either a non-empty string or 'missing', never empty or None
         assert isinstance(versions[tool_name], str)
         assert len(versions[tool_name]) > 0
-        # In this macOS execution environment, EDA binaries are not installed on PATH; must honestly report 'missing'
-        assert versions[tool_name] == "missing"
+        if shutil.which(tool_name) is not None:
+            # When installed on PATH, must report genuine version output
+            assert versions[tool_name] != "missing"
+            assert tool_name.lower() in versions[tool_name].lower()
+        else:
+            # When absent from PATH, must honestly report 'missing'
+            assert versions[tool_name] == "missing"
+
 

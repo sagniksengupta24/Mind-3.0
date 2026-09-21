@@ -3037,4 +3037,67 @@ def test_air_gapped_emits_cryptographic_attestation() -> None:
         assert len(rec.event.payload["air_gapped_attestation"]) == 64
 
 
+def test_scan_chain_synthesizer_port_injection() -> None:
+    """ScanChainSynthesizer must inject scan_en, scan_in, and scan_out into Verilog module."""
+    from mind3.core.dft import ScanChainSynthesizer
+
+    rtl = (
+        "module simple_alu (\n"
+        "    input  wire clk,\n"
+        "    input  wire rst_n,\n"
+        "    output reg [7:0] out\n"
+        ");\n"
+        "    always @(posedge clk) out <= out + 1;\n"
+        "endmodule\n"
+    )
+
+    stitched = ScanChainSynthesizer.insert_scan_ports(rtl)
+    assert "input  wire scan_en" in stitched
+    assert "input  wire scan_in" in stitched
+    assert "output wire scan_out" in stitched
+
+    # Idempotent: second pass should not double-insert
+    stitched_twice = ScanChainSynthesizer.insert_scan_ports(stitched)
+    assert stitched_twice.count("scan_en") == 1
+
+
+def test_parse_openroad_irdrop_clean() -> None:
+    """parse_openroad_irdrop must pass when maximum drop is below threshold."""
+    from mind3.core.verifier import parse_openroad_irdrop
+
+    clean_log = (
+        "[INFO PDN-0001] Analyzing power grid for VDD...\n"
+        "[INFO PDN-0012] Total current = 14.2 mA\n"
+        "[INFO PDN-0015] Worstcase voltage = 1.748 V\n"
+        "[INFO PDN-0016] Maximum IR drop = 0.052 V (2.89% of VDD)\n"
+        "[INFO PDN-0017] Average IR drop = 0.019 V\n"
+    )
+
+    res = parse_openroad_irdrop(clean_log, max_drop_pct_threshold=5.0)
+    assert res["passed"] is True
+    assert res["max_ir_drop_v"] == 0.052
+    assert res["max_ir_drop_pct"] == 2.89
+    assert res["worst_voltage_v"] == 1.748
+    assert len(res["errors"]) == 0
+
+
+def test_parse_openroad_irdrop_violation() -> None:
+    """parse_openroad_irdrop must fail when drop exceeds threshold or PDN error exists."""
+    from mind3.core.verifier import parse_openroad_irdrop
+
+    violated_log = (
+        "[INFO PDN-0001] Analyzing power grid for VDD...\n"
+        "[INFO PDN-0015] Worstcase voltage = 1.662 V\n"
+        "[INFO PDN-0016] Maximum IR drop = 0.138 V (7.67% of VDD)\n"
+        "[ERROR PDN-0022] Maximum IR drop 0.138 V exceeds signoff limit 5.00%\n"
+    )
+
+    res = parse_openroad_irdrop(violated_log, max_drop_pct_threshold=5.0)
+    assert res["passed"] is False
+    assert res["max_ir_drop_pct"] == 7.67
+    assert len(res["errors"]) >= 1
+
+
+
+
 

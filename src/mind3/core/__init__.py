@@ -55,6 +55,7 @@ from .dft import (
     JTAGControllerConfig,
     JTAGControllerGenerator,
     JTAGInstruction,
+    ScanChainSynthesizer,
 )
 
 __all__ = [
@@ -104,6 +105,7 @@ __all__ = [
     "JTAGControllerGenerator",
     "IEEE1500Wrapper",
     "ATPGSignoffVerifier",
+    "ScanChainSynthesizer",
     "AssuranceCheck",
     "TapeoutReadinessPolicy",
 ]

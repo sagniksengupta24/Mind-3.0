@@ -269,3 +269,37 @@ class ATPGSignoffVerifier:
             "violations": violations,
             "details": "ATPG fault coverage meets foundry signoff criteria." if passed else f"ATPG signoff failed: {'; '.join(violations)}",
         }
+
+
+class ScanChainSynthesizer:
+    """Automated scan chain stitching and DFT port insertion for testability signoff."""
+
+    @staticmethod
+    def insert_scan_ports(
+        module_code: str,
+        scan_in: str = "scan_in",
+        scan_out: str = "scan_out",
+        scan_enable: str = "scan_en",
+    ) -> str:
+        """Inject dedicated scan control ports into the Verilog module header."""
+        if scan_enable in module_code and scan_in in module_code and scan_out in module_code:
+            return module_code
+
+        pattern = r"(module\s+\w+\s*#?\s*(?:\(.*?\))?\s*\()(.*?)(\);)"
+        match = re.search(pattern, module_code, re.DOTALL)
+        if not match:
+            return module_code
+
+        prefix = match.group(1)
+        ports_body = match.group(2).rstrip()
+        suffix = match.group(3)
+
+        delimiter = "," if ports_body.strip() else ""
+        scan_ports = (
+            f"{delimiter}\n"
+            f"    input  wire {scan_enable},\n"
+            f"    input  wire {scan_in},\n"
+            f"    output wire {scan_out}"
+        )
+        return module_code[:match.start(2)] + ports_body + scan_ports + "\n" + suffix + module_code[match.end(3):]
+

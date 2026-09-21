@@ -583,6 +583,42 @@ def parse_openroad_pnr(output: str) -> dict[str, Any]:
     }
 
 
+def parse_openroad_irdrop(output: str, max_drop_pct_threshold: float = 5.0) -> dict[str, Any]:
+    """Parse OpenROAD analyze_power_grid static IR-drop report.
+
+    Extracts:
+        max_ir_drop_v: Maximum IR drop in Volts (None if absent).
+        max_ir_drop_pct: Maximum IR drop as percentage of supply (None if absent).
+        worst_voltage_v: Minimum rail voltage observed (None if absent).
+        passed: True if maximum droop is below max_drop_pct_threshold and no PDN error.
+    """
+    drop_v_match = re.search(r"(?:maximum|worst(?:case)?)\s+(?:ir\s+)?drop\s*[:=]?\s*([+-]?\d+(?:\.\d+)?)\s*v", output, re.IGNORECASE)
+    drop_pct_match = re.search(r"([+-]?\d+(?:\.\d+)?)\s*%\s*(?:of\s+)?vdd", output, re.IGNORECASE)
+    worst_v_match = re.search(r"worst(?:case)?\s+voltage\s*[:=]?\s*([+-]?\d+(?:\.\d+)?)\s*v", output, re.IGNORECASE)
+
+    max_drop_v = float(drop_v_match.group(1)) if drop_v_match else None
+    max_drop_pct = float(drop_pct_match.group(1)) if drop_pct_match else None
+    worst_v = float(worst_v_match.group(1)) if worst_v_match else None
+
+    errors: list[str] = []
+    for line in output.splitlines():
+        if "[error" in line.lower() and "pdn" in line.lower():
+            errors.append(line.strip())
+
+    if max_drop_pct is not None and max_drop_pct > max_drop_pct_threshold:
+        errors.append(f"Maximum IR drop {max_drop_pct:.2f}% exceeds threshold ({max_drop_pct_threshold:.2f}%).")
+
+    passed = len(errors) == 0 and (max_drop_pct is not None or max_drop_v is not None)
+
+    return {
+        "passed": passed,
+        "max_ir_drop_v": max_drop_v,
+        "max_ir_drop_pct": max_drop_pct,
+        "worst_voltage_v": worst_v,
+        "errors": errors,
+    }
+
+
 def parse_yosys_cdc(output: str) -> dict[str, Any]:
     """Parse Yosys CDC analysis output for unregistered clock-domain crossings.
 

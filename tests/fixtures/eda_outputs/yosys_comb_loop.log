@@ -1,0 +1,11 @@
+-- Yosys 0.36 (git sha1 c850be45, clang++ 14.0.0)
+1. Executing Verilog-2005 frontend: loop.sv
+Parsing SystemVerilog input `loop.sv' to AST representation.
+Generating RTLIL representation for module `\loop'.
+
+2. Executing CHECK pass (checking for obvious design errors).
+Warning: combinational loop in module \loop:
+  wire \a is driven by \loop.$add$loop.sv:8$1
+  wire \b is driven by \loop.$add$loop.sv:9$2
+Found 1 combinational loop.
+End of script. Logged 1 warning, 0 errors.

@@ -406,10 +406,38 @@ def _is_binary_missing(proc: Any, binary: str) -> bool:
     )
 
 
+def detect_eda_tool_versions(runner: Any) -> dict[str, str]:
+    """Inspect and record installed versions of all EDA binaries.
+
+    Returns a dictionary mapping tool names ('yosys', 'sta', 'verilator', 'sby', 'openroad')
+    to their detected version strings, or 'missing' if the binary is unavailable.
+    """
+    tools = {
+        "yosys": ["yosys", "-V"],
+        "sta": ["sta", "-version"],
+        "verilator": ["verilator", "--version"],
+        "sby": ["sby", "--version"],
+        "openroad": ["openroad", "-version"],
+    }
+    versions: dict[str, str] = {}
+    for name, cmd in tools.items():
+        try:
+            proc = runner.run(cmd, timeout_sec=5)
+            if proc.returncode == 0:
+                output = (proc.stdout or proc.stderr).strip().splitlines()
+                versions[name] = output[0] if output else "unknown"
+            else:
+                versions[name] = "missing"
+        except Exception:
+            versions[name] = "missing"
+    return versions
+
+
 class SiliconSignoffVerifier(BaseVerifier):
     """6-Gate Hierarchical Verification Pipeline for Tapeout-Grade Silicon Signoff.
 
     Gate 1: Yosys Elaboration & Latch Trap Detector
+    Gate 1b: Logic Equivalence Checking (LEC) (opt-in via require_lec=True)
     Gate 2: SymbiYosys Formal Property Verification (BMC)
     Gate 3: Verilator Coverage Signoff (Branch & Toggle)
     Gate 4: OpenSTA Multi-Corner Timing Signoff (setup + hold)
@@ -435,6 +463,7 @@ class SiliconSignoffVerifier(BaseVerifier):
         require_coverage: bool = True,
         require_pnr: bool = False,
         require_cdc: bool = True,
+        require_lec: bool = False,
         lef_path: str | list[str] | None = None,
     ) -> None:
         if not top_module or not top_module.strip():
@@ -451,6 +480,9 @@ class SiliconSignoffVerifier(BaseVerifier):
                     raise ValueError("liberty_path list must contain at least one non-empty path.")
             else:
                 raise TypeError("liberty_path must be a str or list[str].")
+        elif contract and contract.timing and contract.timing.target_library:
+            stripped = str(contract.timing.target_library).strip()
+            self.liberty_paths = [stripped] if stripped else []
         else:
             self.liberty_paths = []
 
@@ -461,6 +493,9 @@ class SiliconSignoffVerifier(BaseVerifier):
                 self.lef_paths = [str(p).strip() for p in lef_path if str(p).strip()]
             else:
                 raise TypeError("lef_path must be a str or list[str].")
+        elif contract and contract.timing and contract.timing.lef_path:
+            stripped = str(contract.timing.lef_path).strip()
+            self.lef_paths = [stripped] if stripped else []
         else:
             self.lef_paths = []
 
@@ -477,19 +512,22 @@ class SiliconSignoffVerifier(BaseVerifier):
         self.require_coverage: bool = require_coverage
         self.require_pnr: bool = require_pnr
         self.require_cdc: bool = require_cdc
+        self.require_lec: bool = require_lec
+        self.detected_versions: dict[str, str] = {}
 
     def verify(
         self,
         workspace: Path,
         sandbox: BubblewrapSandbox,
     ) -> VerificationResult:
-        from ..sandbox.remote_eda import get_eda_runner
-
-        eda_runner = self.runner if self.runner is not None else get_eda_runner(workspace, sandbox)
+        """Run the hierarchical silicon signoff gates sequentially. Fails closed on first violation."""
         resolved_ws = workspace.resolve()
+        from ..sandbox.remote_eda import get_eda_runner
+        eda_runner = self.runner if self.runner is not None else get_eda_runner(workspace, sandbox)
+        self.detected_versions = detect_eda_tool_versions(eda_runner)
         gate_reports: list[dict[str, Any]] = []
 
-        # Find all SystemVerilog/Verilog source files
+        # Find all Verilog/SystemVerilog sources in workspace, excluding hidden dirs and .mind internal dirs
         mind_internal = (resolved_ws / ".mind").resolve()
         sources = [
             p
@@ -523,6 +561,24 @@ class SiliconSignoffVerifier(BaseVerifier):
                 error_category=gate1_res["error_category"],
                 gate_reports=gate_reports,
             )
+
+        # ── Gate 1b: Logic Equivalence Checking (LEC) (opt-in via require_lec=True)
+        if self.require_lec:
+            gate1b_res = self._run_gate_lec(
+                eda_runner, sources, gate1_res.get("netlist_path", f"{self.top_module}_netlist.v"), resolved_ws
+            )
+            gate_reports.append(gate1b_res)
+            if not gate1b_res["passed"]:
+                return VerificationResult(
+                    passed=False,
+                    domain=VerificationDomain.RTL,
+                    exit_code=gate1b_res["exit_code"],
+                    stdout=gate1b_res["stdout"],
+                    stderr=gate1b_res["stderr"],
+                    failure_reason=gate1b_res["details"],
+                    error_category=gate1b_res["error_category"],
+                    gate_reports=gate_reports,
+                )
 
         # ── Gate 2: SymbiYosys Formal Property Verification ──────────────────
         gate2_res = self._run_gate2_formal_sby(eda_runner, sources, resolved_ws)
@@ -655,6 +711,7 @@ class SiliconSignoffVerifier(BaseVerifier):
         src_args = [str(s.relative_to(ws)) for s in sources]
         netlist_name = f"{self.top_module}_netlist.v"
 
+        ast_name = f"{self.top_module}_ast.json"
         if self.liberty_paths:
             primary_lib = self.liberty_paths[0]
             yosys_cmd = (
@@ -664,6 +721,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 f"dfflibmap -liberty {primary_lib}; "
                 f"abc -liberty {primary_lib}; "
                 f"clean; "
+                f"write_json {ast_name}; "
                 f"write_verilog -noattr {netlist_name}"
             )
         else:
@@ -671,6 +729,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 f"read_verilog -sv {' '.join(src_args)}; "
                 f"hierarchy -check -top {self.top_module}; "
                 f"proc; check; "
+                f"write_json {ast_name}; "
                 f"write_verilog -noattr {netlist_name}"
             )
 
@@ -700,22 +759,44 @@ class SiliconSignoffVerifier(BaseVerifier):
             simulated_check["netlist_path"] = netlist_name
             return simulated_check
 
-        # Inspect AST output for latch traps
-        latch_match = re.search(r"\$(?:d|ad)latch\b", combined_output)
-        if latch_match:
-            # Check for deliberate synopsys keep_latch override
-            has_override = any("synopsys keep_latch" in s.read_text(encoding="utf-8") for s in sources)
-            if not has_override:
-                return {
-                    "gate": "Gate 1: Yosys Elaboration & Latch Trap",
-                    "passed": False,
-                    "exit_code": 1,
-                    "stdout": proc.stdout,
-                    "stderr": proc.stderr,
-                    "details": "Unintended latch inferred in AST without synopsys keep_latch override.",
-                    "error_category": "LATCH_INFERRED",
-                    "simulated": False,
-                }
+        # Check for deliberate synopsys keep_latch override
+        has_override = any("synopsys keep_latch" in s.read_text(encoding="utf-8") for s in sources)
+
+        # 1. Structured JSON AST latch inspection (immune to stdout formatting changes)
+        ast_file = ws / ast_name
+        if ast_file.exists():
+            try:
+                ast_json = json.loads(ast_file.read_text(encoding="utf-8"))
+                for mod_name, mod_info in ast_json.get("modules", {}).items():
+                    for cell_name, cell_info in mod_info.get("cells", {}).items():
+                        cell_type = cell_info.get("type", "")
+                        if cell_type in ("$dlatch", "$adlatch", "$latch", "$sr", "$dffsr") and not has_override:
+                            return {
+                                "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                                "passed": False,
+                                "exit_code": 1,
+                                "stdout": proc.stdout,
+                                "stderr": proc.stderr,
+                                "details": f"Unintended latch cell '{cell_name}' of type '{cell_type}' detected in structured AST.",
+                                "error_category": "LATCH_INFERRED",
+                                "simulated": False,
+                            }
+            except Exception:
+                ast_json = None
+
+        # 2. Fallback regex inspection on combined tool stdout/stderr
+        latch_match = re.search(r"\$(?:d|ad)?latch\b", combined_output)
+        if latch_match and not has_override:
+            return {
+                "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": "Unintended latch inferred in AST without synopsys keep_latch override.",
+                "error_category": "LATCH_INFERRED",
+                "simulated": False,
+            }
 
         # Check for combinational loops or multi-driven nets
         if "Warning: combinational loop" in combined_output:
@@ -742,6 +823,106 @@ class SiliconSignoffVerifier(BaseVerifier):
             "netlist_path": netlist_name if passed else None,
             "simulated": False,
         }
+
+    def _run_gate_lec(
+        self,
+        runner: Any,
+        sources: list[Path],
+        netlist_name: str,
+        ws: Path,
+    ) -> dict[str, Any]:
+        """Gate 1b: Formally prove logical equivalence between behavioral RTL and synthesized netlist."""
+        netlist_path = ws / netlist_name
+        if not netlist_path.exists():
+            if self.allow_mock_fallback:
+                return {
+                    "gate": "Gate 1b: Logic Equivalence Checking (LEC)",
+                    "passed": True,
+                    "exit_code": 0,
+                    "stdout": "[SIMULATED - NOT REAL TOOL OUTPUT] Yosys formal LEC simulated: 0 unproven points.",
+                    "stderr": "",
+                    "details": "Simulated formal equivalence between RTL and gate netlist.",
+                    "error_category": None,
+                    "simulated": True,
+                    "skipped": False,
+                }
+            return {
+                "gate": "Gate 1b: Logic Equivalence Checking (LEC)",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": "",
+                "stderr": f"Synthesized netlist {netlist_name} does not exist.",
+                "details": "Cannot run LEC without synthesized netlist.",
+                "error_category": "MISSING_NETLIST_FOR_LEC",
+                "simulated": False,
+            }
+
+        src_args = [str(s.relative_to(ws)) for s in sources]
+        equiv_cmd = (
+            f"read_verilog -sv {' '.join(src_args)}; "
+            f"prep -top {self.top_module}; "
+            f"splitnets; "
+            f"rename {self.top_module} gold; "
+            f"read_verilog {netlist_name}; "
+            f"prep -top {self.top_module}; "
+            f"splitnets; "
+            f"rename {self.top_module} gate; "
+            f"equiv_make gold gate equiv; "
+            f"hierarchy -top equiv; "
+            f"equiv_simple; "
+            f"equiv_status -assert"
+        )
+        cmd = ["yosys", "-p", equiv_cmd]
+        proc = runner.run(cmd, timeout_sec=60)
+        combined = f"{proc.stdout}\n{proc.stderr}"
+
+        if proc.returncode != 0 and _is_binary_missing(proc, "yosys"):
+            if not self.allow_mock_fallback:
+                return {
+                    "gate": "Gate 1b: Logic Equivalence Checking (LEC)",
+                    "passed": False,
+                    "exit_code": 127,
+                    "stdout": proc.stdout,
+                    "stderr": proc.stderr,
+                    "details": "yosys binary missing for formal LEC.",
+                    "error_category": "EDA_BINARY_MISSING",
+                    "simulated": False,
+                }
+            return {
+                "gate": "Gate 1b: Logic Equivalence Checking (LEC)",
+                "passed": True,
+                "exit_code": 0,
+                "stdout": "[SIMULATED - NOT REAL TOOL OUTPUT] Yosys formal LEC passed: 0 unproven equivalence points.",
+                "stderr": "",
+                "details": "Equivalence formally proved between golden RTL and synthesized gate netlist.",
+                "error_category": None,
+                "simulated": True,
+                "skipped": False,
+            }
+
+        if "Equivalence successfully proven!" in combined or (proc.returncode == 0 and "ERROR" not in combined):
+            return {
+                "gate": "Gate 1b: Logic Equivalence Checking (LEC)",
+                "passed": True,
+                "exit_code": 0,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": "Equivalence formally proved between golden RTL and synthesized netlist.",
+                "error_category": None,
+                "simulated": False,
+                "skipped": False,
+            }
+        else:
+            return {
+                "gate": "Gate 1b: Logic Equivalence Checking (LEC)",
+                "passed": False,
+                "exit_code": proc.returncode if proc.returncode != 0 else 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": "Formal LEC failed: Unproven equivalence points between RTL and gate netlist.",
+                "error_category": "LEC_VERIFICATION_FAILED",
+                "simulated": False,
+            }
 
     def _lexical_latch_check(self, sources: list[Path]) -> dict[str, Any]:
         """Perform static AST/lexical latch pattern inspection when yosys is absent."""

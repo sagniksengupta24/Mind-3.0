@@ -7,13 +7,18 @@ Mind 3.0 is a fail-closed, deterministic AI engineering-agent framework for RTL 
 - **11-Phase Deterministic Execution Engine**:
   `INTAKE` → `ROUTE` → `SNAPSHOT` → `MODEL_CALL` → `PARSE` → `POLICY_CHECK` → `EXECUTE` → `OBSERVE` → `VERIFY` → `REPAIR_OR_FINISH` → `TRACE`
 - **6-Gate OSS RTL & Physical Validation Flow**:
-  - **Gate 1: Yosys Elaboration & Latch Trap**: Catches unapproved inferred latches and combinational loops.
+  - **Gate 1: Yosys Elaboration & Latch Trap**: Catches unapproved inferred latches via structured JSON AST inspection and combinational loops.
+  - **Gate 1b: Logic Equivalence Checking (LEC)**: Formally proves equivalence between behavioral RTL and synthesized netlists via Yosys `equiv_status -assert`.
   - **Gate 2: SymbiYosys (SBY) Formal BMC**: Bounded model checking (depth 25) with counterexample trace isolation.
-  - **Gate 3: Verilator 5.x Coverage**: Line, branch, and toggle coverage thresholds with pseudo-random LFSR and walking-1 stimulus.
-  - **Gate 4: OpenSTA Multi-Corner Timing Signoff**: Setup ($WNS \ge 0$ ps, $TNS \ge 0$) and hold slack verification across PVT corners.
+  - **Gate 3: Verilator 5.x Coverage**: Line, branch, and toggle coverage thresholds with pseudo-random Galois LFSR and walking-1 stimulus.
+  - **Gate 4: OpenSTA Multi-Corner Timing Signoff**: Setup ($WNS \ge 0$ ps, $TNS \ge 0$) and hold slack verification across declared PVT corners.
   - **Gate 5: OpenROAD Place-and-Route (opt-in)**: Physical design validation detecting placement overflow and global routing congestion.
   - **Gate 6: Yosys CDC Static Analysis**: Asynchronous clock-domain crossing detection.
   - **DFT Scan Advisory Audit**: Automatic DFF count analysis and scan-enable port presence detection (non-blocking).
+- **Dynamic Model Discovery & Verification Cache**:
+  - `OpenRouterModelRegistry`: Dynamic, fail-closed runtime model catalog discovery with TTL caching (no fabricated model slugs).
+  - `ContentAddressedCache`: SHA-256 hash-keyed caching of formal BMC and coverage results across identical snapshots.
+  - `FineTuningDatasetExporter`: Exports multi-turn hardware trajectories into standardized JSONL and ShareGPT instruction-tuning datasets.
 - **TapeoutReadinessVerifier & CommercialSignoffVerifier**:
   Independent fail-closed evidence auditor for 8 signoff domains: DRC, LVS, STA, CDC, ERC, Formal LEC, DFT, and Power/EM-IR. Supports automated content audits, zero waivers, and native log scraping for Synopsys PrimeTime, Cadence Innovus, Siemens Calibre nmDRC/nmLVS, and ATPG reports.
 - **Tier-1 Commercial EDA & Grid Dispatcher Layer**:
@@ -41,6 +46,8 @@ Mind 3.0 is a fail-closed, deterministic AI engineering-agent framework for RTL 
 
 ```text
 .
+├── examples/
+│   └── run_full_flow.py
 ├── pyrightconfig.json
 ├── pytest.ini
 ├── skill/
@@ -51,7 +58,9 @@ Mind 3.0 is a fail-closed, deterministic AI engineering-agent framework for RTL 
 │       ├── __init__.py
 │       ├── core/
 │       │   ├── assurance.py
+│       │   ├── cache.py
 │       │   ├── contracts.py
+│       │   ├── dataset.py
 │       │   ├── dft.py
 │       │   ├── driver.py
 │       │   ├── power.py
@@ -72,9 +81,13 @@ Mind 3.0 is a fail-closed, deterministic AI engineering-agent framework for RTL 
 │           ├── __init__.py
 │           └── interconnect.py
 └── tests/
+    ├── fixtures/
+    │   └── eda_outputs/
     ├── test_assurance.py
+    ├── test_cache_and_dataset.py
     ├── test_commercial_eda.py
     ├── test_dft_atpg.py
+    ├── test_fixtures_canary.py
     ├── test_mind3.py
     ├── test_power_intent.py
     ├── test_ppa_optimization.py

@@ -1,0 +1,22 @@
+OpenSTA 2.6.0
+==========================================================================
+Corner: tt_025c_1v80
+  setup wns: 0.180 ns
+  setup tns: 0.000 ns
+  hold wns: 0.045 ns
+  Status: MET
+
+Corner: ff_n40c_1v95
+  setup wns: 0.320 ns
+  setup tns: 0.000 ns
+  hold wns: 0.012 ns
+  Status: MET
+
+Corner: ss_125c_1v60
+  setup wns: 0.025 ns
+  setup tns: 0.000 ns
+  hold wns: 0.060 ns
+  Status: MET
+
+Worst setup WNS across all corners: 0.025 ns (MET)
+Worst hold WNS across all corners: 0.012 ns (MET)

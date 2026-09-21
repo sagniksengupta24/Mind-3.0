@@ -17,7 +17,14 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from mind3.core.driver import OPENROUTER_FREE_MODELS, PhaseDriver, _sanitize_json_output
+from mind3.core.driver import (
+    OPENROUTER_FREE_MODELS,
+    OPENROUTER_KNOWN_FREE_MODELS,
+    OpenRouterModelRegistry,
+    PhaseDriver,
+    _parse_model_code_response,
+    _sanitize_json_output,
+)
 from mind3.core.types import (
     AgentAction,
     PhaseEnum,
@@ -1853,24 +1860,87 @@ def test_ollama_provider_regression(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_openrouter_free_models_config() -> None:
-    """Item 3: Verify OPENROUTER_FREE_MODELS dictionary contains verified slugs and models are explicit."""
+    """Verify OPENROUTER_FREE_MODELS dictionary contains genuine known free model references."""
     assert isinstance(OPENROUTER_FREE_MODELS, dict)
     assert len(OPENROUTER_FREE_MODELS) >= 5
 
-    # Check verified live slugs from https://openrouter.ai/api/v1/models
+    # Check real, non-fabricated reference slugs
     expected_slugs = {
-        "cohere-north-mini-code": "cohere/north-mini-code:free",
-        "gemma-4-31b": "google/gemma-4-31b-it:free",
-        "gemma-4-26b": "google/gemma-4-26b-a4b-it:free",
-        "glm-5.2": "z-ai/glm-5.2:free",
-        "nemotron-3.5-lightning": "nvidia/nemotron-3.5-lightning:free",
-        "nemotron-3-reasoning": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+        "qwen-2.5-coder-32b": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "llama-3.3-70b": "meta-llama/llama-3.3-70b-instruct:free",
+        "deepseek-r1": "deepseek/deepseek-r1:free",
+        "mistral-7b": "mistralai/mistral-7b-instruct:free",
+        "gemini-2.0-flash": "google/gemini-2.0-flash-exp:free",
     }
 
     for key, slug in expected_slugs.items():
         assert key in OPENROUTER_FREE_MODELS
         assert OPENROUTER_FREE_MODELS[key] == slug
         assert slug.endswith(":free")
+
+
+def test_openrouter_model_registry_dynamic_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify OpenRouterModelRegistry dynamic query, TTL caching, and fail-closed behavior."""
+    fake_catalog = {
+        "data": [
+            {"id": "meta-llama/llama-3.3-70b-instruct:free", "pricing": {"prompt": "0", "completion": "0"}},
+            {"id": "qwen/qwen-2.5-coder-32b-instruct:free", "pricing": {"prompt": "0", "completion": "0"}},
+            {"id": "anthropic/claude-3.5-sonnet", "pricing": {"prompt": "0.003", "completion": "0.015"}},
+        ]
+    }
+
+    class MockResponse:
+        status_code = 200
+
+        def raise_for_status(self) -> None:
+            pass
+
+        def json(self) -> dict[str, Any]:
+            return fake_catalog
+
+    class MockClient:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def __enter__(self) -> "MockClient":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            pass
+
+        def get(self, url: str, headers: dict[str, str]) -> MockResponse:
+            assert "models" in url
+            return MockResponse()
+
+    monkeypatch.setattr(httpx, "Client", MockClient)
+
+    # Force refresh and verify dynamic resolution
+    free_models = OpenRouterModelRegistry.get_free_models(force_refresh=True)
+    assert len(free_models) == 2
+    assert "meta-llama/llama-3.3-70b-instruct:free" in free_models
+    assert "qwen/qwen-2.5-coder-32b-instruct:free" in free_models
+    assert "anthropic/claude-3.5-sonnet" not in free_models
+
+
+def test_parse_model_code_response_robustness() -> None:
+    """Verify _parse_model_code_response uses schema validation rather than string sniffing."""
+    # Case 1: Structured WriteFileAction JSON
+    json_action = '{"action": "write_file", "path": "alu.sv", "content": "module alu(input clk); endmodule"}'
+    assert _parse_model_code_response(json_action) == "module alu(input clk); endmodule"
+
+    # Case 2: Generic JSON dict with content key
+    json_dict = '{"content": "module fifo(); endmodule"}'
+    assert _parse_model_code_response(json_dict) == "module fifo(); endmodule"
+
+    # Case 3: Markdown code fences
+    fenced_code = "```systemverilog\nmodule counter(input clk);\nendmodule\n```"
+    assert _parse_model_code_response(fenced_code) == "module counter(input clk);\nendmodule"
+
+    # Case 4: Raw Verilog that contains the word 'content' and starts with a brace in a comment
+    tricky_verilog = "/* { brace at start with content in comment */\nmodule tricky();\nendmodule"
+    parsed = _parse_model_code_response(tricky_verilog)
+    assert "module tricky();" in parsed
+    assert "brace at start" in parsed
 
 
 # ── Production Silicon & Multi-Agent Tests (Mind 3.0 10/10 Suite) ────────────

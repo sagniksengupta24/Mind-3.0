@@ -75,9 +75,12 @@ class TimingConstraint(BaseModel):
 
     clock_name: str = Field(default="clk", description="Primary clock signal name")
     period_ns: float = Field(default=10.0, gt=0.0, description="Clock period target in nanoseconds")
-    target_library: str = Field(
-        default="sky130_fd_sc_hd__tt_025C_1v80.lib",
-        description="Reference Liberty cell library",
+    target_library: str | None = Field(
+        default=None,
+        description=(
+            "Optional reference Liberty (.lib) cell library path. When provided, informs Gate 4 STA "
+            "and Gate 5 PnR if no explicit liberty_path is passed to SiliconSignoffVerifier."
+        ),
     )
     pvt_corners: list[str] = Field(
         default_factory=lambda: ["tt_025c_1v80", "ff_n40c_1v95", "ss_125c_1v60"],
@@ -89,7 +92,11 @@ class TimingConstraint(BaseModel):
     )
 
     def to_sdc(self) -> str:
-        """Render Synopsys Design Constraints (SDC) file content with timing exception stubs."""
+        """Render Synopsys Design Constraints (SDC) file content with timing exception stubs.
+
+        Note: Standard SDC (IEEE 1497) specifies clock, I/O delay, and timing exception constraints;
+        cell library bindings belong to EDA-specific TCL scripts (e.g. read_liberty in OpenSTA).
+        """
         return (
             f"# Generated Timing Constraints\n"
             f"create_clock -name {self.clock_name} -period {self.period_ns:.3f} [get_ports {self.clock_name}]\n"
@@ -244,7 +251,7 @@ class VerificationHarnessGenerator:
 
         Phase 1 (cycles 0-9):   Synchronous reset sequence.
         Phase 2 (cycles 10-75): Boundary sweep — all-zeros, all-ones, walking-1, walking-0.
-        Phase 3 (cycles 76-475): LFSR pseudo-random stimulus (32-bit maximal-length polynomial).
+        Phase 3 (cycles 76-475): Galois LFSR pseudo-random stimulus (32-bit maximal-length polynomial 0xB4BCD35C).
         Phase 4 (cycles 476-479): Reset recovery — re-assert reset and verify outputs settle.
         """
         clk_port = next((p.name for p in contract.ports if "clk" in p.name.lower()), "clk")
@@ -320,7 +327,7 @@ class VerificationHarnessGenerator:
             f"        top->eval();\n"
             f"    }}\n\n"
             f"    // Phase 3: LFSR pseudo-random stimulus\n"
-            f"    // 32-bit maximal-length Fibonacci LFSR: polynomial x^32+x^31+x^29+x^1+1 (0xB4BCD35C)\n"
+            f"    // 32-bit maximal-length Galois LFSR: polynomial x^32+x^30+x^11+x^9+x^8+x^7+x^5+x^3+x^2+x+1 (0xB4BCD35C)\n"
             f"    uint32_t lfsr = 0xACE1u;\n"
             f"    for (int cycle = 0; cycle < 400; ++cycle) {{\n"
             f"        top->{clk_port} = !top->{clk_port};\n"

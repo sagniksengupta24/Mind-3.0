@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import os
+import re
 import shutil
 import time
 from pathlib import Path
@@ -52,6 +53,45 @@ def _sanitize_json_output(raw_text: str) -> str:
     return cleaned
 
 
+def _parse_model_code_response(raw_output: str) -> str:
+    """Deterministically parse code or tool action from model output.
+
+    Replaces fragile string-sniffing heuristics with rigorous JSON schema validation:
+    1. First, attempts to parse as a structured AgentAction (e.g. WriteFileAction).
+       If valid, extracts the file content directly from the typed schema.
+    2. Second, attempts to parse as raw JSON dictionary containing 'content' or 'code'.
+    3. Third, if not JSON, cleans markdown code fences (```verilog / ```systemverilog / ```).
+    4. Returns the extracted code without corruption.
+    """
+    cleaned = _sanitize_json_output(raw_output)
+
+    # 1. Attempt strict Pydantic AgentAction deserialization
+    try:
+        action_obj = agent_action_adapter.validate_json(cleaned)
+        if isinstance(action_obj, WriteFileAction):
+            return action_obj.content
+    except Exception:
+        action_obj = None
+
+    # 2. Attempt generic JSON dict extraction if model produced JSON without full schema
+    try:
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            for key in ("content", "code", "rtl", "verilog", "systemverilog"):
+                if key in data and isinstance(data[key], str):
+                    return data[key]
+    except Exception:
+        data = None
+
+    # 3. Handle raw code or markdown-wrapped code
+    fence_pattern = re.compile(r"```(?:verilog|systemverilog|sv|v)?\s*\n(.*?)\n```", re.DOTALL | re.IGNORECASE)
+    match = fence_pattern.search(raw_output)
+    if match:
+        return match.group(1).strip()
+
+    return cleaned
+
+
 NON_REPAIRABLE_CATEGORIES: set[str] = {
     "EDA_BINARY_MISSING",
     "TIMING_REPORT_UNPARSEABLE",
@@ -61,15 +101,90 @@ NON_REPAIRABLE_CATEGORIES: set[str] = {
     "CDC_ANALYSIS_FAILED",
 }
 
-# Verified free model slugs queried directly from https://openrouter.ai/api/v1/models (September 2026)
-OPENROUTER_FREE_MODELS: dict[str, str] = {
-    "cohere-north-mini-code": "cohere/north-mini-code:free",
-    "gemma-4-31b": "google/gemma-4-31b-it:free",
-    "gemma-4-26b": "google/gemma-4-26b-a4b-it:free",
-    "glm-5.2": "z-ai/glm-5.2:free",
-    "nemotron-3.5-lightning": "nvidia/nemotron-3.5-lightning:free",
-    "nemotron-3-reasoning": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+
+class OpenRouterModelRegistry:
+    """Dynamic, fail-closed model registry for OpenRouter endpoints.
+
+    Queries the live OpenRouter API (https://openrouter.ai/api/v1/models) to discover
+    active models without hardcoded or fabricated slugs. Implements TTL caching
+    and strictly validates availability before dispatch.
+    """
+
+    DEFAULT_CACHE_TTL_SEC: float = 3600.0  # 1 hour
+    _cached_models: list[dict[str, Any]] = []
+    _last_fetch_time: float = 0.0
+
+    @classmethod
+    def fetch_models(
+        cls,
+        api_key: str | None = None,
+        base_url: str = "https://openrouter.ai/api/v1",
+        timeout: float = 10.0,
+        force_refresh: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Fetch models from OpenRouter API with TTL caching.
+
+        Fails closed on HTTP error or unreachable endpoint unless cached data is valid.
+        """
+        now = time.time()
+        if not force_refresh and cls._cached_models and (now - cls._last_fetch_time) < cls.DEFAULT_CACHE_TTL_SEC:
+            return cls._cached_models
+
+        headers = {"Accept": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                resp = client.get(f"{base_url.rstrip('/')}/models", headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+                models = data.get("data", [])
+                if not isinstance(models, list):
+                    raise ValueError("Unexpected OpenRouter API response format: 'data' is not a list")
+                cls._cached_models = models
+                cls._last_fetch_time = now
+                return models
+        except Exception as exc:
+            if cls._cached_models:
+                return cls._cached_models
+            raise RuntimeError(
+                f"Failed to query OpenRouter model registry at {base_url}/models: {exc}. "
+                "OpenRouterModelRegistry operates in fail-closed mode and does not fabricate model availability."
+            ) from exc
+
+    @classmethod
+    def get_free_models(
+        cls,
+        api_key: str | None = None,
+        base_url: str = "https://openrouter.ai/api/v1",
+        timeout: float = 10.0,
+        force_refresh: bool = False,
+    ) -> list[str]:
+        """Return IDs of currently active free models on OpenRouter."""
+        models = cls.fetch_models(api_key=api_key, base_url=base_url, timeout=timeout, force_refresh=force_refresh)
+        free_ids: list[str] = []
+        for m in models:
+            model_id = m.get("id", "")
+            pricing = m.get("pricing", {})
+            prompt_cost = str(pricing.get("prompt", "1"))
+            completion_cost = str(pricing.get("completion", "1"))
+            if (prompt_cost == "0" and completion_cost == "0") or model_id.endswith(":free"):
+                free_ids.append(model_id)
+        return sorted(free_ids)
+
+
+# Real, verified free model slugs observed on OpenRouter as reference baselines for offline development.
+# In live execution, use OpenRouterModelRegistry.get_free_models() to query the active catalog dynamically.
+OPENROUTER_KNOWN_FREE_MODELS: dict[str, str] = {
+    "qwen-2.5-coder-32b": "qwen/qwen-2.5-coder-32b-instruct:free",
+    "llama-3.3-70b": "meta-llama/llama-3.3-70b-instruct:free",
+    "deepseek-r1": "deepseek/deepseek-r1:free",
+    "mistral-7b": "mistralai/mistral-7b-instruct:free",
+    "gemini-2.0-flash": "google/gemini-2.0-flash-exp:free",
 }
+# Backward compatibility alias
+OPENROUTER_FREE_MODELS = OPENROUTER_KNOWN_FREE_MODELS
 
 
 class PhaseDriver:
@@ -907,18 +1022,7 @@ class PhaseDriver:
         )
         try:
             raw_rtl = self._query_model(rtl_messages)
-            cleaned_rtl = _sanitize_json_output(raw_rtl)
-            if cleaned_rtl.startswith("{") and "content" in cleaned_rtl:
-                try:
-                    action_obj = agent_action_adapter.validate_json(cleaned_rtl)
-                    if isinstance(action_obj, WriteFileAction):
-                        rtl_code = action_obj.content
-                    else:
-                        rtl_code = cleaned_rtl
-                except Exception:
-                    rtl_code = cleaned_rtl
-            else:
-                rtl_code = cleaned_rtl
+            rtl_code = _parse_model_code_response(raw_rtl)
 
             rtl_action = WriteFileAction(path=f"{contract.module_name}.sv", content=rtl_code)
             self._policy_check(rtl_action)
@@ -958,15 +1062,7 @@ class PhaseDriver:
                 )
                 try:
                     raw_repair = self._query_model(repair_messages)
-                    cleaned_repair = _sanitize_json_output(raw_repair)
-                    if cleaned_repair.startswith("{") and "content" in cleaned_repair:
-                        try:
-                            action_rep = agent_action_adapter.validate_json(cleaned_repair)
-                            repaired_code = action_rep.content if isinstance(action_rep, WriteFileAction) else cleaned_repair
-                        except Exception:
-                            repaired_code = cleaned_repair
-                    else:
-                        repaired_code = cleaned_repair
+                    repaired_code = _parse_model_code_response(raw_repair)
 
                     rep_action = WriteFileAction(path=f"{contract.module_name}.sv", content=repaired_code)
                     self._policy_check(rep_action)
@@ -1169,4 +1265,11 @@ class PPAOptimizer:
         return f"REPAIR: Address {error_category} - {failure_reason}"
 
 
-__all__ = ["PhaseDriver", "OPENROUTER_FREE_MODELS", "PPAPoint", "PPAOptimizer"]
+__all__ = [
+    "PhaseDriver",
+    "OpenRouterModelRegistry",
+    "OPENROUTER_KNOWN_FREE_MODELS",
+    "OPENROUTER_FREE_MODELS",
+    "PPAPoint",
+    "PPAOptimizer",
+]

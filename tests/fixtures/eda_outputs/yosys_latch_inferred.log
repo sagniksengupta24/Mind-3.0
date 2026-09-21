@@ -1,0 +1,18 @@
+-- Yosys 0.36 (git sha1 c850be45, clang++ 14.0.0)
+1. Executing Verilog-2005 frontend: bad_latch.sv
+Parsing SystemVerilog input `bad_latch.sv' to AST representation.
+Generating RTLIL representation for module `\bad_latch'.
+Successfully finished Verilog frontend.
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+Top module:  \bad_latch
+
+3. Executing PROC pass (convert processes to netlists).
+PROC_DLATCH: \bad_latch.$proc$bad_latch.sv:10$1
+Inferred latch: \bad_latch.$dlatch$bad_latch.sv:14$2
+Found and converted 1 latch process in \bad_latch.
+Cleaned up 1 empty process.
+
+4. Executing CHECK pass.
+Warning: Wire \bad_latch.\q is driven by latch cell \bad_latch.$dlatch$bad_latch.sv:14$2.
+End of script. Logged 1 warning, 0 errors.

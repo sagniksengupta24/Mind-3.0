@@ -1,0 +1,13 @@
+SBY 0.36: bad_fifo.sby: engine_0: smtbmc
+engine_0: ##   0:00:00  Solver: yices
+engine_0: ##   0:00:00  Checking assumptions in step 0..
+engine_0: ##   0:00:00  Checking assertions in step 0..
+engine_0: ##   0:00:00  Checking assumptions in step 1..
+engine_0: ##   0:00:00  Checking assertions in step 1..
+engine_0: ##   0:00:00  Assert failed in bad_fifo: bad_fifo.sva:18: assert property (p_no_overflow)
+engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd
+engine_0: ##   0:00:00  Status: failed
+engine_0: finished (returncode=2)
+summary: Elapsed clock time [h:mm:ss (secs)]: 0:00:01 (1)
+summary: engine_0 (smtbmc) returned FAIL
+DONE (FAIL, rc=2)

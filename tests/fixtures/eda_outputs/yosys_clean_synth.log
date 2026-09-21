@@ -1,0 +1,35 @@
+-- Yosys 0.36 (git sha1 c850be45, clang++ 14.0.0)
+1. Executing Verilog-2005 frontend: alu.sv
+Parsing SystemVerilog input `alu.sv' to AST representation.
+Generating RTLIL representation for module `\alu'.
+Successfully finished Verilog frontend.
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+Top module:  \alu
+Analyzing design hierarchy..
+Top module:  \alu
+Used module: \alu
+
+3. Executing PROC pass (convert processes to netlists).
+Promoting always_comb to continuous assignment: \alu.$proc$alu.sv:12$1
+Cleaned up 1 empty process.
+
+4. Executing OPT pass (perform simple optimizations).
+Finding unused cells or wires in module \alu..
+Removed 0 unused cells and 2 unused wires.
+
+5. Executing TECHMAP pass (map to internal cell library).
+Mapping \alu to generic cells.
+
+6. Executing DFFLIBMAP pass (mapping DFF cells to target library).
+No DFFs found in design.
+
+7. Executing ABC pass (technology mapping using ABC).
+Don't call ABC: nothing to map!
+
+8. Executing CLEAN pass (remove unused cells and wires).
+Removed 0 unused cells and 0 unused wires.
+
+9. Executing Verilog backend.
+Dumping module `\alu' to netlist.v.
+End of script. Logged 0 warnings, 0 errors.

@@ -244,7 +244,7 @@ class VerificationHarnessGenerator:
 
         Phase 1 (cycles 0-9):   Synchronous reset sequence.
         Phase 2 (cycles 10-75): Boundary sweep — all-zeros, all-ones, walking-1, walking-0.
-        Phase 3 (cycles 76-475): Galois LFSR pseudo-random stimulus (32-bit maximal-length polynomial 0xB4BCD35C).
+        Phase 3 (cycles 76-475): Galois LFSR pseudo-random stimulus (32-bit mask 0xB4BCD35C; see mask for exact taps).
         Phase 4 (cycles 476-479): Reset recovery — re-assert reset and verify outputs settle.
         """
         clk_port = next((p.name for p in contract.ports if "clk" in p.name.lower()), "clk")
@@ -320,7 +320,7 @@ class VerificationHarnessGenerator:
             f"        top->eval();\n"
             f"    }}\n\n"
             f"    // Phase 3: LFSR pseudo-random stimulus\n"
-            f"    // 32-bit maximal-length Galois LFSR: polynomial x^32+x^30+x^11+x^9+x^8+x^7+x^5+x^3+x^2+x+1 (0xB4BCD35C)\n"
+            f"    // 32-bit maximal-length Galois LFSR (mask 0xB4BCD35C; see mask for exact taps)\n"
             f"    uint32_t lfsr = 0xACE1u;\n"
             f"    for (int cycle = 0; cycle < 400; ++cycle) {{\n"
             f"        top->{clk_port} = !top->{clk_port};\n"

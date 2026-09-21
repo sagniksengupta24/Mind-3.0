@@ -1995,9 +1995,9 @@ def test_parse_model_code_response_robustness() -> None:
     json_action = '{"action": "write_file", "path": "alu.sv", "content": "module alu(input clk); endmodule"}'
     assert _parse_model_code_response(json_action) == "module alu(input clk); endmodule"
 
-    # Case 2: Generic JSON dict with content key
+    # Case 2: Generic JSON without WriteFileAction schema tag is preserved as raw text (no key sniffing)
     json_dict = '{"content": "module fifo(); endmodule"}'
-    assert _parse_model_code_response(json_dict) == "module fifo(); endmodule"
+    assert _parse_model_code_response(json_dict) == json_dict
 
     # Case 3: Markdown code fences
     fenced_code = "```systemverilog\nmodule counter(input clk);\nendmodule\n```"
@@ -2008,6 +2008,7 @@ def test_parse_model_code_response_robustness() -> None:
     parsed = _parse_model_code_response(tricky_verilog)
     assert "module tricky();" in parsed
     assert "brace at start" in parsed
+    assert parsed == tricky_verilog
 
 
 # ── Production Silicon & Multi-Agent Tests (Mind 3.0 10/10 Suite) ────────────
@@ -2798,6 +2799,7 @@ def test_verilator_testbench_lfsr_stimulus() -> None:
     assert "lfsr" in tb
     assert "uint32_t" in tb
     assert "Galois LFSR" in tb, "Comment must accurately identify Galois LFSR topology"
+    assert "see mask for exact taps" in tb, "Comment must reference mask rather than unverified polynomial term enumeration"
     assert "Fibonacci" not in tb, "Comment must not misidentify Galois implementation as Fibonacci"
 
 

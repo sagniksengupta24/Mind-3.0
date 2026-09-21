@@ -54,41 +54,20 @@ def _sanitize_json_output(raw_text: str) -> str:
 
 
 def _parse_model_code_response(raw_output: str) -> str:
-    """Deterministically parse code or tool action from model output.
+    """Deterministically parse code or tool action from model output using strict schema validation.
 
-    Replaces fragile string-sniffing heuristics with rigorous JSON schema validation:
-    1. First, attempts to parse as a structured AgentAction (e.g. WriteFileAction).
-       If valid, extracts the file content directly from the typed schema.
-    2. Second, attempts to parse as raw JSON dictionary containing 'content' or 'code'.
-    3. Third, if not JSON, cleans markdown code fences (```verilog / ```systemverilog / ```).
-    4. Returns the extracted code without corruption.
+    1. Sanitizes markdown code fences via _sanitize_json_output.
+    2. Attempts strict Pydantic AgentAction deserialization via agent_action_adapter.validate_json:
+       - On successful parse of a WriteFileAction, extracts action_obj.content.
+       - On parse failure, treats the sanitized string as raw RTL code.
     """
     cleaned = _sanitize_json_output(raw_output)
-
-    # 1. Attempt strict Pydantic AgentAction deserialization
     try:
         action_obj = agent_action_adapter.validate_json(cleaned)
         if isinstance(action_obj, WriteFileAction):
             return action_obj.content
     except Exception:
-        action_obj = None
-
-    # 2. Attempt generic JSON dict extraction if model produced JSON without full schema
-    try:
-        data = json.loads(cleaned)
-        if isinstance(data, dict):
-            for key in ("content", "code", "rtl", "verilog", "systemverilog"):
-                if key in data and isinstance(data[key], str):
-                    return data[key]
-    except Exception:
-        data = None
-
-    # 3. Handle raw code or markdown-wrapped code
-    fence_pattern = re.compile(r"```(?:verilog|systemverilog|sv|v)?\s*\n(.*?)\n```", re.DOTALL | re.IGNORECASE)
-    match = fence_pattern.search(raw_output)
-    if match:
-        return match.group(1).strip()
-
+        return cleaned
     return cleaned
 
 
@@ -1043,12 +1022,7 @@ class PhaseDriver:
         )
         try:
             raw_rtl = self._query_model(rtl_messages)
-            cleaned_rtl = _sanitize_json_output(raw_rtl)
-            try:
-                action_obj = agent_action_adapter.validate_json(cleaned_rtl)
-                rtl_code = action_obj.content if isinstance(action_obj, WriteFileAction) else cleaned_rtl
-            except Exception:
-                rtl_code = cleaned_rtl
+            rtl_code = _parse_model_code_response(raw_rtl)
 
             rtl_action = WriteFileAction(path=f"{contract.module_name}.sv", content=rtl_code)
             self._policy_check(rtl_action)
@@ -1088,12 +1062,7 @@ class PhaseDriver:
                 )
                 try:
                     raw_repair = self._query_model(repair_messages)
-                    cleaned_repair = _sanitize_json_output(raw_repair)
-                    try:
-                        action_rep = agent_action_adapter.validate_json(cleaned_repair)
-                        repaired_code = action_rep.content if isinstance(action_rep, WriteFileAction) else cleaned_repair
-                    except Exception:
-                        repaired_code = cleaned_repair
+                    repaired_code = _parse_model_code_response(raw_repair)
 
                     rep_action = WriteFileAction(path=f"{contract.module_name}.sv", content=repaired_code)
                     self._policy_check(rep_action)

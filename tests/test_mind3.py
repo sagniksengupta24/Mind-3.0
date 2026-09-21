@@ -3095,13 +3095,26 @@ def test_gate_presentation_label_contradiction_detection() -> None:
     with pytest.raises(ValueError, match="Contradictory gate report flags"):
         format_gate_report_row(contradictory_gate)
 
+    # Demonstrate the exact bug that previously existed in examples/run_full_flow.py:
+    # The old naive ternary check: 'sim = " [SIMULATED]" if gate.get("simulated") else " [REAL EDA]"'
+    # caused skipped gates (skipped=True, simulated=False) to be printed as [REAL EDA].
+    def old_flawed_formatting(g: dict[str, Any]) -> str:
+        s = " [SIMULATED]" if g.get("simulated", False) else " [REAL EDA]"
+        p = "PASS" if g.get("passed", False) else "FAIL"
+        return f"[{p}]{s}"
+
+    assert "[REAL EDA]" in old_flawed_formatting(skipped_gate), "Old logic erroneously labeled skipped gate as [REAL EDA]"
+    assert "[REAL EDA]" not in format_gate_report_row(skipped_gate, 5), "New logic correctly prevents [REAL EDA] on skipped gate"
+
     # 2. Comprehensive verification test across full signoff oracle output
+    # ── Configuration A: Tools absent on host (LocalBwrapRunner in non-EDA environment)
+    # Exercises: Simulated gates (fallback) and Skipped gates (opt-out / tool missing)
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
         rtl_file = ws / "test.sv"
         rtl_file.write_text("module test(input wire clk, output reg [7:0] q); always @(posedge clk) q <= q + 1; endmodule\n")
 
-        verifier = SiliconSignoffVerifier(
+        verifier_absent = SiliconSignoffVerifier(
             top_module="test",
             liberty_path="dummy.lib",
             allow_mock_fallback=True,
@@ -3111,11 +3124,10 @@ def test_gate_presentation_label_contradiction_detection() -> None:
             require_cdc=False,
             require_lec=False,
         )
-        mock_runner = LocalBwrapRunner(ws)
-        res = verifier.verify(ws, mock_runner)
+        mock_runner_absent = LocalBwrapRunner(ws)
+        res_absent = verifier_absent.verify(ws, mock_runner_absent)
 
-        # Audit EVERY single gate report for presentation contradiction
-        for idx, gate in enumerate(res.gate_reports, 1):
+        for idx, gate in enumerate(res_absent.gate_reports, 1):
             lbl = get_gate_presentation_label(gate)
             row = format_gate_report_row(gate, idx)
             is_skipped = bool(gate.get("skipped", False))
@@ -3123,19 +3135,60 @@ def test_gate_presentation_label_contradiction_detection() -> None:
 
             if is_skipped:
                 assert lbl == "[SKIPPED]", f"Contradiction in {gate['gate']}: skipped=True but label={lbl}"
-                assert "[SKIPPED]" in row, f"Contradiction in row: {row}"
-                assert "[REAL EDA]" not in row, f"Contradiction in row: {row}"
-                assert "[SIMULATED]" not in row, f"Contradiction in row: {row}"
+                assert "[SKIPPED]" in row and "[REAL EDA]" not in row and "[SIMULATED]" not in row
             elif is_sim:
                 assert lbl == "[SIMULATED]", f"Contradiction in {gate['gate']}: simulated=True but label={lbl}"
-                assert "[SIMULATED]" in row, f"Contradiction in row: {row}"
-                assert "[REAL EDA]" not in row, f"Contradiction in row: {row}"
-                assert "[SKIPPED]" not in row, f"Contradiction in row: {row}"
+                assert "[SIMULATED]" in row and "[REAL EDA]" not in row and "[SKIPPED]" not in row
             else:
                 assert lbl == "[REAL EDA]", f"Contradiction in {gate['gate']}: live gate but label={lbl}"
-                assert "[REAL EDA]" in row, f"Contradiction in row: {row}"
-                assert "[SIMULATED]" not in row, f"Contradiction in row: {row}"
-                assert "[SKIPPED]" not in row, f"Contradiction in row: {row}"
+                assert "[REAL EDA]" in row and "[SIMULATED]" not in row and "[SKIPPED]" not in row
+
+    # ── Configuration B: Tools mocked-present (MockSandbox with exit code 0)
+    # Exercises: Real EDA gates (Gates 1, 2, 3, 4, 6, DFT) and Skipped gate (Gate 5 opted-out)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        top_v = ws / "top.v"
+        top_v.write_text("module top(input wire clk, output reg [3:0] q); always @(posedge clk) q <= q + 1; endmodule\n")
+        (ws / "top.sby").write_text("[options]\nmode bmc\n", encoding="utf-8")
+        (ws / "top_tb.cpp").write_text("int main() { return 0; }", encoding="utf-8")
+
+        mock_runner_present = MockSandbox(ws)
+        mock_runner_present.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+
+        verifier_present = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="sky130.lib",
+            allow_mock_fallback=False,  # strictly live/mocked tool output, zero simulated fallback
+            require_pnr=False,           # Gate 5 intentionally skipped
+            require_formal=True,
+            require_coverage=True,
+            require_cdc=True,
+        )
+        res_present = verifier_present.verify(ws, mock_runner_present)  # type: ignore
+
+        real_count = 0
+        skip_count = 0
+        for idx, gate in enumerate(res_present.gate_reports, 1):
+            lbl = get_gate_presentation_label(gate)
+            row = format_gate_report_row(gate, idx)
+            is_skipped = bool(gate.get("skipped", False))
+            is_sim = bool(gate.get("simulated", False))
+
+            if is_skipped:
+                skip_count += 1
+                assert lbl == "[SKIPPED]"
+                assert "[SKIPPED]" in row and "[REAL EDA]" not in row and "[SIMULATED]" not in row
+            elif is_sim:
+                assert lbl == "[SIMULATED]"
+                assert "[SIMULATED]" in row and "[REAL EDA]" not in row and "[SKIPPED]" not in row
+            else:
+                real_count += 1
+                assert lbl == "[REAL EDA]"
+                assert "[REAL EDA]" in row and "[SIMULATED]" not in row and "[SKIPPED]" not in row
+
+        # Verify that both REAL EDA and SKIPPED gates were evaluated and validated
+        assert real_count >= 4, f"Expected at least 4 REAL EDA gates, got {real_count}"
+        assert skip_count >= 1, f"Expected at least 1 SKIPPED gate (Gate 5), got {skip_count}"
 
 
 def test_scan_chain_synthesizer_port_injection() -> None:

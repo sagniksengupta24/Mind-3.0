@@ -1,7 +1,8 @@
-"""Canary regression tests against captured real EDA tool outputs and self-audit guardrails.
+"""Canary regression tests against representative tool output samples and self-audit guardrails.
 
-Validates that signoff parsers correctly handle real-world tool output variations
-(Yosys, OpenSTA, SymbiYosys, Verilator) and ensures zero fabricated models exist in src/.
+Validates that signoff parsers correctly handle tool output patterns across gates
+and ensures zero fabricated model claims exist in src/. Pending live-tool execution in
+environments with EDA binaries installed.
 """
 
 import re
@@ -30,7 +31,7 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures" / "eda_outputs"
 
 
 def test_yosys_clean_synth_fixture() -> None:
-    """Validate Yosys parser on captured clean synthesis output."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "yosys_clean_synth.log").read_text(encoding="utf-8")
     assert re.search(r"\$(?:d|ad)latch\b", log_text) is None
     assert "Warning: combinational loop" not in log_text
@@ -38,7 +39,7 @@ def test_yosys_clean_synth_fixture() -> None:
 
 
 def test_yosys_latch_inferred_fixture() -> None:
-    """Validate Yosys parser detects latch inference from captured log."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "yosys_latch_inferred.log").read_text(encoding="utf-8")
     match = re.search(r"\$(?:d|ad)latch\b", log_text)
     assert match is not None
@@ -46,13 +47,13 @@ def test_yosys_latch_inferred_fixture() -> None:
 
 
 def test_yosys_comb_loop_fixture() -> None:
-    """Validate Yosys parser detects combinational loop warning from captured log."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "yosys_comb_loop.log").read_text(encoding="utf-8")
     assert "Warning: combinational loop" in log_text
 
 
 def test_opensta_met_slack_fixture() -> None:
-    """Validate OpenSTA parser on captured timing report with positive slack (MET)."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "opensta_met_slack.log").read_text(encoding="utf-8")
     timing = parse_opensta_timing(log_text)
     assert timing["setup_wns"] is not None
@@ -62,7 +63,7 @@ def test_opensta_met_slack_fixture() -> None:
 
 
 def test_opensta_violated_slack_fixture() -> None:
-    """Validate OpenSTA parser on captured timing report with negative slack (VIOLATED)."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "opensta_violated_slack.log").read_text(encoding="utf-8")
     timing = parse_opensta_timing(log_text)
     assert timing["setup_wns"] is not None
@@ -72,7 +73,7 @@ def test_opensta_violated_slack_fixture() -> None:
 
 
 def test_opensta_mcmm_report_fixture() -> None:
-    """Validate multi-corner timing report parsing."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "opensta_mcmm_report.log").read_text(encoding="utf-8")
     assert "tt_025c_1v80" in log_text
     assert "ff_n40c_1v95" in log_text
@@ -81,7 +82,7 @@ def test_opensta_mcmm_report_fixture() -> None:
 
 
 def test_sby_bmc_pass_and_fail_fixtures() -> None:
-    """Validate SymbiYosys BMC output parsing for pass and fail cases."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     pass_text = (FIXTURES_DIR / "sby_bmc_pass.log").read_text(encoding="utf-8")
     assert "DONE (PASS, rc=0)" in pass_text
     assert "Assert failed" not in pass_text
@@ -176,7 +177,7 @@ def test_openrouter_registry_fail_closed_on_unreachable_network(monkeypatch: pyt
 
 
 def test_yosys_equiv_pass_fixture() -> None:
-    """Validate Yosys LEC parser on captured passing formal equivalence output."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "yosys_equiv_pass.log").read_text(encoding="utf-8")
     lec = parse_yosys_lec(log_text)
     assert lec["equivalent"] is True
@@ -186,7 +187,7 @@ def test_yosys_equiv_pass_fixture() -> None:
 
 
 def test_yosys_equiv_fail_fixture() -> None:
-    """Validate Yosys LEC parser on captured failing formal equivalence output."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "yosys_equiv_fail.log").read_text(encoding="utf-8")
     lec = parse_yosys_lec(log_text)
     assert lec["equivalent"] is False
@@ -197,7 +198,7 @@ def test_yosys_equiv_fail_fixture() -> None:
 
 
 def test_verilator_coverage_clean_fixture() -> None:
-    """Validate Verilator coverage parser on captured 100% coverage log."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "verilator_coverage_clean.log").read_text(encoding="utf-8")
     cov = parse_verilator_coverage(log_text)
     assert cov["branch"] == 100.0
@@ -205,7 +206,7 @@ def test_verilator_coverage_clean_fixture() -> None:
 
 
 def test_verilator_coverage_deficit_fixture() -> None:
-    """Validate Verilator coverage parser on captured low-coverage log."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "verilator_coverage_deficit.log").read_text(encoding="utf-8")
     cov = parse_verilator_coverage(log_text)
     assert cov["branch"] == 78.5
@@ -213,7 +214,7 @@ def test_verilator_coverage_deficit_fixture() -> None:
 
 
 def test_openroad_pnr_clean_fixture() -> None:
-    """Validate OpenROAD PnR parser on clean place-and-route output."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "openroad_pnr_clean.log").read_text(encoding="utf-8")
     pnr = parse_openroad_pnr(log_text)
     assert pnr["passed"] is True
@@ -223,7 +224,7 @@ def test_openroad_pnr_clean_fixture() -> None:
 
 
 def test_openroad_placement_overflow_fixture() -> None:
-    """Validate OpenROAD PnR parser on detailed placement overflow failure."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "openroad_placement_overflow.log").read_text(encoding="utf-8")
     pnr = parse_openroad_pnr(log_text)
     assert pnr["passed"] is False
@@ -234,7 +235,7 @@ def test_openroad_placement_overflow_fixture() -> None:
 
 
 def test_yosys_cdc_clean_fixture() -> None:
-    """Validate Yosys CDC parser on clean synchronous design output."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "yosys_cdc_clean.log").read_text(encoding="utf-8")
     cdc = parse_yosys_cdc(log_text)
     assert cdc["passed"] is True
@@ -242,7 +243,7 @@ def test_yosys_cdc_clean_fixture() -> None:
 
 
 def test_yosys_cdc_violation_fixture() -> None:
-    """Validate Yosys CDC parser detects multiple cross-domain warnings."""
+    """Parser unit test against representative synthetic sample pending real-tool verification."""
     log_text = (FIXTURES_DIR / "yosys_cdc_violation.log").read_text(encoding="utf-8")
     cdc = parse_yosys_cdc(log_text)
     assert cdc["passed"] is False

@@ -1,3 +1,7 @@
+# SYNTHETIC/REPRESENTATIVE PLACEHOLDER (NOT REAL CAPTURED EDA TOOL OUTPUT)
+# Constructed from known OpenROAD detailed placement error conventions for parser testing pending live tool execution.
+# TODO: Regenerate with real tool execution using:
+#   openroad -exit pnr_high_density.tcl > tests/fixtures/eda_outputs/openroad_placement_overflow.log 2>&1
 OpenROAD 2.0-11235 (git sha1 9f8a3c2)
 [INFO ODB-0128] Design: complex_mac
 [INFO ODB-0130] Placed 1850 instances.

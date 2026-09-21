@@ -1,3 +1,7 @@
+# SYNTHETIC/REPRESENTATIVE PLACEHOLDER (NOT REAL CAPTURED EDA TOOL OUTPUT)
+# Constructed from known Yosys equiv_status conventions for parser testing pending live tool execution.
+# TODO: Regenerate with real tool execution using:
+#   yosys -p "read_verilog -sv alu.sv; prep -top alu; splitnets; rename alu gold; read_verilog alu_mutated_netlist.v; prep -top alu; splitnets; rename alu gate; equiv_make gold gate equiv; hierarchy -top equiv; equiv_simple; equiv_status -assert" > tests/fixtures/eda_outputs/yosys_equiv_fail.log 2>&1
 1. Executing EQUIV_STATUS pass (analyzing equivalence status).
 Found 8 $equiv cells in equiv:
   Proved 6 equivalence points:

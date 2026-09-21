@@ -1,3 +1,7 @@
+# SYNTHETIC/REPRESENTATIVE PLACEHOLDER (NOT REAL CAPTURED EDA TOOL OUTPUT)
+# Constructed from known OpenROAD stdout logging conventions for parser testing pending live tool execution.
+# TODO: Regenerate with real tool execution using:
+#   openroad -exit pnr.tcl > tests/fixtures/eda_outputs/openroad_pnr_clean.log 2>&1
 OpenROAD 2.0-11235 (git sha1 9f8a3c2)
 [INFO ODB-0128] Design: alu
 [INFO ODB-0130] Placed 124 instances.

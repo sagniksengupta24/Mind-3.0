@@ -59,6 +59,7 @@ from mind3.core.verifier import (
     TapeoutReadinessVerifier,
     parse_opensta_mcmm,
     parse_opensta_wns,
+    parse_yosys_cdc,
 )
 from mind3.sandbox.bwrap import BubblewrapSandbox
 from mind3.sandbox.remote_eda import (
@@ -2710,6 +2711,58 @@ def test_gate6_cdc_clean() -> None:
         assert gate6_report["passed"] is True
         assert gate6_report["cdc_violations"] == []
         assert gate6_report["error_category"] is None
+
+
+def test_gate6_cdc_tooling_unavailable_distinction() -> None:
+    """Gate 6 must distinguish missing CDC command from real CDC violations."""
+    # 1. Parser-level assertion: 'No such command or cell type: cdc' must not report violations
+    raw_missing_cmd_log = (
+        "-- Running command `read_verilog -sv top.v; hierarchy -check -top top; proc; cdc -verbose' --\n"
+        "1. Executing Verilog-2005 frontend: top.v\n"
+        "No such command or cell type: cdc\n"
+    )
+    parsed = parse_yosys_cdc(raw_missing_cmd_log)
+    assert parsed["tooling_unavailable"] is True
+    assert parsed["passed"] is False
+    assert len(parsed["violations"]) == 0
+
+    # 2. Gate 6 execution assertion: fail-closed with CDC_TOOLING_UNAVAILABLE, not CDC_VIOLATION
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        mock_sb.mock_returncode = 1
+        mock_sb.mock_stderr = "No such command or cell type: cdc\n"
+        mock_sb.mock_stdout = "Yosys 0.69\n"
+        (ws / "top.v").write_text("module top(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule;\n", encoding="utf-8")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_cdc=True,
+        )
+        runner = LocalBwrapRunner(ws, mock_sb)  # type: ignore
+        report = verifier._run_gate6_cdc_analysis(runner, [ws / "top.v"], ws)
+
+        assert report["passed"] is False
+        assert report["error_category"] == "CDC_TOOLING_UNAVAILABLE"
+        assert report["error_category"] != "CDC_VIOLATION"
+        assert report["error_category"] != "CDC_ANALYSIS_FAILED"
+        assert "Yosys binary lacks 'cdc' command" in report["details"]
+        assert report["cdc_violations"] == []
+
+        # 3. Caller opt-out (require_cdc=False) must skip cleanly
+        verifier_opt_out = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_cdc=False,
+        )
+        report_opt_out = verifier_opt_out._run_gate6_cdc_analysis(runner, [ws / "top.v"], ws)
+        assert report_opt_out["passed"] is True
+        assert report_opt_out["skipped"] is True
+        assert report_opt_out["error_category"] is None
+        assert "require_cdc=False" in report_opt_out["stdout"]
 
 
 def test_dft_scan_audit_missing_scan_port() -> None:

@@ -633,7 +633,9 @@ def parse_yosys_cdc(output: str) -> dict[str, Any]:
         dict with keys:
             passed: bool (True if zero CDC violations found).
             violations: list of CDC violation descriptions.
+            tooling_unavailable: bool (True if Yosys lacks the 'cdc' command).
     """
+    tooling_unavailable = "no such command or cell type: cdc" in output.lower()
     cdc_patterns = [
         re.compile(r"CDC\s+WARNING[:\s]+(.*?)$", re.IGNORECASE | re.MULTILINE),
         re.compile(r"\[cdc\]\s+(?:warning|issue)[:\s]+(.*?)$", re.IGNORECASE | re.MULTILINE),
@@ -646,8 +648,8 @@ def parse_yosys_cdc(output: str) -> dict[str, Any]:
             if msg and msg not in violations:
                 violations.append(msg)
 
-    passed = len(violations) == 0 and "CDC analysis failed" not in output
-    return {"passed": passed, "violations": violations}
+    passed = not tooling_unavailable and len(violations) == 0 and "CDC analysis failed" not in output
+    return {"passed": passed, "violations": violations, "tooling_unavailable": tooling_unavailable}
 
 
 
@@ -1881,6 +1883,51 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "stderr": proc.stderr,
                 "details": "yosys binary missing. Yosys is required by Gate 1 and Gate 6.",
                 "error_category": "EDA_BINARY_MISSING",
+                "cdc_violations": [],
+                "skipped": False,
+                "simulated": False,
+            }
+
+        is_cdc_tooling_missing = "no such command or cell type: cdc" in combined.lower()
+        if is_cdc_tooling_missing:
+            if self.allow_mock_fallback:
+                return {
+                    "gate": "Gate 6: Yosys CDC Static Analysis",
+                    "passed": True,
+                    "exit_code": 0,
+                    "stdout": "[SIMULATED - NOT REAL TOOL OUTPUT] Yosys CDC command missing; simulated 0 violations.",
+                    "stderr": "",
+                    "details": "CDC analysis simulated: Yosys CDC command unavailable on runner.",
+                    "error_category": None,
+                    "cdc_violations": [],
+                    "skipped": False,
+                    "simulated": True,
+                }
+            if not self.require_cdc:
+                return {
+                    "gate": "Gate 6: Yosys CDC Static Analysis",
+                    "passed": True,
+                    "exit_code": 0,
+                    "stdout": "CDC analysis skipped (require_cdc=False, Yosys CDC command unavailable).",
+                    "stderr": "",
+                    "details": "CDC gate bypassed: Yosys lacks CDC command and caller opted out.",
+                    "error_category": None,
+                    "cdc_violations": [],
+                    "skipped": True,
+                    "simulated": False,
+                }
+            return {
+                "gate": "Gate 6: Yosys CDC Static Analysis",
+                "passed": False,
+                "exit_code": proc.returncode if proc.returncode != 0 else 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    "Yosys binary lacks 'cdc' command. Stock Homebrew/apt Yosys distributions do not bundle "
+                    "the CDC plugin; install a CDC-enabled distribution such as OSS CAD Suite "
+                    "(https://github.com/YosysHQ/oss-cad-suite-build) or configure require_cdc=False."
+                ),
+                "error_category": "CDC_TOOLING_UNAVAILABLE",
                 "cdc_violations": [],
                 "skipped": False,
                 "simulated": False,

@@ -122,11 +122,13 @@ class InterfaceContract(BaseModel):
     def to_header_template(self) -> str:
         """Render empty module header with ports and parameters."""
         param_list = [f"  parameter {k} = {v}" for k, v in self.parameters.items()]
-        param_decl = f" #(\n{',\n'.join(param_list)}\n)" if param_list else ""
+        param_inner = ",\n".join(param_list)
+        param_decl = f" #(\n{param_inner}\n)" if param_list else ""
         port_list = [f"  {p.to_verilog_declaration()}" for p in self.ports]
+        port_inner = ",\n".join(port_list)
         return (
             f"module {self.module_name}{param_decl} (\n"
-            f"{',\n'.join(port_list)}\n"
+            f"{port_inner}\n"
             f");\n"
             f"  // Implement synthesizable RTL logic here\n"
             f"endmodule\n"
@@ -201,11 +203,12 @@ class VerificationHarnessGenerator:
     def build_sva_bind_module(contract: InterfaceContract) -> str:
         """Generate SystemVerilog bind module containing SVA temporal assertions."""
         port_decls = [f"  {p.to_verilog_declaration()}" for p in contract.ports]
+        port_decls_str = ",\n".join(port_decls)
         assertions = "\n".join(prop.to_verilog_assertion() for prop in contract.sva_properties)
         return (
             f"// Formal SVA Verification Bind Module for {contract.module_name}\n"
             f"module {contract.module_name}_sva (\n"
-            f"{',\n'.join(port_decls)}\n"
+            f"{port_decls_str}\n"
             f");\n\n"
             f"{assertions}\n"
             f"endmodule\n\n"

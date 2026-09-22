@@ -117,6 +117,19 @@ The default repair budget is set to `max_repairs=3`. This is a deliberately rest
 
 Passing `SiliconSignoffVerifier` means only that its configured OSS checks passed. It must never be represented as foundry, production, or tapeout signoff. `TapeoutReadinessVerifier` provides a separate, fail-closed evidence checklist for lint, CDC/RDC, equivalence, UPF, DFT, MCMM STA, DRC/LVS, and EM/IR. It validates reports from your qualified EDA/PDK flow; it does not generate or fake them. A design is tapeout-ready only when each required receipt is present and clean, and a qualified signoff team accepts the results.
 
+## Environment & Python Compatibility
+
+Mind 3.0 pins **Python 3.11** as its baseline floor and verifies against Python 3.11 and 3.12 in CI.
+Developers running on newer Python interpreters (such as Python 3.12, 3.13, or 3.14) must not treat local passes as sufficient proof of compatibility on Python 3.11 (for example, PEP 701 backslash-in-f-string syntax allowed in 3.12+ will fail with a `SyntaxError` on Python 3.11).
+
+Always verify against Python 3.11 locally:
+```bash
+python3.11 -m venv .venv311
+source .venv311/bin/activate
+pip install pytest httpx pydantic pyyaml
+pytest -v
+```
+
 ## Running Tests
 
 ```bash

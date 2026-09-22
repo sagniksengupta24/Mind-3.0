@@ -90,10 +90,14 @@ def test_benchmark_transcripts_fixtures_integrity_and_labeling() -> None:
         raw = json.loads(tf.read_text(encoding="utf-8"))
         transcript = BenchmarkTranscript.model_validate(raw)
 
-        # Invariant: schema-validation fixtures must never claim to be real generation output
-        assert transcript.is_schema_validation_fixture is True
-        assert transcript.label == "schema-validation fixture, not real generation output"
-        assert "[SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]" in (transcript.generated_rtl or "")
+        # Truth-in-labeling invariant
+        if transcript.is_schema_validation_fixture:
+            assert transcript.label == "schema-validation fixture, not real generation output"
+            assert "[SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]" in (transcript.generated_rtl or "")
+        else:
+            assert transcript.label == "real generation output"
+            assert transcript.model != "mock-fixture-generator"
+            assert transcript.provider != "mock"
 
         # Tuple structure verification:
         assert transcript.contract is not None

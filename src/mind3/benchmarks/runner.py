@@ -171,11 +171,23 @@ class BenchmarkRunner:
                 # Architect parsed contract
                 contract_dict = payload
             elif phase == PhaseEnum.EXECUTE and payload.get("role") == "Principal RTL Design Engineer":
-                initial_rtl = payload.get("rtl_file")
+                raw_rtl = payload.get("content") or payload.get("rtl_file")
+                if isinstance(raw_rtl, dict):
+                    rtl_path = driver.workspace / f"{task.task_id}.sv"
+                    if rtl_path.exists():
+                        initial_rtl = rtl_path.read_text(encoding="utf-8")
+                    else:
+                        initial_rtl = json.dumps(raw_rtl)
+                elif raw_rtl is not None:
+                    initial_rtl = str(raw_rtl)
             elif phase == PhaseEnum.MODEL_CALL and payload.get("role") == "Targeted RTL Repair Loop":
                 current_guidance = payload.get("guidance", "")
             elif phase == PhaseEnum.EXECUTE and payload.get("role") == "Targeted RTL Repair Loop":
-                current_repaired_rtl = payload.get("rtl_file")
+                raw_rep = payload.get("content") or payload.get("rtl_file")
+                if isinstance(raw_rep, dict):
+                    current_repaired_rtl = json.dumps(raw_rep)
+                elif raw_rep is not None:
+                    current_repaired_rtl = str(raw_rep)
             elif phase == PhaseEnum.VERIFY:
                 v_passed = payload.get("passed", False)
                 v_cat = payload.get("error_category")

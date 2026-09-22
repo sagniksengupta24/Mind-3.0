@@ -1060,7 +1060,10 @@ class PhaseDriver:
             rtl_action = WriteFileAction(path=f"{contract.module_name}.sv", content=rtl_code)
             self._policy_check(rtl_action)
             exec_rtl = self._execute_action(rtl_action)
-            self._emit_trace(PhaseEnum.EXECUTE, {"role": "Principal RTL Design Engineer", "rtl_file": exec_rtl})
+            self._emit_trace(
+                PhaseEnum.EXECUTE,
+                {"role": "Principal RTL Design Engineer", "rtl_file": exec_rtl, "content": rtl_code},
+            )
         except Exception as exc:
             self._emit_trace(
                 PhaseEnum.EXECUTE,
@@ -1099,7 +1102,11 @@ class PhaseDriver:
 
                     rep_action = WriteFileAction(path=f"{contract.module_name}.sv", content=repaired_code)
                     self._policy_check(rep_action)
-                    self._execute_action(rep_action)
+                    exec_rep = self._execute_action(rep_action)
+                    self._emit_trace(
+                        PhaseEnum.EXECUTE,
+                        {"role": "Targeted RTL Repair Loop", "rtl_file": exec_rep, "content": repaired_code},
+                    )
                 except Exception as exc:
                     self.turn += 1
                     repair_guidance = f"Model call failed: {exc}"

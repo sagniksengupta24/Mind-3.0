@@ -721,6 +721,49 @@ def test_contract_synthesizer_and_prompt_decoupling() -> None:
     assert "JSON object strictly adhering to the InterfaceContract schema" in prompt["system"]
     assert "Design a dual-clock FIFO" in prompt["user"]
 
+
+def test_contract_synthesizer_prompt_schema_hint_content() -> None:
+    """Verify ContractSynthesizer.build_prompt provides explicit JSON schema template and guidelines."""
+    prompt = ContractSynthesizer.build_prompt("Design a dual-clock FIFO with 16 words depth")
+    system_prompt = prompt["system"]
+
+    # 1. Structural guidelines present
+    assert "Schema template:" in system_prompt
+    assert "1. Pinout: Explicitly define every clock, reset, data, and handshake port" in system_prompt
+    assert "2. Formal Invariants: Author 2 to 5 SystemVerilog Assertions (SVA)" in system_prompt
+    assert "3. Timing: Define target clock period in nanoseconds" in system_prompt
+    assert 'Port direction must be one of: "input", "output", "inout".' in system_prompt
+
+    # 2. Extract embedded JSON schema template and verify it is valid JSON
+    prefix = "Schema template:\n"
+    suffix = '\nPort direction must be one of: "input", "output", "inout".'
+    assert prefix in system_prompt
+    assert suffix in system_prompt
+
+    schema_block = system_prompt.split(prefix)[1].split(suffix)[0].strip()
+    parsed_template = json.loads(schema_block)
+
+    # 3. Assert all load-bearing InterfaceContract schema fields are documented in template
+    assert "module_name" in parsed_template
+    assert "functional_spec" in parsed_template
+    assert "parameters" in parsed_template
+    assert "ports" in parsed_template
+    assert isinstance(parsed_template["ports"], list)
+    assert len(parsed_template["ports"]) >= 2
+    for p in parsed_template["ports"]:
+        assert {"name", "direction", "width", "description"}.issubset(p.keys())
+        assert p["direction"] in ("input", "output", "inout")
+
+    assert "sva_properties" in parsed_template
+    assert isinstance(parsed_template["sva_properties"], list)
+    assert len(parsed_template["sva_properties"]) >= 1
+    for s in parsed_template["sva_properties"]:
+        assert {"name", "property_expr", "clock", "reset", "description"}.issubset(s.keys())
+
+    assert "timing" in parsed_template
+    assert "clock_name" in parsed_template["timing"]
+    assert "period_ns" in parsed_template["timing"]
+
     raw_json = json.dumps({
         "module_name": "counter_updown",
         "functional_spec": "4-bit synchronous up/down counter with asynchronous reset",

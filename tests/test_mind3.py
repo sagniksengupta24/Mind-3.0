@@ -3435,6 +3435,25 @@ def test_parse_openroad_irdrop_violation() -> None:
     assert len(res["errors"]) >= 1
 
 
+def test_security_documentation_and_trust_boundaries() -> None:
+    """SECURITY.md must exist, be grounded in codebase paths, and document real session telemetry."""
+    sec_file = Path(__file__).parent.parent / "SECURITY.md"
+    assert sec_file.exists(), "SECURITY.md must exist in workspace root"
+    content = sec_file.read_text(encoding="utf-8")
 
+    # Traceable code symbols and mechanisms
+    assert "OpenRouterModelRegistry" in content
+    assert "loopback_only" in content
+    assert "BubblewrapSandbox" in content
+    assert "_policy_check" in content
+    assert "--unshare-all" in content
+    assert "loopback_attestation" in content
 
+    # Empirical session telemetry documented
+    assert "auth/key" in content
+    assert "fsm_01" in content
+    assert "openrouter/free" in content
 
+    # Architectural constraint on Darwin/bwrap documented
+    assert "Darwin" in content
+    assert "libcap" in content

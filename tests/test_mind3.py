@@ -3435,8 +3435,8 @@ def test_parse_openroad_irdrop_violation() -> None:
     assert len(res["errors"]) >= 1
 
 
-def test_security_documentation_and_trust_boundaries() -> None:
-    """SECURITY.md must exist, be grounded in codebase paths, and document real session telemetry."""
+def test_security_doc_cites_real_code_locations_and_telemetry() -> None:
+    """Static documentation check: verify SECURITY.md exists and cites real codebase locations and session telemetry."""
     sec_file = Path(__file__).parent.parent / "SECURITY.md"
     assert sec_file.exists(), "SECURITY.md must exist in workspace root"
     content = sec_file.read_text(encoding="utf-8")

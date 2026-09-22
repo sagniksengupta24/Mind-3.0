@@ -3147,6 +3147,96 @@ def test_air_gapped_emits_cryptographic_attestation() -> None:
         assert rec.event.payload["air_gapped_attestation"] == rec.event.payload["loopback_attestation"]
 
 
+def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
+    """Verify BubblewrapSandbox unshares network namespace and blocks outbound connections.
+
+    NOTE: A skipped run is NOT a verified pass and must not be reported as one
+    in any downstream summary. Real verification requires a Linux kernel host
+    with bwrap installed.
+    """
+    import shutil
+    import socket
+    import threading
+    from mind3.sandbox.bwrap import BubblewrapSandbox
+
+    # 1. Fresh check for bwrap binary on host PATH
+    bwrap_path = shutil.which("bwrap")
+    if not bwrap_path:
+        # Explicit skip per Rule 1 and Rule 7: never mock or substitute the sandbox for a security assertion.
+        pytest.skip(
+            "requires Linux host with bwrap installed (bwrap binary not found on PATH). "
+            "Note: this skip is not a verified pass."
+        )
+
+    # 2. Host-side server to verify isolation from host loopback network
+    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_sock.bind(("127.0.0.1", 0))
+    server_sock.listen(1)
+    host_port = server_sock.getsockname()[1]
+
+    def accept_thread() -> None:
+        try:
+            conn, _ = server_sock.accept()
+            conn.close()
+        except OSError:
+            return
+
+    t = threading.Thread(target=accept_thread, daemon=True)
+    t.start()
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ws = Path(tmpdir)
+            sandbox = BubblewrapSandbox(workspace=ws, bwrap_binary=bwrap_path)
+
+            # Test A: Attempt outbound connection to external public IP (e.g. 1.1.1.1:80)
+            cmd_external = [
+                "python3",
+                "-c",
+                (
+                    "import socket, sys\n"
+                    "try:\n"
+                    "    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n"
+                    "    s.settimeout(2.0)\n"
+                    "    s.connect(('1.1.1.1', 80))\n"
+                    "    sys.stdout.write('CONNECTED_EXTERNAL_UNEXPECTEDLY\\n')\n"
+                    "    sys.exit(0)\n"
+                    "except OSError as e:\n"
+                    "    sys.stdout.write(f'BLOCKED_EXTERNAL: {e}\\n')\n"
+                    "    sys.exit(42)\n"
+                ),
+            ]
+            res_external = sandbox.run(cmd_external, timeout_sec=5)
+            assert res_external.returncode == 42, f"Expected network block exit code 42, got {res_external.returncode}: {res_external.stdout} {res_external.stderr}"
+            assert "BLOCKED_EXTERNAL" in res_external.stdout
+            assert "CONNECTED_EXTERNAL_UNEXPECTEDLY" not in res_external.stdout
+
+            # Test B: Attempt outbound connection to host loopback listener
+            # Since network namespace is unshared, the sandbox cannot reach host 127.0.0.1
+            cmd_host_loopback = [
+                "python3",
+                "-c",
+                (
+                    f"import socket, sys\n"
+                    f"try:\n"
+                    f"    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n"
+                    f"    s.settimeout(2.0)\n"
+                    f"    s.connect(('127.0.0.1', {host_port}))\n"
+                    f"    sys.stdout.write('CONNECTED_HOST_LOOPBACK_UNEXPECTEDLY\\n')\n"
+                    f"    sys.exit(0)\n"
+                    f"except OSError as e:\n"
+                    f"    sys.stdout.write(f'BLOCKED_HOST_LOOPBACK: {e}\\n')\n"
+                    f"    sys.exit(43)\n"
+                ),
+            ]
+            res_loopback = sandbox.run(cmd_host_loopback, timeout_sec=5)
+            assert res_loopback.returncode == 43, f"Expected host loopback block exit code 43, got {res_loopback.returncode}: {res_loopback.stdout} {res_loopback.stderr}"
+            assert "BLOCKED_HOST_LOOPBACK" in res_loopback.stdout
+            assert "CONNECTED_HOST_LOOPBACK_UNEXPECTEDLY" not in res_loopback.stdout
+    finally:
+        server_sock.close()
+
+
 def test_gate_presentation_label_contradiction_detection() -> None:
     """Presentation tags ([REAL EDA], [SIMULATED], [SKIPPED]) must derive strictly from gate flags.
 

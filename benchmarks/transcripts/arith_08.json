@@ -1,0 +1,126 @@
+{
+  "task_id": "arith_08",
+  "category": "Arithmetic",
+  "name": "popcount_16bit",
+  "natural_language_spec": "Combinational population count (Hamming weight) of a 16-bit input word.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "arith_08",
+    "functional_spec": "Combinational population count (Hamming weight) of a 16-bit input word.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "data_in",
+        "direction": "input",
+        "width": 16,
+        "description": ""
+      },
+      {
+        "name": "count",
+        "direction": "output",
+        "width": 5,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(*) data_in == 0 |-> count == 0);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(*) data_in == 16'hFFFF |-> count == 5'd16);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      },
+      {
+        "name": "chk_prop_2",
+        "property_expr": "assert property (@(*) $onehot(data_in) |-> count == 5'd1);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 2"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule arith_08 (\n  input wire [15:0] data_in,\n  output wire [4:0] count\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": "FORMAL_INVARIANT_BREACH",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "GATE 2 SIGN-OFF FAILURE: Formal SVA invariant breached in SymbiYosys BMC.",
+      "repaired_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule arith_08 (\n  input wire [15:0] data_in,\n  output wire [4:0] count\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+      "passed": true,
+      "error_category": null,
+      "failure_reason": null,
+      "gate_reports": [
+        {
+          "gate": 1,
+          "name": "Yosys Elaboration",
+          "passed": true
+        },
+        {
+          "gate": 2,
+          "name": "SymbiYosys Formal BMC",
+          "passed": true
+        },
+        {
+          "gate": 3,
+          "name": "Verilator LFSR Simulation",
+          "passed": true
+        },
+        {
+          "gate": 4,
+          "name": "OpenSTA Multi-Corner Timing",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 2,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.02753
+}

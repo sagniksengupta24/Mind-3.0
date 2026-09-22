@@ -1,0 +1,137 @@
+{
+  "task_id": "arith_02",
+  "category": "Arithmetic",
+  "name": "carry_lookahead_adder_16bit",
+  "natural_language_spec": "16-bit fast carry-lookahead adder computing generate and propagate vectors.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "arith_02",
+    "functional_spec": "16-bit fast carry-lookahead adder computing generate and propagate vectors.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "a",
+        "direction": "input",
+        "width": 16,
+        "description": ""
+      },
+      {
+        "name": "b",
+        "direction": "input",
+        "width": 16,
+        "description": ""
+      },
+      {
+        "name": "cin",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "sum",
+        "direction": "output",
+        "width": 16,
+        "description": ""
+      },
+      {
+        "name": "cout",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(*) {cout, sum} == a + b + cin);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(*) (a == 0 && b == 0 && !cin) |-> (sum == 0 && !cout));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule arith_02 (\n  input wire [15:0] a,\n  input wire [15:0] b,\n  input wire cin,\n  output wire [15:0] sum,\n  output wire cout\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": "FORMAL_INVARIANT_BREACH",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "GATE 2 SIGN-OFF FAILURE: Formal SVA invariant breached in SymbiYosys BMC.",
+      "repaired_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule arith_02 (\n  input wire [15:0] a,\n  input wire [15:0] b,\n  input wire cin,\n  output wire [15:0] sum,\n  output wire cout\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+      "passed": true,
+      "error_category": null,
+      "failure_reason": null,
+      "gate_reports": [
+        {
+          "gate": 1,
+          "name": "Yosys Elaboration",
+          "passed": true
+        },
+        {
+          "gate": 2,
+          "name": "SymbiYosys Formal BMC",
+          "passed": true
+        },
+        {
+          "gate": 3,
+          "name": "Verilator LFSR Simulation",
+          "passed": true
+        },
+        {
+          "gate": 4,
+          "name": "OpenSTA Multi-Corner Timing",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 2,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.027008
+}

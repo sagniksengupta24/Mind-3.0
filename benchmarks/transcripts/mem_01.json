@@ -1,0 +1,162 @@
+{
+  "task_id": "mem_01",
+  "category": "Memory Controller",
+  "name": "sync_fifo_8depth_16width",
+  "natural_language_spec": "8-word deep by 16-bit wide synchronous FIFO with full, empty, almost_full, and almost_empty flags.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "mem_01",
+    "functional_spec": "8-word deep by 16-bit wide synchronous FIFO with full, empty, almost_full, and almost_empty flags.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "wr_en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rd_en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "din",
+        "direction": "input",
+        "width": 16,
+        "description": ""
+      },
+      {
+        "name": "dout",
+        "direction": "output",
+        "width": 16,
+        "description": ""
+      },
+      {
+        "name": "full",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "empty",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge clk) !rst_n |-> empty && !full);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) !(full && empty));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      },
+      {
+        "name": "chk_prop_2",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) full && wr_en && !rd_en |=> full);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 2"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule mem_01 (\n  input wire clk,\n  input wire rst_n,\n  input wire wr_en,\n  input wire rd_en,\n  input wire [15:0] din,\n  output wire [15:0] dout,\n  output wire full,\n  output wire empty\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": "FORMAL_INVARIANT_BREACH",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "GATE 2 SIGN-OFF FAILURE: Formal SVA invariant breached in SymbiYosys BMC.",
+      "repaired_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule mem_01 (\n  input wire clk,\n  input wire rst_n,\n  input wire wr_en,\n  input wire rd_en,\n  input wire [15:0] din,\n  output wire [15:0] dout,\n  output wire full,\n  output wire empty\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+      "passed": true,
+      "error_category": null,
+      "failure_reason": null,
+      "gate_reports": [
+        {
+          "gate": 1,
+          "name": "Yosys Elaboration",
+          "passed": true
+        },
+        {
+          "gate": 2,
+          "name": "SymbiYosys Formal BMC",
+          "passed": true
+        },
+        {
+          "gate": 3,
+          "name": "Verilator LFSR Simulation",
+          "passed": true
+        },
+        {
+          "gate": 4,
+          "name": "OpenSTA Multi-Corner Timing",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 2,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.02932
+}

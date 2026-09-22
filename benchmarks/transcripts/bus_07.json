@@ -1,0 +1,131 @@
+{
+  "task_id": "bus_07",
+  "category": "Bus Protocol",
+  "name": "valid_ready_pipeline_skid_buffer",
+  "natural_language_spec": "Zero-bubble backpressure skid buffer decoupling ready/valid pipelines with 2 registers.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "bus_07",
+    "functional_spec": "Zero-bubble backpressure skid buffer decoupling ready/valid pipelines with 2 registers.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "s_valid",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "s_ready",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "s_data",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "m_valid",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "m_ready",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "m_data",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge clk) !rst_n |-> !m_valid);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) m_valid && !m_ready |=> m_valid);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      },
+      {
+        "name": "chk_prop_2",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) !s_valid && m_ready |=> !m_valid);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 2"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule bus_07 (\n  input wire clk,\n  input wire rst_n,\n  input wire s_valid,\n  output wire s_ready,\n  input wire [7:0] s_data,\n  output wire m_valid,\n  input wire m_ready,\n  output wire [7:0] m_data\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": null,
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 1,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.0288908
+}

@@ -147,7 +147,22 @@ class ContractSynthesizer:
             "Mandatory guidelines:\n"
             "1. Pinout: Explicitly define every clock, reset, data, and handshake port with proper bit-widths.\n"
             "2. Formal Invariants: Author 2 to 5 SystemVerilog Assertions (SVA) covering safety and liveness.\n"
-            "3. Timing: Define target clock period in nanoseconds."
+            "3. Timing: Define target clock period in nanoseconds.\n\n"
+            "Schema template:\n"
+            "{\n"
+            '  "module_name": "string (valid verilog identifier)",\n'
+            '  "functional_spec": "string",\n'
+            '  "parameters": {},\n'
+            '  "ports": [\n'
+            '    {"name": "clk", "direction": "input", "width": 1, "description": "Clock signal"},\n'
+            '    {"name": "rst_n", "direction": "input", "width": 1, "description": "Active-low reset"}\n'
+            '  ],\n'
+            '  "sva_properties": [\n'
+            '    {"name": "p_name", "property_expr": "expr", "clock": "clk", "reset": "rst_n", "description": "desc"}\n'
+            '  ],\n'
+            '  "timing": {"clock_name": "clk", "period_ns": 10.0}\n'
+            "}\n"
+            'Port direction must be one of: "input", "output", "inout".'
         )
         user_msg = f"Requirement: {user_request}\nSynthesize interface contract:"
         return {"system": system_msg, "user": user_msg}

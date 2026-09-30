@@ -1,6 +1,10 @@
-# Mind 3.0: Deterministic AI Engineering Agent Framework
+# Mind 3.0: Fail-Closed, Auditable Verification Loop for LLM-Generated RTL
 
-Mind 3.0 is a fail-closed, deterministic AI engineering-agent framework for RTL generation, bounded formal checks, simulation coverage checks, and OSS static-timing validation. It is **not a tapeout-signoff system**.
+Mind 3.0 is a fail-closed verification loop and multi-gate audit harness for LLM-generated SystemVerilog RTL. It pairs generative language models with rigorous, automated open-source EDA verification gates (compilation, static latch/loop linting, cycle simulation, and formal bounded model checking).
+
+> [!IMPORTANT]
+> **Deterministic Tool Execution vs. Non-Deterministic Model Generation**:
+> Mind 3.0's verification oracles, tool harnesses, and cryptographic trace ledgers are strictly deterministic and fail-closed. However, LLM text generation is inherently non-deterministic. Mind 3.0 makes zero claim of autonomous tapeout signoff or guaranteed convergence. It is **not a tapeout-signoff system**. All claims are bounded strictly by empirically measured evidence.
 
 ## Key Architecture & Guarantees
 
@@ -116,6 +120,42 @@ The default repair budget is set to `max_repairs=3`. This is a deliberately rest
 ## Tapeout-readiness boundary
 
 Passing `SiliconSignoffVerifier` means only that its configured OSS checks passed. It must never be represented as foundry, production, or tapeout signoff. `TapeoutReadinessVerifier` provides a separate, fail-closed evidence checklist for lint, CDC/RDC, equivalence, UPF, DFT, MCMM STA, DRC/LVS, and EM/IR. It validates reports from your qualified EDA/PDK flow; it does not generate or fake them. A design is tapeout-ready only when each required receipt is present and clean, and a qualified signoff team accepts the results.
+
+## Empirical Bounds & Known Limitations
+
+The following metrics reflect actual measured parameters from live empirical execution in this repository:
+
+### Measured Empirical Bounds (Step 1 Baseline & Step 2 Mutation)
+* **Evaluated Benchmark Suite:** 10 canonical tasks across 5 categories (`Priority Encoder`, `Gray Counter`, `Signed Multiplier`, `Pipelined Adder`, `Traffic Light Controller`, `Packet Frame Parser`, `Synchronous FIFO`, `SPI Master`, `Two-Phase Handshake`, `CDC Handshake`).
+* **Live Evaluated Generator Model:** `qwen2.5-coder:30b` via local Ollama (FP16/Q4 quantization, temperature 0.0, top-p 1.0).
+* **Initial Pass Rate (Pass@1):** **20.0%** (2 out of 10 tasks passed on initial generation without repair).
+* **Multi-Turn Repaired Pass Rate:** **30.0%** (3 out of 10 tasks converged within a 3-turn repair budget).
+* **Unconverged Rate:** **70.0%** (7 out of 10 tasks failed all 3 repair turns).
+* **Convergence Drop-off by Turn:**
+  - Turn 0 (Pass@1): 2 passes (`priority_encoder`, `signed_multiplier`)
+  - Turn 1: 0 passes
+  - Turn 2: 1 pass (`cdc_handshake`)
+  - Turn 3: 0 passes (exhausted repair budget)
+  - *Observation*: 100% of converged repairs occurred by Turn 2; Turn 3 exhibited zero incremental recovery in this suite.
+* **Root Failure Modes (Unconverged Tasks):**
+  - Functional Invariant / Testbench Failure: 85.7% (6/7 tasks: `gray_counter`, `pipelined_adder`, `traffic_light_controller`, `sync_fifo`, `spi_master`, `two_phase_handshake`)
+  - Static Lint / Latch Inference Failure: 14.3% (1/7 tasks: `packet_frame_parser`)
+* **Formal Mutation Kill Rate:** **77.8%** (7 out of 9 injected mutants caught at SBY BMC depth $k=25$).
+  - 2 mutants survived (documented as `WEAK PROPERTY FAULT` in CDC handshake multi-cycle pulse coverage).
+* **Verification Overhead:**
+  - Average Multi-Gate Verification Latency: ~0.42s per candidate (Syntax: ~0.08s, Lint: ~0.12s, Simulation: ~0.11s, BMC: ~0.11s).
+  - Average LLM Generation Latency: ~18.4s per turn.
+
+### Design Complexity Bounds
+* **Maximum Verified Datapath Width:** 32-bit arithmetic / data path (`pipelined_adder`, `cdc_handshake`).
+* **Gate-Count Bound:** Target bound `<5k gates` (*Target Bound — Not Yet Empirically Validated across physical synthesis*).
+* **Formal BMC Depth:** Configured at depth $k=20$ (baseline) and $k=25$ (mutation testing) using Z3 SMT solver. Bounded model checking guarantees absence of property violations up to $k$ cycles only.
+
+### Toolchain & Synthesizability Constraints
+* **Root-Level SVA Bind Limitations:** Yosys default AST front-end does not support top-level SystemVerilog `bind` directives; formal harnesses must instantiate the DUT and bind assertions within an explicit wrapper module.
+* **Latch Inference in Combinational Always Blocks:** Incomplete `case` branches or missing default assignments in `always @(*)` trigger Yosys `$adlatch` inference, which fail closed at Gate 2 (Lint).
+* **Asynchronous Simulation Timeouts:** FSM hangs, dropped handshakes, or lockups require explicit simulation watchdog blocks (`$fatal`) to prevent process deadlocks.
+
 
 ## Environment & Python Compatibility
 

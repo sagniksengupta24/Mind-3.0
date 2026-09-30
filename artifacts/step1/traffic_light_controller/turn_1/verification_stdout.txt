@@ -1,0 +1,261 @@
+=== GATE 1: SYNTAX CHECK (iverilog compile) ===
+
+
+=== GATE 2: LINT CHECK (Yosys AST & latch trap) ===
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+
+-- Running command `read_verilog -sv traffic_light_controller.sv; prep -top traffic_light_controller' --
+
+1. Executing Verilog-2005 frontend: traffic_light_controller.sv
+Parsing SystemVerilog input from `traffic_light_controller.sv' to AST representation.
+Generating RTLIL representation for module `\traffic_light_controller'.
+Successfully finished Verilog frontend.
+
+2. Executing PREP pass.
+
+2.1. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1.1. Analyzing design hierarchy..
+Top module:  \traffic_light_controller
+
+2.1.2. Analyzing design hierarchy..
+Top module:  \traffic_light_controller
+Removed 0 unused modules.
+
+2.2. Executing PROC pass (convert processes to netlists).
+
+2.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed 1 dead cases from process $proc$traffic_light_controller.sv:64$5 in module traffic_light_controller.
+Marked 6 switch rules as full_case in process $proc$traffic_light_controller.sv:64$5 in module traffic_light_controller.
+Removed 1 dead cases from process $proc$traffic_light_controller.sv:21$1 in module traffic_light_controller.
+Marked 2 switch rules as full_case in process $proc$traffic_light_controller.sv:21$1 in module traffic_light_controller.
+Removed a total of 2 dead cases.
+
+2.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 4 redundant assignments.
+Promoted 1 assignment to connection.
+
+2.2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.2.5. Executing PROC_ARST pass (detect async resets in processes).
+Found async reset \rst_n in `\traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+
+2.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~8 debug messages>
+
+2.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\traffic_light_controller.$proc$traffic_light_controller.sv:64$5'.
+     1/6: $6\next_state[1:0]
+     2/6: $5\next_state[1:0]
+     3/6: $4\next_state[1:0]
+     4/6: $3\next_state[1:0]
+     5/6: $2\next_state[1:0]
+     6/6: $1\next_state[1:0]
+Creating decoders for process `\traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+     1/5: $0\light_side[1:0]
+     2/5: $0\light_main[1:0]
+     3/5: $0\counter[2:0]
+     4/5: $0\current_state[1:0]
+     5/5: $0\car_detected[0:0]
+
+2.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\traffic_light_controller.\next_state' from process `\traffic_light_controller.$proc$traffic_light_controller.sv:64$5'.
+
+2.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\traffic_light_controller.\light_main' using process `\traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+  created $adff cell `$procdff$68' with positive edge clock and positive level reset.
+Creating register for signal `\traffic_light_controller.\light_side' using process `\traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+  created $adff cell `$procdff$73' with positive edge clock and positive level reset.
+Creating register for signal `\traffic_light_controller.\current_state' using process `\traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+  created $adff cell `$procdff$78' with positive edge clock and positive level reset.
+Creating register for signal `\traffic_light_controller.\counter' using process `\traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+  created $adff cell `$procdff$83' with positive edge clock and positive level reset.
+Creating register for signal `\traffic_light_controller.\car_detected' using process `\traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+  created $adff cell `$procdff$88' with positive edge clock and positive level reset.
+
+2.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 6 empty switches in `\traffic_light_controller.$proc$traffic_light_controller.sv:64$5'.
+Removing empty process `traffic_light_controller.$proc$traffic_light_controller.sv:64$5'.
+Found and cleaned up 2 empty switches in `\traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+Removing empty process `traffic_light_controller.$proc$traffic_light_controller.sv:21$1'.
+Cleaned up 8 empty switches.
+
+2.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module traffic_light_controller.
+<suppressed ~16 debug messages>
+
+2.3. Executing FUTURE pass.
+
+2.4. Executing OPT_EXPR pass (perform const folding).
+Optimizing module traffic_light_controller.
+
+2.5. Executing CHECK pass (checking for obvious problems).
+Checking module traffic_light_controller...
+Found and reported 0 problems.
+
+2.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \traffic_light_controller..
+Removed 9 unused cells and 33 unused wires.
+<suppressed ~11 debug messages>
+
+2.7. Executing OPT pass (performing simple optimizations).
+
+2.7.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module traffic_light_controller.
+
+2.7.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\traffic_light_controller'.
+Computing hashes of 40 cells of `\traffic_light_controller'.
+Finding duplicate cells in `\traffic_light_controller'.
+Computing hashes of 25 cells of `\traffic_light_controller'.
+Finding duplicate cells in `\traffic_light_controller'.
+<suppressed ~45 debug messages>
+Removed a total of 15 cells.
+
+2.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \traffic_light_controller..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $procmux$45.
+    dead port 2/2 on $mux $procmux$37.
+    dead port 1/2 on $mux $procmux$35.
+    dead port 2/2 on $mux $procmux$26.
+    dead port 2/2 on $mux $procmux$19.
+    dead port 2/2 on $mux $procmux$13.
+Removed 6 multiplexer ports.
+<suppressed ~17 debug messages>
+
+2.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \traffic_light_controller.
+    New ctrl vector for $pmux cell $procmux$52: { $procmux$58_CMP $procmux$59_CMP $auto$opt_reduce.cc:137:opt_pmux$90 }
+    New ctrl vector for $pmux cell $procmux$57: { $auto$opt_reduce.cc:137:opt_pmux$92 $procmux$60_CMP $procmux$61_CMP }
+  Optimizing cells in module \traffic_light_controller.
+Performed a total of 2 changes.
+
+2.7.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\traffic_light_controller'.
+Computing hashes of 21 cells of `\traffic_light_controller'.
+Finding duplicate cells in `\traffic_light_controller'.
+Removed a total of 0 cells.
+
+2.7.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \traffic_light_controller..
+Removed 0 unused cells and 21 unused wires.
+<suppressed ~1 debug messages>
+
+2.7.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module traffic_light_controller.
+
+2.7.8. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.7.9. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \traffic_light_controller..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~11 debug messages>
+
+2.7.10. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \traffic_light_controller.
+Performed a total of 0 changes.
+
+2.7.11. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\traffic_light_controller'.
+Computing hashes of 21 cells of `\traffic_light_controller'.
+Finding duplicate cells in `\traffic_light_controller'.
+Removed a total of 0 cells.
+
+2.7.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \traffic_light_controller..
+
+2.7.13. Executing OPT_EXPR pass (perform const folding).
+Optimizing module traffic_light_controller.
+
+2.7.14. Finished fast OPT passes. (There is nothing left to do.)
+
+2.8. Executing WREDUCE pass (reducing word size of cells).
+Removed top 31 bits (of 32) from port B of cell traffic_light_controller.$add$traffic_light_controller.sv:30$3 ($add).
+Removed top 29 bits (of 32) from port Y of cell traffic_light_controller.$add$traffic_light_controller.sv:30$3 ($add).
+Removed top 1 bits (of 3) from port B of cell traffic_light_controller.$lt$traffic_light_controller.sv:93$9 ($lt).
+Removed top 1 bits (of 2) from mux cell traffic_light_controller.$procmux$17 ($mux).
+Removed top 1 bits (of 2) from mux cell traffic_light_controller.$procmux$32 ($mux).
+Removed top 1 bits (of 2) from mux cell traffic_light_controller.$procmux$43 ($mux).
+Removed top 1 bits (of 2) from port B of cell traffic_light_controller.$procmux$60_CMP0 ($eq).
+Removed top 1 bits (of 2) from wire traffic_light_controller.$3\next_state[1:0].
+Removed top 1 bits (of 2) from wire traffic_light_controller.$2\next_state[1:0].
+Removed top 1 bits (of 2) from wire traffic_light_controller.$5\next_state[1:0].
+
+2.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \traffic_light_controller..
+Removed 0 unused cells and 4 unused wires.
+<suppressed ~1 debug messages>
+
+2.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+2.11. Executing OPT pass (performing simple optimizations).
+
+2.11.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module traffic_light_controller.
+
+2.11.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\traffic_light_controller'.
+Computing hashes of 21 cells of `\traffic_light_controller'.
+Finding duplicate cells in `\traffic_light_controller'.
+Removed a total of 0 cells.
+
+2.11.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \traffic_light_controller..
+
+2.11.4. Finished fast OPT passes.
+
+2.12. Executing SORT pass.
+
+2.13. Printing statistics.
+
+=== traffic_light_controller ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       24 wires
+       36 wire bits
+        8 public wires
+       14 public wire bits
+        5 ports
+        7 port bits
+       21 cells
+        1   $add
+        4   $adff
+        3   $eq
+        1   $logic_not
+        2   $lt
+        5   $mux
+        3   $pmux
+        2   $reduce_or
+
+2.14. Executing CHECK pass (checking for obvious problems).
+Checking module traffic_light_controller...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 13b8e0427a, time: 0.01s, user: 0.01s, system: 0.00s, MEM: 32.41 MB peak
+Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 25% 2x read_verilog (0 sec), 16% 5x opt_clean (0 sec), ...
+
+
+=== GATE 3: SIMULATION (vvp execution) ===
+FAIL: Expected Main YELLOW, Side RED, got main=00, side=10
+FATAL: /home/mind/Desktop/AI/Mind-3.0/artifacts/step1/traffic_light_controller/turn_1/tb_traffic_light_controller.sv:60: 
+       Time: 166000  Scope: tb_traffic_light_controller

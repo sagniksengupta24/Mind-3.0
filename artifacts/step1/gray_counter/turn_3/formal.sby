@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal gray_counter.sv sva.sv
+prep -top gray_counter_formal
+
+[files]
+gray_counter.sv
+sva.sv

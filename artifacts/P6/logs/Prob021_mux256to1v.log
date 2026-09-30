@@ -1,0 +1,16 @@
+=== Execution Log for Prob021_mux256to1v ===
+Time: Wed Sep 30 03:51:31 2026
+Duration: 27.15s
+Benchmark Verdict: COMPILER_ERROR
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: 7e37e19f220c744a7f50416fe79b1566e14fe1b5f9bf873e19ee11beb96ff3d3
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     7e37e19f220c744a7f50416fe79b1566e14fe1b5f9bf873e19ee11beb96ff3d3
+SHA Match:          True
+Diagnostic:         /home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob021_mux256to1v/dut.sv:26: error: out is not a valid l-value in tb.top_module1.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob021_mux256to1v/dut.sv:6:      : out is declared here as wire.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob021_mux256to1v/dut.sv:28: error: out is not a valid l-value in tb.top_module1.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob021_mux256to1v/dut.sv:6:      : out 

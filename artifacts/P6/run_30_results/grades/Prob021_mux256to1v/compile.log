@@ -1,0 +1,8 @@
+
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob021_mux256to1v/dut.sv:26: error: out is not a valid l-value in tb.top_module1.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob021_mux256to1v/dut.sv:6:      : out is declared here as wire.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob021_mux256to1v/dut.sv:28: error: out is not a valid l-value in tb.top_module1.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob021_mux256to1v/dut.sv:6:      : out is declared here as wire.
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob021_mux256to1v_test.sv:71: warning: Instantiating module TopModule with dangling input port 1 (clk) floating.
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob021_mux256to1v_test.sv:71: warning: Instantiating module TopModule with dangling input port 2 (rst_n) floating.
+2 error(s) during elaboration.

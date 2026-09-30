@@ -1,0 +1,13 @@
+=== Execution Log for Prob006_vectorr ===
+Time: Wed Sep 30 03:45:33 2026
+Duration: 25.92s
+Benchmark Verdict: MISMATCH
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: 7d6a573df13c1bb76319e56dfe79d133619385fc628c3245af022271027c5d15
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     7d6a573df13c1bb76319e56dfe79d133619385fc628c3245af022271027c5d15
+SHA Match:          True
+Diagnostic:         218 mismatches detected

@@ -1,0 +1,3 @@
+
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob006_vectorr_test.sv:91: warning: Instantiating module TopModule with dangling input port 1 (clk) floating.
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob006_vectorr_test.sv:91: warning: Instantiating module TopModule with dangling input port 2 (rst_n) floating.

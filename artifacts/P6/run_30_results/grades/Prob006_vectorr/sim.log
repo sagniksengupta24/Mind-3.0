@@ -1,0 +1,8 @@
+VCD info: dumpfile wave.vcd opened for output.
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob006_vectorr_test.sv:43: $finish called at 1090 (1ps)
+Hint: Output 'out' has 218 mismatches. First mismatch occurred at time 5.
+Hint: Total mismatched samples is 218 out of 218 samples
+
+Simulation finished at 1090 ps
+Mismatches: 218 in 218 samples
+

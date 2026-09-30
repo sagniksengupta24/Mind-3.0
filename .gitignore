@@ -30,3 +30,12 @@ coverage.xml
 # Mind runtime data
 .mind/
 transcript.jsonl
+
+# PDK artifacts (Rule 4: no scope leakage)
+pdk/
+*.lib
+*.lef
+*.tlef
+*.gds
+*.tar.zst
+*.vvp

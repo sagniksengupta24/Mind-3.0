@@ -1,0 +1,27 @@
+{
+  "task_id": "signed_multiplier",
+  "turn": 0,
+  "provider": "Ollama (local)",
+  "model": "qwen2.5-coder:30b",
+  "endpoint": "http://127.0.0.1:11434",
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "seed": 42,
+  "max_tokens": 2048,
+  "system_prompt_hash": "0eb373634b2e0351a0f21c9b5615d8466f41c554c01aa842bd774fe9100ab95d",
+  "task_prompt_hash": "e73cc023a91d5a0569de31b8a6ef65b2f11c47d24c1cda92f91b7e85e9d073c7",
+  "request_timestamp": "2026-09-28T00:30:13.435074+00:00",
+  "response_timestamp": "2026-09-28T00:30:18.462300+00:00",
+  "latency_seconds": 5.027,
+  "bmc_depth": 25,
+  "verification": {
+    "syntax": "PASS",
+    "lint": "PASS",
+    "simulation": "PASS",
+    "bmc": "FAIL",
+    "bmc_depth": 25,
+    "passed": false,
+    "failure_gate": "Functional",
+    "failure_reason": "SymbiYosys formal BMC failed:\nSBY  6:00:18 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_0/formal] Removing directory '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_0/formal'.\nSBY  6:00:18 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_0/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_0/signed_multiplier.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_0/formal/src/signed_multiplier.sv'.\nSBY  6:00:18 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_0/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_0/sva.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_0/formal/src/sva.sv'.\n"
+  }
+}

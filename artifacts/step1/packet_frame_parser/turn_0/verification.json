@@ -1,0 +1,10 @@
+{
+  "syntax": "PASS",
+  "lint": "FAIL",
+  "simulation": "NOT_RUN",
+  "bmc": "NOT_RUN",
+  "bmc_depth": 25,
+  "passed": false,
+  "failure_gate": "Lint",
+  "failure_reason": "Unapproved inferred latch cell detected by Yosys:\n$adlatch"
+}

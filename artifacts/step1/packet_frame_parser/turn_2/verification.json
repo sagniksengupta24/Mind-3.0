@@ -1,0 +1,10 @@
+{
+  "syntax": "PASS",
+  "lint": "PASS",
+  "simulation": "FAIL",
+  "bmc": "NOT_RUN",
+  "bmc_depth": 25,
+  "passed": false,
+  "failure_gate": "Functional",
+  "failure_reason": "Testbench simulation failed (exit code 1):\nFAIL: Test 1: frame_valid not asserted on valid EOF\nFATAL: /home/mind/Desktop/AI/Mind-3.0/artifacts/step1/packet_frame_parser/turn_2/tb_packet_frame_parser.sv:65: \n       Time: 146000  Scope: tb_packet_frame_parser\n\n"
+}

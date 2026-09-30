@@ -18,6 +18,7 @@ import pytest
 from pydantic import ValidationError
 
 from mind3.core.driver import (
+    ModelResponseParseError,
     OpenRouterModelRegistry,
     OpenRouterModelRegistryError,
     PhaseDriver,
@@ -689,12 +690,14 @@ def test_interface_contract_and_code_generation() -> None:
         ),
     )
 
-    # Validate SVA generation
+    # Validate SVA generation - to_verilog_assertion() now returns a comment
+    # since actual assertion generation is in build_sva_bind_module() for Yosys compatibility
     sva_code = "\n".join(p.to_verilog_assertion() for p in contract.sva_properties)
-    assert "property p_no_overflow_write;" in sva_code
-    assert "@(posedge clk)" in sva_code
-    assert "assert property (p_no_overflow_write)" in sva_code
-    assert "property p_no_underflow_read;" in sva_code
+    assert "SVA Property: no_overflow_write" in sva_code
+    assert "Yosys-compatible generation in build_sva_bind_module" in sva_code
+    assert "Original expression: full && wr_en |-> ##1 full" in sva_code
+    assert "SVA Property: no_underflow_read" in sva_code
+    assert "Original expression: empty && rd_en |-> ##1 empty" in sva_code
 
     # Validate header template generation
     header = contract.to_header_template()
@@ -2055,14 +2058,14 @@ def test_openrouter_model_registry_dynamic_query(monkeypatch: pytest.MonkeyPatch
 
 
 def test_parse_model_code_response_robustness() -> None:
-    """Verify _parse_model_code_response uses schema validation rather than string sniffing."""
+    """Verify _parse_model_code_response unwraps structured/enveloped outputs and fails closed on malformed text."""
     # Case 1: Structured WriteFileAction JSON
     json_action = '{"action": "write_file", "path": "alu.sv", "content": "module alu(input clk); endmodule"}'
     assert _parse_model_code_response(json_action) == "module alu(input clk); endmodule"
 
-    # Case 2: Generic JSON without WriteFileAction schema tag is preserved as raw text (no key sniffing)
+    # Case 2: Generic JSON dictionary wrapping code under 'content' key is unwrapped (was previously asserting bug)
     json_dict = '{"content": "module fifo(); endmodule"}'
-    assert _parse_model_code_response(json_dict) == json_dict
+    assert _parse_model_code_response(json_dict) == "module fifo(); endmodule"
 
     # Case 3: Markdown code fences
     fenced_code = "```systemverilog\nmodule counter(input clk);\nendmodule\n```"
@@ -2074,6 +2077,204 @@ def test_parse_model_code_response_robustness() -> None:
     assert "module tricky();" in parsed
     assert "brace at start" in parsed
     assert parsed == tricky_verilog
+
+    # Case 5: Genuinely unparseable garbage fails closed with ModelResponseParseError
+    with pytest.raises(ModelResponseParseError):
+        _parse_model_code_response("No Verilog module definitions present in this text.")
+
+
+def test_parse_model_code_response_regression_suite() -> None:
+    """Regression suite covering all 5 extraction precedence levels and audit payload shapes."""
+    # 1. Exact 3 payload shapes captured in original 3-task live audit
+    audit_module_code = '{"module_code": "module audit1(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule"}'
+    assert _parse_model_code_response(audit_module_code) == "module audit1(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule"
+
+    audit_content = '{"content": "module audit2(input clk, output q); assign q = 1\'b1; endmodule"}'
+    assert _parse_model_code_response(audit_content) == "module audit2(input clk, output q); assign q = 1'b1; endmodule"
+
+    audit_response = '{"response": "module audit3(input a, b, output y); assign y = a & b; endmodule"}'
+    assert _parse_model_code_response(audit_response) == "module audit3(input a, b, output y); assign y = a & b; endmodule"
+
+    # 2. Key precedence and remaining valid keys (verilog_code, code, rtl, text)
+    for key in ("verilog_code", "code", "rtl", "text"):
+        payload = json.dumps({key: f"module mod_{key}(); endmodule"})
+        assert _parse_model_code_response(payload) == f"module mod_{key}(); endmodule"
+
+    # module_code takes precedence over text
+    precedence_payload = json.dumps({
+        "module_code": "module winner(); endmodule",
+        "text": "module loser(); endmodule",
+    })
+    assert _parse_model_code_response(precedence_payload) == "module winner(); endmodule"
+
+    # Inner markdown fence within JSON value
+    inner_fence_payload = json.dumps({
+        "module_code": "```verilog\nmodule inner_fenced();\nendmodule\n```",
+    })
+    assert _parse_model_code_response(inner_fence_payload) == "module inner_fenced();\nendmodule"
+
+    # 3. Markdown-fenced responses across all supported tags
+    for tag in ("systemverilog", "verilog", "sv", ""):
+        fenced = f"```{tag}\nmodule fence_{tag or 'bare'}();\nendmodule\n```"
+        assert _parse_model_code_response(fenced) == f"module fence_{tag or 'bare'}();\nendmodule"
+
+    # 4. Clean WriteFileAction-schema response (confirm existing path unchanged)
+    clean_action = json.dumps({
+        "action": "write_file",
+        "path": "design_top.sv",
+        "content": "module design_top(input wire clk); endmodule",
+    })
+    assert _parse_model_code_response(clean_action) == "module design_top(input wire clk); endmodule"
+
+    # 5. Raw unstructured text with embedded module...endmodule block
+    prose_response = (
+        "Here is the synthesizable SystemVerilog module implementing the required register:\n\n"
+        "module embedded_reg(input clk, input rst_n, input [7:0] d, output reg [7:0] q);\n"
+        "  always @(posedge clk or negedge rst_n) begin\n"
+        "    if (!rst_n) q <= 8'h00;\n"
+        "    else q <= d;\n"
+        "  end\n"
+        "endmodule\n\n"
+        "Note: reset is asynchronous active-low. Let me know if you need testbench verification."
+    )
+    extracted_prose = _parse_model_code_response(prose_response)
+    assert extracted_prose.startswith("module embedded_reg")
+    assert extracted_prose.endswith("endmodule")
+    assert "Here is the synthesizable" not in extracted_prose
+    assert "Note: reset is asynchronous" not in extracted_prose
+
+    # 6. Genuinely unparseable garbage fails closed
+    garbage_cases = [
+        "I am an LLM and I cannot answer this prompt.",
+        '{"status": "error", "message": "token limit exceeded"}',
+        '{"module_code": 12345}',
+        '{"content": "This string does not contain required keywords."}',
+        '{"response": "module without closing tag"}',
+        "",
+        "   \n\t  ",
+    ]
+    for garbage in garbage_cases:
+        with pytest.raises(ModelResponseParseError):
+            _parse_model_code_response(garbage)
+
+
+def test_parse_model_code_response_benchmark_ast_format() -> None:
+    """Test the exact AST-style JSON payload format observed in VerilogEval benchmark (Prob002_m2014_q4i).
+    
+    Format: {"module": "TopModule", "parameters": {}, "pinout": [{"name": "out", "direction": "output", "width": 1}], "implementation": "assign out = 1'b0;"}
+    """
+    # Exact payload from benchmark transcript
+    benchmark_payload = json.dumps({
+        "module": "TopModule",
+        "parameters": {},
+        "pinout": [
+            {"name": "out", "direction": "output", "width": 1}
+        ],
+        "implementation": "assign out = 1'b0;"
+    })
+    result = _parse_model_code_response(benchmark_payload)
+    assert result.startswith("module TopModule")
+    assert "endmodule" in result
+    assert "output logic out" in result or "output wire out" in result
+    assert "assign out = 1'b0;" in result
+
+    # With escaped newlines in implementation (as sometimes produced by models)
+    escaped_payload = json.dumps({
+        "module": "TopModule",
+        "parameters": {},
+        "pinout": [
+            {"name": "out", "direction": "output", "width": 1}
+        ],
+        "implementation": "assign out = 1'b0;\\n"
+    })
+    result = _parse_model_code_response(escaped_payload)
+    assert "assign out = 1'b0;\n" in result  # unescaping worked
+
+    # With "name" instead of "module" key
+    name_payload = json.dumps({
+        "name": "MyModule",
+        "pinout": [{"name": "clk", "direction": "input", "width": 1}, {"name": "q", "direction": "output", "width": 1}],
+        "implementation": "always @(posedge clk) q <= 1'b1;"
+    })
+    result = _parse_model_code_response(name_payload)
+    assert "module MyModule" in result
+    assert "input logic clk" in result
+    assert "output logic q" in result
+
+    # With "ports" instead of "pinout" key
+    ports_payload = json.dumps({
+        "module": "TestMod",
+        "ports": [{"name": "a", "direction": "input", "width": 8}, {"name": "y", "direction": "output", "width": 8}],
+        "implementation": "assign y = a + 1;"
+    })
+    result = _parse_model_code_response(ports_payload)
+    assert "module TestMod" in result
+    assert "input logic [7:0] a" in result
+    assert "output logic [7:0] y" in result
+
+    # implementation already contains full module...endmodule (should use as-is)
+    full_module_payload = json.dumps({
+        "module": "FullMod",
+        "pinout": [{"name": "x", "direction": "input", "width": 1}],
+        "implementation": "module FullMod(input x); assign x = 1'b0; endmodule"
+    })
+    result = _parse_model_code_response(full_module_payload)
+    assert result == "module FullMod(input x); assign x = 1'b0; endmodule"
+
+
+def test_silicon_pipeline_rtl_extraction_unparseable_garbage_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test run_silicon_pipeline logs RESPONSE_PARSE_FAILURE and does NOT write garbage to disk."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        mock_sb.mock_returncode = 0
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+
+        driver = PhaseDriver(
+            session_id="fail-closed-garbage-test",
+            workspace=ws,
+            verifier=MockVerifier(should_pass=True),
+            sandbox=mock_sb,  # type: ignore
+            max_repairs=1,
+        )
+
+        architect_json = json.dumps({
+            "module_name": "garbage_mod",
+            "functional_spec": "Garbage test spec",
+            "ports": [
+                {"name": "clk", "direction": "input", "width": 1, "description": "Clock"},
+                {"name": "out", "direction": "output", "width": 1, "description": "Output"},
+            ],
+            "sva_properties": [],
+            "timing": {"clock_name": "clk", "period_ns": 5.0},
+        })
+
+        query_count = 0
+
+        def mock_queries(messages: list[dict[str, str]]) -> str:
+            nonlocal query_count
+            query_count += 1
+            if query_count == 1:
+                return architect_json
+            # RTL Generator returns unparseable garbage
+            return '{"status": "error", "message": "Failed to generate design"}'
+
+        monkeypatch.setattr(driver, "_query_ollama", mock_queries)
+
+        success = driver.run_silicon_pipeline("Synthesize garbage_mod", liberty_path="sky130.lib")
+        assert success is False
+
+        # Verify garbage file was NEVER written to disk
+        assert not (ws / "garbage_mod.sv").exists()
+
+        # Verify RESPONSE_PARSE_FAILURE was recorded in trace records
+        parse_failure_records = [
+            r for r in driver.transcript
+            if r.event.payload.get("error_category") == "RESPONSE_PARSE_FAILURE"
+        ]
+        assert len(parse_failure_records) >= 1
+        assert parse_failure_records[0].event.payload.get("passed") is False
+
 
 
 # ── Production Silicon & Multi-Agent Tests (Mind 3.0 10/10 Suite) ────────────
@@ -2150,17 +2351,27 @@ def test_sva_bind_module_generation() -> None:
     )
 
     bind_code = VerificationHarnessGenerator.build_sva_bind_module(contract)
+    # All ports become inputs in the checker module (observing DUT signals)
     assert "module arbiter_rr_sva (" in bind_code
     assert "input wire clk" in bind_code
     assert "input wire [1:0] req" in bind_code
-    assert "output wire [1:0] gnt" in bind_code
-    assert "property p_onehot_grant;" in bind_code
-    assert "bind arbiter_rr arbiter_rr_sva sva_inst (.*);" in bind_code
+    assert "input wire [1:0] gnt" in bind_code
+    # No property/endproperty or bind statements (Yosys-compatible)
+    assert "property p_onehot_grant;" not in bind_code
+    assert "bind arbiter_rr arbiter_rr_sva sva_inst (.*);" not in bind_code
+    # Check for Yosys-compatible procedural assertions
+    assert "always @(posedge clk)" in bind_code
+    # $onehot0 is combinational, so it should be used directly (not replaced with 1'b1)
+    assert "assert ($onehot0(gnt));" in bind_code
 
-    # SBY config must include the bind file
+    # SBY config must include the checker file and wrapper
     sby_cfg = VerificationHarnessGenerator.build_sby_config(contract, depth=25, include_sva_file=True)
     assert "arbiter_rr_sva.sv" in sby_cfg
     assert "read -formal arbiter_rr_sva.sv" in sby_cfg
+    # Wrapper module should be included
+    assert "arbiter_rr_formal_top.sv" in sby_cfg
+    assert "read -formal arbiter_rr_formal_top.sv" in sby_cfg
+    assert "prep -top arbiter_rr_formal_top" in sby_cfg
 
 
 def test_gate1_technology_synthesis_netlist_generation() -> None:
@@ -3225,7 +3436,7 @@ def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
                     f"    sys.stdout.write('CONNECTED_HOST_LOOPBACK_UNEXPECTEDLY\\n')\n"
                     f"    sys.exit(0)\n"
                     f"except OSError as e:\n"
-                    f"    sys.stdout.write(f'BLOCKED_HOST_LOOPBACK: {e}\\n')\n"
+                    f"    sys.stdout.write(f'BLOCKED_HOST_LOOPBACK: {{e}}\\n')\n"
                     f"    sys.exit(43)\n"
                 ),
             ]

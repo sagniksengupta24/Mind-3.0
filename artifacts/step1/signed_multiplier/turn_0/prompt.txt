@@ -1,0 +1,11 @@
+Write a synthesizable 8-bit signed two's complement multiplier in SystemVerilog.
+Module name: signed_multiplier
+Ports:
+  input  wire signed [7:0]  a,
+  input  wire signed [7:0]  b,
+  output wire signed [15:0] p
+Requirements:
+- Computes the signed product p = a * b.
+- Full signed two's complement support (-128 to +127).
+- Combinational logic, zero latches.
+Output only SystemVerilog code inside ```systemverilog ... ```.

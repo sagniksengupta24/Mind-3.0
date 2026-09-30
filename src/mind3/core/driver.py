@@ -23,6 +23,7 @@ from .contracts import (
     ContractSynthesizer,
     InterfaceContract,
     RTLGenerator,
+    UnsupportedFormalPropertyError,
     VerificationHarnessGenerator,
 )
 from .types import (
@@ -53,22 +54,191 @@ def _sanitize_json_output(raw_text: str) -> str:
     return cleaned
 
 
-def _parse_model_code_response(raw_output: str) -> str:
-    """Deterministically parse code or tool action from model output using strict schema validation.
+class ModelResponseParseError(ValueError):
+    """Raised when model response cannot be parsed into valid RTL."""
 
-    1. Sanitizes markdown code fences via _sanitize_json_output.
-    2. Attempts strict Pydantic AgentAction deserialization via agent_action_adapter.validate_json:
-       - On successful parse of a WriteFileAction, extracts action_obj.content.
-       - On parse failure, treats the sanitized string as raw RTL code.
+
+_FENCE_REGEX = re.compile(
+    r"```(?:verilog|systemverilog|sv)?\s*\n?(.*?)\n?```",
+    re.DOTALL | re.IGNORECASE,
+)
+_MODULE_REGEX = re.compile(
+    r"((?:/\*[\s\S]*?\*/\s*|//[^\n]*\n\s*|`[^\n]*\n\s*)*\bmodule\s+[a-zA-Z_]\w*\s*(?:#|\(|;)[\s\S]*?\bendmodule\b)",
+    re.DOTALL,
+)
+
+
+def _parse_model_code_response(raw_output: str, default_module_name: str | None = None) -> str:
+    """Deterministically parse code or tool action from model output.
+
+    Precedence:
+    1. If response validates as a proper WriteFileAction schema, use it.
+    2. Else if response contains a markdown code fence (```verilog, ```systemverilog, ```sv, or bare ```), extract the fenced content.
+    3. Else attempt to parse as JSON dict:
+       a) Check for structural AST-style dict with "module"/"name", "pinout"/"ports", "implementation"/"code"/"body" keys.
+          Reconstruct full module from parts, applying unicode_escape decoding.
+       b) Check keys in order: module_code, verilog_code, code, content, response, rtl, text.
+          For the first key whose value is a string containing both "module" and "endmodule", use it.
+          Apply unicode_escape decoding to any extracted string value.
+    4. Else regex-extract the first module-to-endmodule block from the raw text.
+    5. Else fail closed: raise ModelResponseParseError.
     """
     cleaned = _sanitize_json_output(raw_output)
+
+    def _unescape(val: str) -> str:
+        """Decode literal \\n, \\t, \\\" sequences in a string value structurally."""
+        if not isinstance(val, str):
+            return ""
+        if "\\n" in val or "\\t" in val or '\\"' in val or "\\\\" in val:
+            try:
+                return val.encode("utf-8").decode("unicode_escape")
+            except Exception:
+                return val.replace("\\n", "\n").replace("\\t", "\t").replace('\\"', '"').replace("\\\\", "\\")
+        return val
+
+    def _reconstruct_from_ast(data: dict) -> str | None:
+        """Reconstruct module from structural AST dict: {module, pinout, implementation, etc.}."""
+        mod_name = data.get("module") or data.get("name")
+        if not mod_name or not isinstance(mod_name, str):
+            return None
+
+        # Check for implementation key
+        impl_key = None
+        for k in ("implementation", "code", "body"):
+            if k in data:
+                impl_key = k
+                break
+        if impl_key is None:
+            return None
+
+        impl = data[impl_key]
+        if not isinstance(impl, str):
+            return None
+        impl = _unescape(impl).strip()
+
+        target_name = default_module_name if default_module_name else mod_name
+
+        if "endmodule" in impl:
+            res = impl
+            if default_module_name:
+                res = re.sub(r"\bmodule\s+\w+", f"module {default_module_name}", res, count=1)
+            return res
+
+        # Parameters
+        param_str = ""
+        params = data.get("parameters")
+        if isinstance(params, dict) and params:
+            param_decls = [f"  parameter {k} = {v}" for k, v in params.items()]
+            param_str = f" #(\n" + ",\n".join(param_decls) + "\n)"
+        elif isinstance(params, list) and params:
+            param_decls = []
+            for p in params:
+                if isinstance(p, dict) and "name" in p:
+                    default_val = p.get("default", p.get("value", 0))
+                    param_decls.append(f"  parameter {p['name']} = {default_val}")
+            if param_decls:
+                param_str = f" #(\n" + ",\n".join(param_decls) + "\n)"
+
+        # Pinout / ports
+        ports_list = data.get("pinout") or data.get("ports") or []
+        rendered_ports = []
+        if isinstance(ports_list, list):
+            for p in ports_list:
+                if isinstance(p, dict):
+                    pname = p.get("name", "")
+                    if not pname:
+                        continue
+                    pdir = p.get("direction", "input")
+                    if pdir not in ("input", "output", "inout"):
+                        pdir = "input"
+                    ptype = p.get("type", "logic")
+                    if "range" in p and p["range"]:
+                        prange = str(p["range"]).strip()
+                        if not prange.startswith("["):
+                            prange = f"[{prange}]"
+                        rendered_ports.append(f"  {pdir} {ptype} {prange} {pname}")
+                    elif "width" in p and p["width"] is not None:
+                        try:
+                            pwidth = int(p["width"])
+                            if pwidth > 1:
+                                rendered_ports.append(f"  {pdir} {ptype} [{pwidth-1}:0] {pname}")
+                            else:
+                                rendered_ports.append(f"  {pdir} {ptype} {pname}")
+                        except (ValueError, TypeError):
+                            rendered_ports.append(f"  {pdir} {ptype} {pname}")
+                    elif "bits" in p and p["bits"] is not None:
+                        try:
+                            pbits = int(p["bits"])
+                            if pbits > 1:
+                                rendered_ports.append(f"  {pdir} {ptype} [{pbits-1}:0] {pname}")
+                            else:
+                                rendered_ports.append(f"  {pdir} {ptype} {pname}")
+                        except (ValueError, TypeError):
+                            rendered_ports.append(f"  {pdir} {ptype} {pname}")
+                    else:
+                        rendered_ports.append(f"  {pdir} {ptype} {pname}")
+
+        ports_block = ",\n".join(rendered_ports)
+        body = f"\n\n{impl}\n\n" if impl else "\n"
+        if rendered_ports:
+            return f"module {target_name}{param_str} (\n{ports_block}\n);{body}endmodule"
+        else:
+            return f"module {target_name}{param_str} ();{body}endmodule"
+
+    def _apply_naming(code: str) -> str:
+        if default_module_name:
+            return re.sub(r"\bmodule\s+\w+", f"module {default_module_name}", code, count=1)
+        return code
+
+    # 1. Structured WriteFileAction schema
     try:
         action_obj = agent_action_adapter.validate_json(cleaned)
         if isinstance(action_obj, WriteFileAction):
-            return action_obj.content
+            return _apply_naming(_unescape(action_obj.content))
     except Exception:
-        return cleaned
-    return cleaned
+        action_obj = None
+
+    # 2. Markdown code fences (when response is not a raw JSON dictionary)
+    fence_match = _FENCE_REGEX.search(raw_output)
+    if fence_match and not (cleaned.startswith("{") and cleaned.endswith("}")):
+        fenced = fence_match.group(1).strip()
+        if "module" in fenced and "endmodule" in fenced:
+            return _apply_naming(_unescape(fenced))
+
+    # 3. JSON dictionary unwrapping
+    try:
+        parsed_json = json.loads(cleaned)
+        if isinstance(parsed_json, dict):
+            # 3a. Structural AST-style dict (module + pinout + implementation)
+            ast_result = _reconstruct_from_ast(parsed_json)
+            if ast_result is not None:
+                return _apply_naming(ast_result)
+
+            # 3b. Existing key-precedence for pre-wrapped module strings
+            for key in ("module_code", "verilog_code", "code", "content", "response", "rtl", "text"):
+                val = parsed_json.get(key)
+                if isinstance(val, str) and "module" in val and "endmodule" in val:
+                    val = _unescape(val)
+                    sub_fence = _FENCE_REGEX.search(val)
+                    if sub_fence:
+                        return _apply_naming(_unescape(sub_fence.group(1).strip()))
+                    return _apply_naming(val.strip())
+    except Exception:
+        parsed_json = None
+
+    # Fallback to fence extraction if JSON dictionary did not match any code keys
+    if fence_match:
+        fenced = fence_match.group(1).strip()
+        if "module" in fenced and "endmodule" in fenced:
+            return _apply_naming(_unescape(fenced))
+
+    # 4. Regex-extract first module-to-endmodule block
+    mod_match = _MODULE_REGEX.search(raw_output)
+    if mod_match:
+        return _apply_naming(_unescape(mod_match.group(1).strip()))
+
+    # 5. Fail closed
+    raise ModelResponseParseError("Failed to extract valid synthesizable SystemVerilog module from model response")
 
 
 NON_REPAIRABLE_CATEGORIES: set[str] = {
@@ -1025,16 +1195,29 @@ class PhaseDriver:
             return False
 
         # Stage 2: Verification Lead -> Generate Harnesses & SVA Bind (Zero RTL access)
-        sva_bind_content = VerificationHarnessGenerator.build_sva_bind_module(contract)
+        try:
+            sva_bind_content = VerificationHarnessGenerator.build_sva_bind_module(contract)
+        except UnsupportedFormalPropertyError as exc:
+            sva_bind_content = (
+                f"// Formal property construct unsupported by toolchain\n"
+                f"// unsupported: {exc}\n"
+                f"module {contract.module_name}_sva;\n"
+                f"  // SVA property failed closed\n"
+                f"  UNSUPPORTED_FORMAL_PROPERTY_ERROR;\n"
+                f"endmodule\n"
+            )
+
         sby_content = VerificationHarnessGenerator.build_sby_config(
             contract, depth=25, include_sva_file=bool(contract.sva_properties)
         )
+        wrapper_content = VerificationHarnessGenerator.build_formal_wrapper(contract)
         cpp_tb_content = VerificationHarnessGenerator.build_verilator_cpp_testbench(contract)
         sdc_content = contract.timing.to_sdc()
 
         harness_files = [
             WriteFileAction(path=f"{contract.module_name}_sva.sv", content=sva_bind_content),
             WriteFileAction(path=f"{contract.module_name}.sby", content=sby_content),
+            WriteFileAction(path=f"{contract.module_name}_formal_top.sv", content=wrapper_content),
             WriteFileAction(path=f"{contract.module_name}_tb.cpp", content=cpp_tb_content),
             WriteFileAction(path=f"{contract.module_name}.sdc", content=sdc_content),
         ]
@@ -1064,6 +1247,23 @@ class PhaseDriver:
                 PhaseEnum.EXECUTE,
                 {"role": "Principal RTL Design Engineer", "rtl_file": exec_rtl, "content": rtl_code},
             )
+        except ModelResponseParseError as exc:
+            self._emit_trace(
+                PhaseEnum.VERIFY,
+                {
+                    "passed": False,
+                    "domain": "RTL",
+                    "exit_code": 1,
+                    "failure_reason": f"Model code response parse failure: {exc}",
+                    "error_category": "RESPONSE_PARSE_FAILURE",
+                    "gate_reports": [],
+                },
+            )
+            repair_guidance = (
+                f"Model response parse failure: {exc}\n"
+                f"You MUST return valid synthesizable SystemVerilog code with a module-to-endmodule block."
+            )
+            self.turn += 1
         except Exception as exc:
             self._emit_trace(
                 PhaseEnum.EXECUTE,
@@ -1080,7 +1280,7 @@ class PhaseDriver:
                 top_module=contract.module_name,
                 contract=contract,
                 liberty_path=liberty_path or getattr(self.verifier, "liberty_paths", None),
-                allow_mock_fallback=True,
+                allow_mock_fallback=False,
             )
         )
 
@@ -1107,6 +1307,24 @@ class PhaseDriver:
                         PhaseEnum.EXECUTE,
                         {"role": "Targeted RTL Repair Loop", "rtl_file": exec_rep, "content": repaired_code},
                     )
+                except ModelResponseParseError as exc:
+                    self.turn += 1
+                    self._emit_trace(
+                        PhaseEnum.VERIFY,
+                        {
+                            "passed": False,
+                            "domain": "RTL",
+                            "exit_code": 1,
+                            "failure_reason": f"Model code response parse failure: {exc}",
+                            "error_category": "RESPONSE_PARSE_FAILURE",
+                            "gate_reports": [],
+                        },
+                    )
+                    repair_guidance = (
+                        f"Model response parse failure: {exc}\n"
+                        f"You MUST return valid synthesizable SystemVerilog code with a module-to-endmodule block."
+                    )
+                    continue
                 except Exception as exc:
                     self.turn += 1
                     repair_guidance = f"Model call failed: {exc}"
@@ -1307,6 +1525,7 @@ class PPAOptimizer:
 
 __all__ = [
     "PhaseDriver",
+    "ModelResponseParseError",
     "OpenRouterModelRegistry",
     "OpenRouterModelRegistryError",
     "fetch_openrouter_free_models",

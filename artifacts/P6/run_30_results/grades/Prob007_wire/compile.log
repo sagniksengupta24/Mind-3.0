@@ -1,0 +1,6 @@
+
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob007_wire_test.sv:84: error: Unknown module type: TopModule
+2 error(s) during elaboration.
+*** These modules were missing:
+        TopModule referenced 1 times.
+***

@@ -1,0 +1,16 @@
+Write a synthesizable 32-bit 2-stage pipelined adder in SystemVerilog.
+Module name: pipelined_adder
+Ports:
+  input  wire        clk,
+  input  wire        rst_n,
+  input  wire        valid_in,
+  input  wire [31:0] a,
+  input  wire [31:0] b,
+  output reg  [31:0] sum,
+  output reg         carry_out,
+  output reg         valid_out
+Requirements:
+- 2 pipeline stages: Stage 1 sums lower 16 bits with carry out; Stage 2 sums upper 16 bits with carry.
+- Exact 2-cycle latency from valid_in to valid_out.
+- Active-low reset rst_n clears all pipeline registers.
+Output only SystemVerilog code inside ```systemverilog ... ```.

@@ -1,0 +1,74 @@
+{
+  "task_id": "spi_master",
+  "task_name": "SPI Master Controller (Mode 0)",
+  "category": "Memory/interface",
+  "module_name": "spi_master",
+  "functional_spec": "Implement a synthesizable SPI Master controller in SystemVerilog (Mode 0: CPOL=0, CPHA=0).\nPorts:\n  input  wire       clk\n  input  wire       rst_n\n  input  wire       start\n  input  wire [7:0] tx_data\n  input  wire       miso\n  output reg  [7:0] rx_data\n  output reg        busy\n  output reg        done\n  output reg        sclk\n  output reg        cs_n\n  output reg        mosi\nBehavior:\n  Mode 0: sclk is idle low (CPOL=0). Data shifted out MSB first on falling edges (or before first rising edge), sampled on rising edges (CPHA=0).\n  When idle, cs_n=1, sclk=0, busy=0, done=0, mosi=0.\n  On 'start' when !busy, asserts busy=1, drops cs_n=0, and begins transmitting the 8 bits of tx_data.\n  Divides system clk by at least 2 or 4 to generate sclk pulses.\n  After shifting 8 bits and sampling 8 bits from miso into rx_data, cs_n returns high, busy goes low, and done pulses high for 1 cycle.",
+  "interface": {
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "start",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "tx_data",
+        "direction": "input",
+        "width": 8
+      },
+      {
+        "name": "miso",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rx_data",
+        "direction": "output",
+        "width": 8
+      },
+      {
+        "name": "busy",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "done",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "sclk",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "cs_n",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "mosi",
+        "direction": "output",
+        "width": 1
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Clock clk; active-low reset rst_n.",
+  "expected_behavior": "Transmits 8-bit word MSB-first in Mode 0; generates 8 sclk pulses; asserts done.",
+  "verification_strategy": "Cycle simulation with loopback miso = ~mosi; checks 8 sclk edges and byte latching + SBY BMC.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_spi_master;\n    reg clk;\n    reg rst_n;\n    reg start;\n    reg [7:0] tx_data;\n    wire miso;\n    wire [7:0] rx_data;\n    wire busy;\n    wire done;\n    wire sclk;\n    wire cs_n;\n    wire mosi;\n\n    assign miso = ~mosi;\n\n    spi_master dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .start(start),\n        .tx_data(tx_data),\n        .miso(miso),\n        .rx_data(rx_data),\n        .busy(busy),\n        .done(done),\n        .sclk(sclk),\n        .cs_n(cs_n),\n        .mosi(mosi)\n    );\n\n    always #5 clk = ~clk;\n\n    initial begin\n        #10000;\n        $display(\"FAIL: Simulation watchdog timeout (SPI master transfer hang)\");\n        $fatal(1);\n    end\n\n    initial begin\n        clk = 0;\n        rst_n = 0;\n        start = 0;\n        tx_data = 0;\n        #20;\n        rst_n = 1;\n        #10;\n\n        if (busy || cs_n !== 1 || sclk !== 0) begin\n            $display(\"FAIL: SPI Master not idle on reset: busy=%b cs_n=%b sclk=%b\", busy, cs_n, sclk);\n            $fatal(1);\n        end\n\n        @(posedge clk);\n        start = 1;\n        tx_data = 8'hA5;\n        @(posedge clk);\n        start = 0;\n\n        while (!done) @(posedge clk);\n        #1;\n        if (rx_data !== 8'h5A) begin\n            $display(\"FAIL: rx_data mismatch: got %h, expected %h\", rx_data, 8'h5A);\n            $fatal(1);\n        end\n        if (cs_n !== 1) begin\n            $display(\"FAIL: cs_n did not return high after transfer\");\n            $fatal(1);\n        end\n\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module spi_master_formal(\n    input wire clk,\n    input wire rst_n,\n    input wire start,\n    input wire [7:0] tx_data,\n    input wire miso\n);\n    wire [7:0] rx_data;\n    wire busy, done, sclk, cs_n, mosi;\n\n    spi_master dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .start(start),\n        .tx_data(tx_data),\n        .miso(miso),\n        .rx_data(rx_data),\n        .busy(busy),\n        .done(done),\n        .sclk(sclk),\n        .cs_n(cs_n),\n        .mosi(mosi)\n    );\n\n    always @(posedge clk) begin\n        if (rst_n) begin\n            if (!busy) begin\n                assert(cs_n == 1'b1);\n                assert(sclk == 1'b0);\n            end\n        end\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable SPI Master controller in SystemVerilog (Mode 0: CPOL=0, CPHA=0).\nModule name: spi_master\nPorts:\n  input  wire       clk,\n  input  wire       rst_n,\n  input  wire       start,\n  input  wire [7:0] tx_data,\n  input  wire       miso,\n  output reg  [7:0] rx_data,\n  output reg        busy,\n  output reg        done,\n  output reg        sclk,\n  output reg        cs_n,\n  output reg        mosi\nRequirements:\n- Mode 0: sclk is idle low (CPOL=0), shift on falling edge, sample on rising edge (CPHA=0).\n- Divides clk by 2 or 4 to produce sclk.\n- On 'start', lowers cs_n=0, raises busy=1, transmits 8 bits MSB first, samples miso into rx_data.\n- When done, raises cs_n=1, lowers busy=0, pulses done=1 for 1 cycle.\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

@@ -1,0 +1,39 @@
+{
+  "task_id": "gray_counter",
+  "task_name": "4-bit Gray Code Counter",
+  "category": "Basic combinational/sequential logic",
+  "module_name": "gray_counter",
+  "functional_spec": "Implement a synthesizable 4-bit synchronous Gray code counter in SystemVerilog.\nPorts:\n  input  wire       clk\n  input  wire       rst_n\n  input  wire       enable\n  output reg  [3:0] gray_out\nBehavior:\n  Active-low synchronous or asynchronous reset 'rst_n' resets 'gray_out' to 4'b0000.\n  On each rising edge of 'clk', if 'enable' is high, the counter transitions to the next Gray code in the standard 16-state sequence:\n  0000 -> 0001 -> 0011 -> 0010 -> 0110 -> 0111 -> 0101 -> 0100 -> 1100 -> 1101 -> 1111 -> 1110 -> 1010 -> 1011 -> 1001 -> 1000 -> 0000.\n  If 'enable' is low, 'gray_out' holds its current value.\n  Exactly one bit must change on each count transition.",
+  "interface": {
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "enable",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "gray_out",
+        "direction": "output",
+        "width": 4
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Clock clk; active-low reset rst_n.",
+  "expected_behavior": "gray_out advances by 1 Hamming distance per enabled clock cycle across 16 states.",
+  "verification_strategy": "Cycle simulation through 32 cycles + Hamming distance check + SBY BMC.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_gray_counter;\n    reg clk;\n    reg rst_n;\n    reg enable;\n    wire [3:0] gray_out;\n\n    gray_counter dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .enable(enable),\n        .gray_out(gray_out)\n    );\n\n    always #5 clk = ~clk;\n\n    reg [3:0] seq [0:15];\n    integer i, step;\n\n    initial begin\n        seq[0]=4'b0000; seq[1]=4'b0001; seq[2]=4'b0011; seq[3]=4'b0010;\n        seq[4]=4'b0110; seq[5]=4'b0111; seq[6]=4'b0101; seq[7]=4'b0100;\n        seq[8]=4'b1100; seq[9]=4'b1101; seq[10]=4'b1111; seq[11]=4'b1110;\n        seq[12]=4'b1010; seq[13]=4'b1011; seq[14]=4'b1001; seq[15]=4'b1000;\n\n        clk = 0;\n        rst_n = 0;\n        enable = 0;\n        #20;\n        rst_n = 1;\n        #10;\n        if (gray_out !== 4'b0000) begin\n            $display(\"FAIL: Reset did not clear gray_out, got %b\", gray_out);\n            $fatal(1);\n        end\n\n        // Check hold when enable=0\n        #20;\n        if (gray_out !== 4'b0000) begin\n            $display(\"FAIL: Counter changed while enable=0, got %b\", gray_out);\n            $fatal(1);\n        end\n\n        // Count through 32 cycles (2 full sequences)\n        enable = 1;\n        for (step = 0; step < 32; step = step + 1) begin\n            @(posedge clk);\n            #1;\n            if (gray_out !== seq[(step + 1) % 16]) begin\n                $display(\"FAIL: At step %0d, expected %b, got %b\",\n                         step, seq[(step + 1) % 16], gray_out);\n                $fatal(1);\n            end\n        end\n\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module gray_counter_formal(\n    input wire clk,\n    input wire rst_n,\n    input wire enable\n);\n    wire [3:0] gray_out;\n    gray_counter dut (.clk(clk), .rst_n(rst_n), .enable(enable), .gray_out(gray_out));\n\n    always @(posedge clk) begin\n        if (!rst_n) begin\n            assert(gray_out == 4'b0000);\n        end else if ($past(!rst_n)) begin\n            assert(gray_out == 4'b0000);\n        end else if ($past(enable)) begin\n            assert($onehot(gray_out ^ $past(gray_out)));\n        end else begin\n            assert(gray_out == $past(gray_out));\n        end\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable 4-bit synchronous Gray code counter in SystemVerilog.\nModule name: gray_counter\nPorts:\n  input  wire       clk,\n  input  wire       rst_n,\n  input  wire       enable,\n  output reg  [3:0] gray_out\nRequirements:\n- Active-low reset 'rst_n' clears 'gray_out' to 4'b0000.\n- When enable is 1 on rising clock, advances through the 16-step Gray code sequence.\n- Sequence: 0000, 0001, 0011, 0010, 0110, 0111, 0101, 0100, 1100, 1101, 1111, 1110, 1010, 1011, 1001, 1000, wrap to 0000.\n- When enable is 0, holds value.\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

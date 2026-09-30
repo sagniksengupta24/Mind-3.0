@@ -1,0 +1,18 @@
+Write a synthesizable packet frame parser FSM in SystemVerilog.
+Module name: packet_frame_parser
+Ports:
+  input  wire       clk,
+  input  wire       rst_n,
+  input  wire       valid_in,
+  input  wire [7:0] data_in,
+  output reg        frame_valid,
+  output reg  [7:0] payload_byte,
+  output reg        payload_valid,
+  output reg        frame_error
+Protocol:
+- SOF: 8'hA5
+- LEN: 1 to 8 bytes
+- PAYLOAD: LEN bytes (emit on payload_byte with payload_valid=1)
+- EOF: 8'h5A (assert frame_valid=1 for 1 cycle)
+- Error: if invalid byte, assert frame_error=1 for 1 cycle and reset to IDLE.
+Output only SystemVerilog code inside ```systemverilog ... ```.

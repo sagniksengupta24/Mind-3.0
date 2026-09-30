@@ -17,12 +17,14 @@ class BubblewrapSandbox:
         self,
         workspace: Path | str,
         bwrap_binary: str | Path | None = None,
+        extra_ro_binds: list[Path | str] | None = None,
     ) -> None:
         """Initialize the Bubblewrap sandbox targeting a verified workspace.
 
         Args:
             workspace: Path to the workspace directory. Must exist or will be created.
             bwrap_binary: Optional explicit path to bwrap executable.
+            extra_ro_binds: Optional list of additional directories or files to bind read-only.
 
         Raises:
             RuntimeError: If bwrap binary is not located on PATH.
@@ -43,6 +45,7 @@ class BubblewrapSandbox:
         self.workspace: Path = Path(workspace).resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
         self._bwrap_bin: str = discovered_binary
+        self._extra_ro_binds: list[Path] = [Path(p).resolve() for p in (extra_ro_binds or [])]
 
     @property
     def bwrap_binary(self) -> str:
@@ -97,6 +100,24 @@ class BubblewrapSandbox:
 
         if Path("/lib64").exists():
             cmd.extend(["--ro-bind", "/lib64", "/lib64"])
+        if Path("/etc").exists():
+            cmd.extend(["--ro-bind", "/etc", "/etc"])
+
+        # Auto-bind standard EDA tool suites and PDKs read-only if present on host
+        standard_ro_paths = [
+            Path("/opt"),
+            Path("/home/mind/.local"),
+            Path("/home/mind/openroad-env"),
+            Path("/home/mind/oss-cad-suite"),
+            Path("/home/mind/pdk"),
+        ]
+        for p in standard_ro_paths:
+            if p.exists():
+                cmd.extend(["--ro-bind", str(p), str(p)])
+
+        for p in self._extra_ro_binds:
+            if p.exists():
+                cmd.extend(["--ro-bind", str(p), str(p)])
 
         cmd.extend([
             "--bind",

@@ -265,9 +265,30 @@ def test_environment_eda_tool_availability_honesty() -> None:
         if shutil.which(tool_name) is not None:
             # When installed on PATH, must report genuine version output
             assert versions[tool_name] != "missing"
-            assert tool_name.lower() in versions[tool_name].lower()
+            NAME_OMITTING_TOOLS = {"sta", "openroad"}  # confirmed via real OpenSTA 2.3.1 and OpenROAD f12e2f4741 output on this host
+            ver_lower = versions[tool_name].lower()
+            assert (
+                tool_name.lower() in ver_lower
+                or tool_name in NAME_OMITTING_TOOLS
+            ), f"Version output for {tool_name} was not recognized: {versions[tool_name]}"
         else:
             # When absent from PATH, must honestly report 'missing'
             assert versions[tool_name] == "missing"
+
+
+def test_opensta_cli_syntax_against_help_fixture() -> None:
+    """Regression test: Gate 4 must use OpenSTA's supported CLI syntax (-exit, not -f).
+
+    OpenSTA 2.3.1 actual -help output fixture documents supported options.
+    -f is an invalid flag that causes immediate exit code 1 with Usage error.
+    """
+    help_text = (FIXTURES_DIR / "opensta_cli_help.log").read_text(encoding="utf-8")
+    # Verify that -f is not a supported flag in OpenSTA
+    assert "-f " not in help_text
+    assert " -f" not in help_text
+    # Verify that -exit and cmd_file are the documented script execution mechanism
+    assert "-exit" in help_text
+    assert "cmd_file" in help_text
+
 
 

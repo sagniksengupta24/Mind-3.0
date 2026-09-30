@@ -1,0 +1,170 @@
+=== GATE 1: SYNTAX CHECK (iverilog compile) ===
+
+
+=== GATE 2: LINT CHECK (Yosys AST & latch trap) ===
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+
+-- Running command `read_verilog -sv signed_multiplier.sv; prep -top signed_multiplier' --
+
+1. Executing Verilog-2005 frontend: signed_multiplier.sv
+Parsing SystemVerilog input from `signed_multiplier.sv' to AST representation.
+Generating RTLIL representation for module `\signed_multiplier'.
+Successfully finished Verilog frontend.
+
+2. Executing PREP pass.
+
+2.1. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1.1. Analyzing design hierarchy..
+Top module:  \signed_multiplier
+
+2.1.2. Analyzing design hierarchy..
+Top module:  \signed_multiplier
+Removed 0 unused modules.
+
+2.2. Executing PROC pass (convert processes to netlists).
+
+2.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+2.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+2.2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+2.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+2.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+2.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+2.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+2.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module signed_multiplier.
+
+2.3. Executing FUTURE pass.
+
+2.4. Executing OPT_EXPR pass (perform const folding).
+Optimizing module signed_multiplier.
+
+2.5. Executing CHECK pass (checking for obvious problems).
+Checking module signed_multiplier...
+Found and reported 0 problems.
+
+2.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \signed_multiplier..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+2.7. Executing OPT pass (performing simple optimizations).
+
+2.7.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module signed_multiplier.
+
+2.7.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\signed_multiplier'.
+Computing hashes of 1 cells of `\signed_multiplier'.
+Finding duplicate cells in `\signed_multiplier'.
+Removed a total of 0 cells.
+
+2.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \signed_multiplier..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+2.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \signed_multiplier.
+Performed a total of 0 changes.
+
+2.7.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\signed_multiplier'.
+Computing hashes of 1 cells of `\signed_multiplier'.
+Finding duplicate cells in `\signed_multiplier'.
+Removed a total of 0 cells.
+
+2.7.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \signed_multiplier..
+
+2.7.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module signed_multiplier.
+
+2.7.8. Finished fast OPT passes. (There is nothing left to do.)
+
+2.8. Executing WREDUCE pass (reducing word size of cells).
+
+2.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \signed_multiplier..
+
+2.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+2.11. Executing OPT pass (performing simple optimizations).
+
+2.11.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module signed_multiplier.
+
+2.11.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\signed_multiplier'.
+Computing hashes of 1 cells of `\signed_multiplier'.
+Finding duplicate cells in `\signed_multiplier'.
+Removed a total of 0 cells.
+
+2.11.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \signed_multiplier..
+
+2.11.4. Finished fast OPT passes.
+
+2.12. Executing SORT pass.
+
+2.13. Printing statistics.
+
+=== signed_multiplier ===
+
+        +----------Local Count, excluding submodules.
+        | 
+        3 wires
+       32 wire bits
+        3 public wires
+       32 public wire bits
+        3 ports
+       32 port bits
+        1 cells
+        1   $mul
+
+2.14. Executing CHECK pass (checking for obvious problems).
+Checking module signed_multiplier...
+Found and reported 0 problems.
+
+End of script. Logfile hash: cd3314d232, time: 0.00s, user: 0.00s, system: 0.00s, MEM: 32.41 MB peak
+Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 23% 3x opt_merge (0 sec), 14% 2x read_verilog (0 sec), ...
+
+
+=== GATE 3: SIMULATION (vvp execution) ===
+ALL_TESTS_PASSED
+/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/tb_signed_multiplier.sv:45: $finish called at 2820000 (1ps)
+
+
+=== GATE 4: FORMAL BMC (SymbiYosys depth 25) ===
+SBY  6:00:26 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal] Removing directory '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal'.
+SBY  6:00:26 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/signed_multiplier.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal/src/signed_multiplier.sv'.
+SBY  6:00:26 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/sva.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal/src/sva.sv'.

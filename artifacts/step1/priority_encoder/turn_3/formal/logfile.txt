@@ -1,0 +1,3 @@
+SBY  5:59:08 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_3/formal] Removing directory '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_3/formal'.
+SBY  5:59:08 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_3/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_3/priority_encoder.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_3/formal/src/priority_encoder.sv'.
+SBY  5:59:08 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_3/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_3/sva.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_3/formal/src/sva.sv'.

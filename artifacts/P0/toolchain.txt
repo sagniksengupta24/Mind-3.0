@@ -1,0 +1,36 @@
+=== TOOLCHAIN VERSIONS & SMOKE TESTS ===
+Timestamp: Tue Sep 29 09:41:03 PM UTC 2026
+Host: Linux mind 7.0.0-31-generic #31~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Aug 10 09:38:02 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+
+--- Python ---
+Python 3.12.3
+pydantic: 2.13.5
+Smoke test: python3 -c "print(1+1)" -> 2
+
+--- Ollama ---
+ollama version is 0.32.15
+NAME                          ID              SIZE     MODIFIED    
+Qwen3-Coder-30B-A3B:latest    06c1097efce0    18 GB    3 weeks ago    
+qwen2.5-coder:30b             06c1097efce0    18 GB    3 weeks ago    
+qwen3-coder:30b               06c1097efce0    18 GB    5 weeks ago    
+Smoke test: ollama running and reachable
+
+--- Yosys ---
+Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Smoke test Yosys: 
+
+--- SBY ---
+SBY v0.69
+Smoke test SBY: usage: sby [options] [<jobname>.sby [tasknames] | <dirname>]
+
+--- Verilator ---
+Verilator 5.053 devel rev v5.052-159-g46774fded (mod)
+Smoke test Verilator: Verilator 5.053 devel rev v5.052-159-g46774fded (mod)
+
+--- Icarus Verilog ---
+Icarus Verilog version 14.0 (devel) (s20260301-476-g1a23d1ffd-dirty)
+Smoke test iverilog: Usage: iverilog [-EiRSuvV] [-B[IMPVt] base] [-c cmdfile|-f cmdfile]
+
+--- VVP ---
+Icarus Verilog runtime version 14.0 (devel) (s20260301-476-g1a23d1ffd-dirty)
+Smoke test vvp: Usage: vvp [options] input-file [+plusargs...]

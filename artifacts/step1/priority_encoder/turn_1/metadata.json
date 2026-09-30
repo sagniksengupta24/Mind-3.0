@@ -1,0 +1,27 @@
+{
+  "task_id": "priority_encoder",
+  "turn": 1,
+  "provider": "Ollama (local)",
+  "model": "qwen2.5-coder:30b",
+  "endpoint": "http://127.0.0.1:11434",
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "seed": 42,
+  "max_tokens": 2048,
+  "system_prompt_hash": "0eb373634b2e0351a0f21c9b5615d8466f41c554c01aa842bd774fe9100ab95d",
+  "task_prompt_hash": "4377ad68787805b836ac7571ad011aa3c72788c0cc9ee9783730515adcbaa7ad",
+  "request_timestamp": "2026-09-28T00:28:37.111135+00:00",
+  "response_timestamp": "2026-09-28T00:28:47.544916+00:00",
+  "latency_seconds": 10.434,
+  "bmc_depth": 25,
+  "verification": {
+    "syntax": "PASS",
+    "lint": "PASS",
+    "simulation": "PASS",
+    "bmc": "FAIL",
+    "bmc_depth": 25,
+    "passed": false,
+    "failure_gate": "Functional",
+    "failure_reason": "SymbiYosys formal BMC failed:\nSBY  5:58:47 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_1/formal] Removing directory '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_1/formal'.\nSBY  5:58:47 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_1/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_1/priority_encoder.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_1/formal/src/priority_encoder.sv'.\nSBY  5:58:47 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_1/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_1/sva.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/priority_encoder/turn_1/formal/src/sva.sv'.\n"
+  }
+}

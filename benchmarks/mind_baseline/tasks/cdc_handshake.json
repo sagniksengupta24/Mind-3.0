@@ -1,0 +1,54 @@
+{
+  "task_id": "cdc_handshake",
+  "task_name": "Clock-Domain-Crossing Pulse Handshake",
+  "category": "Multi-clock/handshake",
+  "module_name": "cdc_handshake",
+  "functional_spec": "Implement a synthesizable clock-domain-crossing (CDC) pulse synchronizer in SystemVerilog.\nPorts:\n  input  wire clk_src\n  input  wire rst_src_n\n  input  wire pulse_in_src\n  output reg  busy_src\n  input  wire clk_dst\n  input  wire rst_dst_n\n  output reg  pulse_out_dst\nBehavior:\n  Safely transfers a 1-cycle pulse from the 'clk_src' domain to the asynchronous 'clk_dst' domain.\n  When 'pulse_in_src' pulses high for 1 cycle while !busy_src, 'busy_src' asserts high and an internal toggle bit is flipped in the source domain.\n  The toggle bit is synchronized into 'clk_dst' using a 2-stage flip-flop synchronizer.\n  An edge detector in 'clk_dst' generates a single-cycle 'pulse_out_dst' on the destination clock.\n  The synchronized destination toggle is synchronized back to 'clk_src' via a second 2-stage flip-flop synchronizer to clear 'busy_src' when complete.\n  Guarantees no metastability, no missed pulses, and exactly one pulse emitted per trigger across any clock frequency ratio.",
+  "interface": {
+    "ports": [
+      {
+        "name": "clk_src",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_src_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "pulse_in_src",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "busy_src",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "clk_dst",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_dst_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "pulse_out_dst",
+        "direction": "output",
+        "width": 1
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Independent asynchronous clocks clk_src and clk_dst; separate resets.",
+  "expected_behavior": "1-cycle pulse in src generates exactly 1 pulse in dst; busy flag guards multi-cycle handshake.",
+  "verification_strategy": "Cycle simulation with fast-to-slow and slow-to-fast clock ratios + Yosys CDC analysis.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_cdc_handshake;\n    reg clk_src;\n    reg rst_src_n;\n    reg pulse_in_src;\n    wire busy_src;\n\n    reg clk_dst;\n    reg rst_dst_n;\n    wire pulse_out_dst;\n\n    cdc_handshake dut (\n        .clk_src(clk_src),\n        .rst_src_n(rst_src_n),\n        .pulse_in_src(pulse_in_src),\n        .busy_src(busy_src),\n        .clk_dst(clk_dst),\n        .rst_dst_n(rst_dst_n),\n        .pulse_out_dst(pulse_out_dst)\n    );\n\n    always #10 clk_src = ~clk_src;\n    always #35 clk_dst = ~clk_dst;\n\n    initial begin\n        #20000;\n        $display(\"FAIL: Simulation watchdog timeout (CDC handshake hang)\");\n        $fatal(1);\n    end\n\n    integer dst_pulse_count;\n    always @(posedge clk_dst) begin\n        if (rst_dst_n && pulse_out_dst) begin\n            dst_pulse_count <= dst_pulse_count + 1;\n        end\n    end\n\n    initial begin\n        clk_src = 0;\n        rst_src_n = 0;\n        pulse_in_src = 0;\n        clk_dst = 0;\n        rst_dst_n = 0;\n        dst_pulse_count = 0;\n        #50;\n        rst_src_n = 1;\n        rst_dst_n = 1;\n        #100;\n\n        for (integer p = 0; p < 5; p = p + 1) begin\n            @(posedge clk_src);\n            pulse_in_src = 1;\n            @(posedge clk_src);\n            pulse_in_src = 0;\n\n            while (busy_src) @(posedge clk_src);\n            #100;\n        end\n\n        #200;\n        if (dst_pulse_count !== 5) begin\n            $display(\"FAIL: Expected exactly 5 destination pulses, got %0d\", dst_pulse_count);\n            $fatal(1);\n        end\n\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module cdc_handshake_formal(\n    input wire clk_src,\n    input wire rst_src_n,\n    input wire pulse_in_src,\n    input wire clk_dst,\n    input wire rst_dst_n\n);\n    wire busy_src, pulse_out_dst;\n\n    cdc_handshake dut (\n        .clk_src(clk_src),\n        .rst_src_n(rst_src_n),\n        .pulse_in_src(pulse_in_src),\n        .busy_src(busy_src),\n        .clk_dst(clk_dst),\n        .rst_dst_n(rst_dst_n),\n        .pulse_out_dst(pulse_out_dst)\n    );\n\n    always @(posedge clk_src) begin\n        if (!rst_src_n) begin\n            assert(!busy_src);\n        end\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable clock-domain-crossing (CDC) pulse synchronizer in SystemVerilog.\nModule name: cdc_handshake\nPorts:\n  input  wire clk_src,\n  input  wire rst_src_n,\n  input  wire pulse_in_src,\n  output reg  busy_src,\n  input  wire clk_dst,\n  input  wire rst_dst_n,\n  output reg  pulse_out_dst\nRequirements:\n- When pulse_in_src is high and !busy_src, asserts busy_src=1 and toggles internal src toggle bit.\n- Synchronizes toggle into clk_dst via a 2-stage flip-flop synchronizer.\n- Detects edge in clk_dst and emits a 1-cycle pulse on pulse_out_dst.\n- Synchronizes dst toggle back to clk_src via another 2-stage flip-flop synchronizer to clear busy_src=0.\n- Must be clean for asynchronous clocks with zero metastability.\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

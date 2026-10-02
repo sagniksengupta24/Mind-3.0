@@ -1100,6 +1100,186 @@ class VerificationHarnessGenerator:
         )
 
     @staticmethod
+    def implication_antecedents(
+        contract: InterfaceContract,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Extract implication antecedents for bounded vacuity reachability checks.
+
+        Returns (implications, unsupported) where each implication is a dict
+        with name/kind/antecedent/clock/reset. Structured templates are read
+        directly; legacy SVA strings are re-classified deterministically.
+        Anything unclassifiable is reported in unsupported (it cannot have
+        reached the assert-PASS path, so callers treat it as a cover error).
+        """
+        from .formal_templates import (
+            FormalPropertySpec,
+            FormalTemplateKind,
+            UnsupportedFormalTemplate,
+            classify_legacy_property,
+            compile_cover_point,
+        )
+
+        has_clock = VerificationHarnessGenerator._has_clock(contract)
+        clock_name = VerificationHarnessGenerator._get_clock_name(contract) if has_clock else None
+        reset_info = VerificationHarnessGenerator._get_reset_info(contract) if has_clock else None
+        default_reset = None
+        if reset_info:
+            rst_name, rst_active_low = reset_info
+            default_reset = f"{rst_name}:{'active_low' if rst_active_low else 'active_high'}"
+
+        implications: list[dict[str, Any]] = []
+        unsupported: list[dict[str, Any]] = []
+        for prop in list(contract.formal_properties or []):
+            if prop.kind in (FormalTemplateKind.SAME_CYCLE_IMPLICATION, FormalTemplateKind.NEXT_CYCLE_IMPLICATION):
+                try:
+                    cover = compile_cover_point(prop)
+                except UnsupportedFormalTemplate as exc:
+                    unsupported.append({"name": prop.name, "error": str(exc)})
+                    continue
+                if cover is not None:
+                    implications.append({
+                        "name": prop.name,
+                        "kind": prop.kind.value,
+                        "antecedent": prop.antecedent,
+                        "cover_expr": cover[0],
+                        "cover_guard": cover[1],
+                        "clock": prop.clock,
+                    })
+        for prop in list(contract.sva_properties or []):
+            try:
+                classified = classify_legacy_property(
+                    name=prop.name,
+                    raw_expression=prop.property_expr,
+                    default_clock=clock_name,
+                    default_reset=default_reset,
+                )
+            except (UnsupportedFormalTemplate, ValueError) as exc:
+                unsupported.append({"name": prop.name, "error": str(exc)})
+                continue
+            if classified.kind in (FormalTemplateKind.SAME_CYCLE_IMPLICATION, FormalTemplateKind.NEXT_CYCLE_IMPLICATION):
+                try:
+                    cover = compile_cover_point(classified)
+                except UnsupportedFormalTemplate as exc:
+                    unsupported.append({"name": prop.name, "error": str(exc)})
+                    continue
+                if cover is not None:
+                    implications.append({
+                        "name": classified.name,
+                        "kind": classified.kind.value,
+                        "antecedent": classified.antecedent,
+                        "cover_expr": cover[0],
+                        "cover_guard": cover[1],
+                        "clock": classified.clock,
+                    })
+        return implications, unsupported
+
+    @staticmethod
+    def build_cover_bind_module(
+        contract: InterfaceContract,
+        cover_points: list[dict[str, Any]],
+    ) -> tuple[str, list[int]]:
+        """Generate a bounded antecedent-reachability cover checker.
+
+        Returns (code, cover_line_numbers) where cover_line_numbers[i] is the
+        1-based source line of cover_points[i]'s statement, used to attribute
+        executed SBY witness locations back to properties.
+        """
+        port_decls = []
+        for p in contract.ports:
+            bind_port = PortDefinition(
+                name=p.name,
+                direction=PortDirection.INPUT,
+                width=p.width,
+                description=p.description,
+            )
+            port_decls.append(f"  {bind_port.to_verilog_declaration()}")
+        port_decls_str = ",\n".join(port_decls)
+
+        lines = [
+            f"// Mind 3.0 bounded antecedent-reachability covers for {contract.module_name}",
+            f"// Each cover mirrors its assertion's evaluation condition exactly.",
+            f"module {contract.module_name}_cover (",
+            port_decls_str,
+            ");",
+            "",
+        ]
+        clocks = [cp["clock"] for cp in cover_points if cp.get("clock")]
+        if clocks:
+            lines.append("  reg init = 1'b1;")
+            lines.append(f"  always @(posedge {clocks[0]}) init <= 1'b0;")
+            lines.append("")
+        def _line_count() -> int:
+            # List elements may embed newlines (e.g. the port block) and are
+            # joined with "\n", so count both embedded and separator newlines.
+            return sum(s.count("\n") for s in lines) + len(lines)
+
+        cover_line_numbers: list[int] = []
+        for cp in cover_points:
+            clock = cp.get("clock")
+            event = f"always @(posedge {clock})" if clock else "always @*"
+            lines.append(f"  // vacuity-target: {cp['name']} kind={cp['kind']}")
+            lines.append(f"  {event} begin")
+            lines.append(f"    if ({cp['cover_guard']}) cover ({cp['cover_expr']}); // vacuity: {cp['name']}")
+            cover_line_numbers.append(_line_count())
+            lines.append("  end")
+            lines.append("")
+        lines.append("endmodule")
+        lines.append("")
+        return "\n".join(lines), cover_line_numbers
+
+    @staticmethod
+    def build_cover_top_module(contract: InterfaceContract) -> str:
+        """Generate a cover wrapper instantiating the DUT and the cover checker."""
+        signal_decls = []
+        dut_port_conns = []
+        cover_port_conns = []
+        for p in contract.ports:
+            if p.width == 1:
+                signal_decls.append(f"  logic {p.name};")
+            else:
+                signal_decls.append(f"  logic [{p.width-1}:0] {p.name};")
+            dut_port_conns.append(f"    .{p.name}({p.name})")
+            cover_port_conns.append(f"    .{p.name}({p.name})")
+
+        signals_str = "\n".join(signal_decls)
+        dut_conns_str = ",\n".join(dut_port_conns)
+        cover_conns_str = ",\n".join(cover_port_conns)
+
+        return (
+            f"// Bounded antecedent-reachability wrapper for {contract.module_name}\n"
+            f"module {contract.module_name}_cover_top;\n\n"
+            f"{signals_str}\n\n"
+            f"  {contract.module_name} dut (\n"
+            f"{dut_conns_str}\n"
+            f"  );\n\n"
+            f"  {contract.module_name}_cover cov (\n"
+            f"{cover_conns_str}\n"
+            f"  );\n\n"
+            f"endmodule\n"
+        )
+
+    @staticmethod
+    def build_cover_sby_config(contract: InterfaceContract, depth: int = 25) -> str:
+        """Generate an SBY cover-mode configuration mirroring the BMC proof bound."""
+        top = f"{contract.module_name}_cover_top"
+        return (
+            f"[options]\n"
+            f"mode cover\n"
+            f"depth {depth}\n\n"
+            f"[engines]\n"
+            f"smtbmc z3\n\n"
+            f"[script]\n"
+            f"read -formal {contract.module_name}.sv\n"
+            f"read -formal {contract.module_name}_cover.sv\n"
+            f"read -formal {top}.sv\n"
+            f"prep -top {top}\n\n"
+            f"[files]\n"
+            f"{contract.module_name}.sv\n"
+            f"{contract.module_name}_cover.sv\n"
+            f"{top}.sv\n"
+        )
+
+    @staticmethod
     def build_verilator_cpp_testbench(contract: InterfaceContract) -> str:
         """Generate Verilator C++ test driver supporting both combinational and sequential designs."""
         has_clock = VerificationHarnessGenerator._has_clock(contract)

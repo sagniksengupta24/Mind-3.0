@@ -217,9 +217,14 @@ def classify_legacy_property(
     implication = _split_implication(expr)
     if implication:
         left, right, next_cycle = implication
-        if next_cycle and re.match(r"^##1\s+", right, re.I):
-            right = re.sub(r"^##1\s+", "", right, count=1, flags=re.I).strip()
-            next_cycle = False
+        # A delay chained onto a non-overlapping implication (e.g. `a |=> ##1 b`,
+        # which means `a |-> ##2 b`) is outside the supported bounded subset.
+        # It must fail closed here: silently rewriting it to same-cycle `|->`
+        # would alter its temporal meaning.
+        if next_cycle and re.search(r"##", right, re.I):
+            raise UnsupportedFormalTemplate(
+                f"Delayed non-overlapping implication in '{name}' is outside the bounded subset: {expr}"
+            )
         if "$past" in right.lower() and not next_cycle:
             try:
                 _validate_expression(right, allow_past=True)
@@ -418,6 +423,36 @@ def compile_contract_properties(
     return "\n".join(compiled), audit
 
 
+def compile_cover_point(prop: FormalPropertySpec) -> tuple[str, str] | None:
+    """Render a bounded antecedent-reachability cover for one implication property.
+
+    Returns (cover_expression, cover_guard) or None when the property kind has
+    no antecedent (boolean, onehot, reset_assertion, past_*). The guard mirrors
+    the assert renderer's guard exactly, and next-cycle properties cover
+    ``$past(antecedent)`` — precisely the condition under which the matching
+    assertion is evaluated. A cover point reached within the BMC bound proves
+    the implication was exercised; an unreached one proves nothing was tested.
+    """
+    if prop.kind not in (
+        FormalTemplateKind.SAME_CYCLE_IMPLICATION,
+        FormalTemplateKind.NEXT_CYCLE_IMPLICATION,
+    ):
+        return None
+    if prop.kind == FormalTemplateKind.NEXT_CYCLE_IMPLICATION and prop.clock is None:
+        raise UnsupportedFormalTemplate(f"Next-cycle cover for '{prop.name}' has no clock.")
+    # Identical references_reset computation to compile_formal_property: the
+    # cover guard must equal the assert guard exactly, never stricter or looser.
+    reset_name = prop.reset.split(":", 1)[0] if prop.reset else None
+    references_reset = bool(reset_name and any(
+        reset_name in (field or "")
+        for field in (prop.antecedent, prop.consequent, prop.expression, prop.signal, prop.value)
+    ))
+    guard = _guard(prop, references_reset=references_reset)
+    if prop.kind == FormalTemplateKind.SAME_CYCLE_IMPLICATION:
+        return (prop.antecedent or "", guard)
+    return (f"$past({prop.antecedent})", guard)
+
+
 __all__ = [
     "FormalTemplateKind",
     "FormalPropertySpec",
@@ -425,4 +460,5 @@ __all__ = [
     "classify_legacy_property",
     "compile_formal_property",
     "compile_contract_properties",
+    "compile_cover_point",
 ]

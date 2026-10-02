@@ -698,6 +698,44 @@ def parse_yosys_cdc(output: str) -> dict[str, Any]:
     return {"passed": passed, "violations": violations, "tooling_unavailable": tooling_unavailable}
 
 
+def parse_sby_cover(output: str, targets: list[dict[str, Any]]) -> dict[str, dict[str, Any | None]]:
+    """Attribute executed SBY cover-mode witness locations back to generated cover points.
+
+    Args:
+        output: Combined SBY stdout/stderr from a `mode cover` run.
+        targets: List of dicts with keys: name (property name), file (cover
+            checker basename, e.g. "top_cover.sv"), line (1-based source line
+            of the cover statement, as recorded at generation time).
+
+    Returns:
+        Mapping of property name to {"reached": bool | None, "step": int | None}.
+        reached is None when the output contains neither a reached nor an
+        unreached record for the point (unattributable output).
+
+    Calibrated against SBY v0.69 engine lines, which report reached covers
+    with their step and both outcomes with hierarchical witness locations
+    of the form file:line.col-line.col.
+    """
+    results: dict[str, dict[str, Any | None]] = {}
+    for target in targets:
+        name = str(target["name"])
+        loc = f"{re.escape(str(target['file']))}:{int(target['line'])}\\."
+        reached_match = re.search(
+            rf"Reached cover statement in step (\d+) at [^\n]*?\b{loc}", output
+        )
+        if reached_match:
+            results[name] = {"reached": True, "step": int(reached_match.group(1))}
+            continue
+        unreached_match = re.search(
+            rf"Unreached cover statement at [^\n]*?\b{loc}", output
+        )
+        if unreached_match:
+            results[name] = {"reached": False, "step": None}
+            continue
+        results[name] = {"reached": None, "step": None}
+    return results
+
+
 
 
 def _classify_compile_diagnostic(text: str) -> str:
@@ -1582,9 +1620,115 @@ class SiliconSignoffVerifier(BaseVerifier):
             "simulated": False,
         }
 
+    def _run_gate2_vacuity_check(
+        self, runner: Any, ws: Path, depth: int, generated_harness: bool
+    ) -> dict[str, Any]:
+        """Bounded antecedent-reachability check for Gate 2 implication properties.
+
+        Runs one executed SBY `mode cover` job (same bound as the BMC proof)
+        over cover points mirroring each implication's evaluation condition.
+        Never static: every classification below rests on executed tool output.
+
+        Returns a JSON-safe vacuity dict with status EXERCISED, VACUOUS,
+        NOT_APPLICABLE, or COVER_ERROR.
+        """
+        from .contracts import VerificationHarnessGenerator
+
+        base: dict[str, Any] = {
+            "assert_depth": depth,
+            "cover_depth": depth,
+            "antecedents": {},
+        }
+        if not generated_harness or self.contract is None:
+            return {
+                **base,
+                "status": "NOT_APPLICABLE",
+                "reason": "user-supplied harness; antecedent exercise not assessed",
+            }
+        implications, unsupported = VerificationHarnessGenerator.implication_antecedents(self.contract)
+        if unsupported:
+            first = unsupported[0]
+            return {
+                **base,
+                "status": "COVER_ERROR",
+                "reason": f"cover generation failed for '{first['name']}': {first['error']}",
+            }
+        if not implications:
+            return {
+                **base,
+                "status": "NOT_APPLICABLE",
+                "reason": "no implication antecedents to exercise",
+            }
+
+        cover_code, cover_lines = VerificationHarnessGenerator.build_cover_bind_module(
+            self.contract, implications
+        )
+        cover_name = f"{self.top_module}_cover"
+        (ws / f"{cover_name}.sv").write_text(cover_code, encoding="utf-8")
+        (ws / f"{cover_name}_top.sv").write_text(
+            VerificationHarnessGenerator.build_cover_top_module(self.contract), encoding="utf-8"
+        )
+        (ws / f"{cover_name}.sby").write_text(
+            VerificationHarnessGenerator.build_cover_sby_config(self.contract, depth=depth),
+            encoding="utf-8",
+        )
+
+        proc = runner.run(["sby", "-f", f"{cover_name}.sby"], timeout_sec=60)
+        combined = f"{proc.stdout}\n{proc.stderr}"
+        if _is_binary_missing(proc, "sby") or (
+            "Traceback (most recent call last)" in combined
+            or "sby: error" in combined.lower()
+            or re.search(r"\bSBY\b.*\bERROR\b", combined) is not None
+        ):
+            return {
+                **base,
+                "status": "COVER_ERROR",
+                "reason": "cover execution failed",
+                "cover_stdout": str(proc.stdout or "")[-2000:],
+                "cover_stderr": str(proc.stderr or "")[-2000:],
+            }
+
+        targets = [
+            {"name": cp["name"], "file": f"{cover_name}.sv", "line": line}
+            for cp, line in zip(implications, cover_lines)
+        ]
+        results = parse_sby_cover(combined, targets)
+        unknown = [name for name, r in results.items() if r["reached"] is None]
+        if unknown:
+            return {
+                **base,
+                "status": "COVER_ERROR",
+                "reason": f"cover output unattributable for: {', '.join(sorted(unknown))}",
+                "antecedents": results,
+                "cover_stdout": str(proc.stdout or "")[-2000:],
+            }
+        unreached = [name for name, r in results.items() if r["reached"] is False]
+        if unreached:
+            return {
+                **base,
+                "status": "VACUOUS",
+                "reason": (
+                    f"antecedent(s) never exercised within bound: {', '.join(sorted(unreached))}"
+                ),
+                "unexercised": sorted(unreached),
+                "antecedents": results,
+            }
+        return {
+            **base,
+            "status": "EXERCISED",
+            "reason": "all implication antecedents reached within bound",
+            "antecedents": results,
+        }
+
     def _run_gate2_formal_sby(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
         """Execute SymbiYosys Bounded Model Checking formal verification using typed bounded-property templates (a supported subset of SVA)."""
-        sby_files = list(ws.glob("*.sby"))
+        preferred = ws / f"{self.top_module}.sby"
+        sby_candidates = sorted(
+            (p for p in ws.glob("*.sby") if not p.name.endswith("_cover.sby")),
+            key=lambda p: p.name,
+        )
+        sby_files = [preferred] if preferred in sby_candidates else sby_candidates
+        generated_harness = False
         if not sby_files and self.contract is not None:
             from .contracts import VerificationHarnessGenerator, UnsupportedFormalPropertyError
             structured_props = list(getattr(self.contract, "formal_properties", []) or [])
@@ -1628,6 +1772,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 sby_path = ws / f"{self.top_module}.sby"
                 sby_path.write_text(sby_content, encoding="utf-8")
                 sby_files = [sby_path]
+                generated_harness = True
 
         if not sby_files:
             if self.require_formal:
@@ -1707,7 +1852,12 @@ class SiliconSignoffVerifier(BaseVerifier):
             t_fail = t_fail_match.group(1) if t_fail_match else "unknown"
             prop_match = re.search(r"(?:Assert failed in \S+:|Assertion failed:|failed assertion\s+)([A-Za-z_][\w.$]*)", combined, re.I)
             prop_name = prop_match.group(1) if prop_match else None
-            trace_match = re.search(r"(?:writing trace to VCD file:|writing trace to\s+)(\S+\.vcd)", combined, re.I)
+            # Prefer the summary line (task-dir-prefixed, ws-relative); fall back to
+            # the engine line (task-dir-relative). The old pattern missed the
+            # space after "file:" and never matched real SBY output.
+            trace_match = re.search(r"counterexample trace:\s+(\S+\.vcd)", combined, re.I) or re.search(
+                r"(?:writing trace to VCD file:\s*|writing trace to\s+)(\S+\.vcd)", combined, re.I
+            )
             trace_path = trace_match.group(1) if trace_match else None
             property_source = None
             if prop_name and self.contract is not None:
@@ -1719,7 +1869,15 @@ class SiliconSignoffVerifier(BaseVerifier):
             if trace_path:
                 trace_candidate = Path(trace_path)
                 if not trace_candidate.is_absolute():
-                    trace_candidate = ws / trace_candidate
+                    # Engine lines are relative to the SBY task directory
+                    # (<ws>/<sby-stem>/); summary lines are ws-relative.
+                    # Probe the task directory first, then the workspace.
+                    task_dir = ws / Path(str(sby_files[0])).stem
+                    candidates = [task_dir / trace_candidate, ws / trace_candidate]
+                    trace_candidate = next(
+                        (c for c in candidates if c.exists() and c.is_file()),
+                        candidates[0],
+                    )
                 if trace_candidate.exists() and trace_candidate.is_file():
                     try:
                         counterexample_trace = "\n".join(trace_candidate.read_text(encoding="utf-8", errors="replace").splitlines()[:120])
@@ -1749,14 +1907,67 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "simulated": False,
             }
 
+        # Assert job passed. A passing implication whose antecedent was never
+        # exercised proves nothing, so assess bounded antecedent reachability
+        # with an executed cover job before reporting an ordinary PASS.
+        bmc_depth = 25
+        vacuity = self._run_gate2_vacuity_check(runner, ws, bmc_depth, generated_harness)
+        if vacuity["status"] == "VACUOUS":
+            return {
+                "gate": "Gate 2: SymbiYosys Formal Property Verification",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    f"Bounded BMC to depth {bmc_depth} found no counterexample, but "
+                    f"{vacuity['reason']} (bounded antecedent reachability to depth "
+                    f"{bmc_depth}). An unexercised implication is reported as VACUOUS, "
+                    "never as an ordinary PASS."
+                ),
+                "error_category": "VACUOUS_PROPERTY",
+                "unexercised_properties": vacuity.get("unexercised", []),
+                "bmc_depth": bmc_depth,
+                "vacuity": vacuity,
+                "simulated": False,
+                "skipped": False,
+            }
+        if vacuity["status"] == "COVER_ERROR":
+            return {
+                "gate": "Gate 2: SymbiYosys Formal Property Verification",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    f"Bounded BMC to depth {bmc_depth} found no counterexample, but "
+                    f"antecedent reachability could not be established: {vacuity['reason']}."
+                ),
+                "error_category": "FORMAL_ANALYSIS_FAILED",
+                "bmc_depth": bmc_depth,
+                "vacuity": vacuity,
+                "simulated": False,
+                "skipped": False,
+            }
+        if vacuity["status"] == "EXERCISED":
+            exercise_note = (
+                f" All {len(vacuity['antecedents'])} implication antecedent(s) reached "
+                f"within bound (reachability depth {bmc_depth})."
+            )
+        else:
+            exercise_note = f" Vacuity assessment: {vacuity['reason']}."
         return {
             "gate": "Gate 2: SymbiYosys Formal Property Verification",
             "passed": True,
             "exit_code": 0,
             "stdout": proc.stdout,
             "stderr": proc.stderr,
-            "details": "SymbiYosys BMC depth 25 proven: zero invariant counterexamples.",
+            "details": (
+                f"Bounded BMC to depth {bmc_depth}: zero invariant counterexamples.{exercise_note}"
+            ),
             "error_category": None,
+            "bmc_depth": bmc_depth,
+            "vacuity": vacuity,
             "simulated": False,
             "skipped": False,
         }

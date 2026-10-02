@@ -73,6 +73,11 @@ _FINE_GRAINED_MAP: dict[str, FailureCategory] = {
     "ASSERTION_FAILED": FailureCategory.SIMULATION_FAILURE,
     # Formal BMC failures
     "FORMAL_INVARIANT_BREACH": FailureCategory.FORMAL_FAILURE,
+    # A vacuous result proves nothing (antecedent never exercised); a failed
+    # reachability check is an analysis error. Both stay fine-grained exact
+    # and are never relabeled as a proven violation.
+    "VACUOUS_PROPERTY": FailureCategory.FORMAL_FAILURE,
+    "FORMAL_ANALYSIS_FAILED": FailureCategory.FORMAL_FAILURE,
     "FORMAL_FAILURE": FailureCategory.FORMAL_FAILURE,
     "LEC_VERIFICATION_FAILED": FailureCategory.FORMAL_FAILURE,
     # Timing violations

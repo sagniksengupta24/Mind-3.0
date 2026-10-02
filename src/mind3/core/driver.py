@@ -13,7 +13,7 @@ import re
 import shutil
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 
@@ -103,21 +103,62 @@ _MODULE_REGEX = re.compile(
 )
 
 
-def _parse_model_code_response(raw_output: str, default_module_name: str | None = None, base_code: str | None = None) -> str:
-    """Deterministically parse code or tool action from model output.
+ParserMode = Literal["strict", "lenient"]
 
-    Precedence:
-    1. If response validates as a proper WriteFileAction schema, use it.
-    2. Else if response contains a markdown code fence (```verilog, ```systemverilog, ```sv, or bare ```), extract the fenced content.
-    3. Else attempt to parse as JSON dict:
-       a) Check for structural AST-style dict with "module"/"name", "pinout"/"ports", "implementation"/"code"/"body" keys.
-          Reconstruct full module from parts, applying unicode_escape decoding.
-       b) Check keys in order: module_code, verilog_code, code, content, response, rtl, text.
-          For the first key whose value is a string containing both "module" and "endmodule", use it.
-          Apply unicode_escape decoding to any extracted string value.
-    4. Else regex-extract the first module-to-endmodule block from the raw text.
-    5. Else fail closed: raise ModelResponseParseError.
+LENIENT_KNOWN_KEYS = (
+    "module_code",
+    "verilog_code",
+    "code",
+    "content",
+    "response",
+    "rtl",
+    "text",
+)
+"""Documented JSON keys eligible for lenient-mode recovery.
+
+Only these keys are ever inspected. Any other JSON key — even one whose value
+contains a complete module — is rejected. There is intentionally no
+any-key/any-value scan.
+"""
+
+
+def _parse_model_code_response(
+    raw_output: str,
+    default_module_name: str | None = None,
+    base_code: str | None = None,
+    parser_mode: str = "strict",
+) -> str:
+    """Deterministically parse RTL from model output under an explicit parser mode.
+
+    STRICT mode (default) accepts only clearly identifiable, contract-valid output:
+    1. A valid WriteFileAction schema object (content used verbatim).
+    2. A clearly fenced Verilog/SystemVerilog block (fenced content used verbatim).
+    3. A repair-loop patch object, but only when the caller supplies ``base_code``
+       (initial generation never does; this branch is unreachable outside repair).
+    4. Raw text that is exactly one Verilog module block, verbatim.
+    Anything else raises ModelResponseParseError. Strict mode never searches
+    arbitrary JSON keys, never reconstructs modules from AST parts, and never
+    applies unicode_escape decoding.
+
+    LENIENT mode (explicit opt-in for local-model formatting deviations) adds
+    bounded recovery, in order:
+    1-2. Same WriteFileAction and fenced-block handling as strict.
+    3. JSON-dict recovery limited to documented shapes: structural AST dicts
+       (module/pinout/implementation) and the LENIENT_KNOWN_KEYS values.
+       JSON string values in this branch are unescaped once because local
+       models frequently double-escape newlines.
+    4. Repair-loop patch objects when ``base_code`` is supplied.
+    5. Deterministic verbatim extraction of the first complete module block.
+    Ambiguous lenient input still raises ModelResponseParseError.
+
+    The ``parser_mode`` argument must be exactly "strict" or "lenient"; any
+    other value raises ValueError. The mode is never inferred from provider,
+    model name, failure count, or environment.
     """
+    if parser_mode not in ("strict", "lenient"):
+        raise ValueError(
+            f"Unknown parser_mode {parser_mode!r}. Expected 'strict' or 'lenient'."
+        )
     cleaned = _sanitize_json_output(raw_output)
 
     def _unescape(val: str) -> str:
@@ -343,106 +384,129 @@ def _parse_model_code_response(raw_output: str, default_module_name: str | None 
         replacement = f"module {default_module_name}"
         return code[:match.start()] + replacement + code[match.end():]
 
-    # 1. Structured WriteFileAction schema
+    def _apply_repair_patch(data: dict, base: str) -> str | None:
+        """Bounded repair-loop patch application.
+
+        This is a repair-loop mechanism, not initial-parse recovery: it is only
+        reachable when the caller explicitly supplies ``base_code`` (initial
+        generation never does). Patch text is used verbatim; no escape decoding
+        is applied because json.loads already decoded standard JSON escapes.
+        """
+        if "patch" not in data and "replacement" not in data:
+            return None
+        patch_str = data.get("patch") or data.get("replacement")
+        if not isinstance(patch_str, str):
+            return None
+        patch_str = patch_str.strip()
+        if re.search(r"\bmodule\b", patch_str) and re.search(r"\bendmodule\b", patch_str):
+            return _apply_naming(patch_str)
+
+        patched_lines = base.splitlines()
+        target_line = data.get("line") or data.get("line_number")
+        if isinstance(target_line, int) and 1 <= target_line <= len(patched_lines):
+            patched_lines[target_line - 1] = patch_str
+            candidate = "\n".join(patched_lines)
+            if re.search(r"\bmodule\b", candidate) and re.search(r"\bendmodule\b", candidate):
+                return _apply_naming(candidate)
+
+        source_ctx = data.get("source_context") or data.get("search") or data.get("find")
+        if isinstance(source_ctx, str) and source_ctx.strip() and source_ctx.strip() in base:
+            candidate = base.replace(source_ctx.strip(), patch_str, 1)
+            if re.search(r"\bmodule\b", candidate) and re.search(r"\bendmodule\b", candidate):
+                return _apply_naming(candidate)
+        return None
+
+    # 1. Structured WriteFileAction schema (both modes; content used verbatim).
     try:
         action_obj = agent_action_adapter.validate_json(cleaned)
         if isinstance(action_obj, WriteFileAction):
-            return _apply_naming(_unescape(action_obj.content))
+            return _apply_naming(action_obj.content)
     except Exception:
         action_obj = None
 
-    # 2. Markdown code fences (when response is not a raw JSON dictionary)
+    # 2. Markdown code fences for non-JSON-dict responses (both modes; verbatim).
     fence_match = _FENCE_REGEX.search(raw_output)
     if fence_match and not (cleaned.startswith("{") and cleaned.endswith("}")):
         fenced = fence_match.group(1).strip()
         if "module" in fenced and "endmodule" in fenced:
-            return _apply_naming(_unescape(fenced))
+            return _apply_naming(fenced)
 
-    # 3. JSON dictionary unwrapping
+    if parser_mode == "strict":
+        # 3. Repair-loop patch objects, only when the caller supplies base_code.
+        if base_code:
+            try:
+                strict_parsed = json.loads(cleaned)
+            except Exception:
+                strict_parsed = None
+            if isinstance(strict_parsed, dict):
+                patched = _apply_repair_patch(strict_parsed, base_code)
+                if patched is not None:
+                    return patched
+        # 4. Raw module verbatim: the entire response must be exactly one
+        #    module block (leading comments/headers allowed, nothing else).
+        full_match = _MODULE_REGEX.fullmatch(cleaned.strip())
+        if full_match:
+            return _apply_naming(full_match.group(1).strip())
+        raise ModelResponseParseError(
+            "Strict parsing rejected the model response: it is not a WriteFileAction, "
+            "a fenced Verilog block, a repair patch, or exactly one Verilog module."
+        )
+
+    # LENIENT mode: bounded recovery for local-model formatting deviations.
+    # 3. JSON-dict recovery limited to documented shapes. Arbitrary keys are
+    #    never scanned.
     try:
         parsed_json = json.loads(cleaned)
-        if isinstance(parsed_json, dict):
-            # 3a. Structural AST-style dict (module + pinout + implementation)
-            ast_result = _reconstruct_from_ast(parsed_json)
-            if ast_result is not None:
-                return _apply_naming(ast_result)
-
-            # 3b. Key-precedence for pre-wrapped module strings
-            known_keys = (
-                "synthesizable_code",
-                "module_code",
-                "verilog_code",
-                "rtl_code",
-                "source_code",
-                "source",
-                "code",
-                "content",
-                "response",
-                "rtl",
-                "systemverilog",
-                "verilog",
-                "design",
-                "text",
-            )
-            for key in known_keys:
-                val = parsed_json.get(key)
-                if isinstance(val, str) and "module" in val and "endmodule" in val:
-                    val = _unescape(val)
-                    sub_fence = _FENCE_REGEX.search(val)
-                    if sub_fence:
-                        return _apply_naming(_unescape(sub_fence.group(1).strip()))
-                    return _apply_naming(val.strip())
-
-            # Check ANY string field in parsed_json containing a complete module definition
-            for key, val in parsed_json.items():
-                if isinstance(val, str) and re.search(r"\bmodule\b", val) and re.search(r"\bendmodule\b", val):
-                    val = _unescape(val)
-                    sub_fence = _FENCE_REGEX.search(val)
-                    if sub_fence:
-                        return _apply_naming(_unescape(sub_fence.group(1).strip()))
-                    return _apply_naming(val.strip())
-
-            # 3c. Safe patch application if base_code is provided
-            if base_code and ("patch" in parsed_json or "replacement" in parsed_json):
-                patch_str = parsed_json.get("patch") or parsed_json.get("replacement")
-                if isinstance(patch_str, str):
-                    patch_str = _unescape(patch_str).strip()
-                    if re.search(r"\bmodule\b", patch_str) and re.search(r"\bendmodule\b", patch_str):
-                        return _apply_naming(patch_str)
-
-                    patched_lines = base_code.splitlines()
-                    target_line = parsed_json.get("line") or parsed_json.get("line_number")
-                    if isinstance(target_line, int) and 1 <= target_line <= len(patched_lines):
-                        patched_lines[target_line - 1] = patch_str
-                        candidate = "\n".join(patched_lines)
-                        if re.search(r"\bmodule\b", candidate) and re.search(r"\bendmodule\b", candidate):
-                            return _apply_naming(candidate)
-
-                    source_ctx = parsed_json.get("source_context") or parsed_json.get("search") or parsed_json.get("find")
-                    if isinstance(source_ctx, str) and source_ctx.strip() and source_ctx.strip() in base_code:
-                        candidate = base_code.replace(source_ctx.strip(), patch_str, 1)
-                        if re.search(r"\bmodule\b", candidate) and re.search(r"\bendmodule\b", candidate):
-                            return _apply_naming(candidate)
     except Exception:
         parsed_json = None
+    if isinstance(parsed_json, dict):
+        # 3a. Documented structural AST shapes (module/pinout/implementation).
+        ast_result = _reconstruct_from_ast(parsed_json)
+        if ast_result is not None:
+            return _apply_naming(ast_result)
 
-    # Preserve raw SystemVerilog that begins with a comment/header and contains a complete module.
-    # This avoids deleting meaningful legal comments while still requiring the actual module delimiters.
-    if re.match(r"\s*(?:/\*|//|module\b)", cleaned, flags=re.I) and _MODULE_REGEX.search(cleaned):
-        return _apply_naming(_unescape(cleaned.strip()))
+        # 3b. Documented known keys only.
+        for key in LENIENT_KNOWN_KEYS:
+            val = parsed_json.get(key)
+            if isinstance(val, str) and "module" in val and "endmodule" in val:
+                val = _unescape(val)
+                sub_fence = _FENCE_REGEX.search(val)
+                if sub_fence:
+                    return _apply_naming(_unescape(sub_fence.group(1).strip()))
+                return _apply_naming(val.strip())
 
-    # Fallback to fence extraction if JSON dictionary did not match any code keys
+        # 3c. Repair-loop patch objects, only when the caller supplies base_code.
+        if base_code:
+            patched = _apply_repair_patch(parsed_json, base_code)
+            if patched is not None:
+                return patched
+
+        # A JSON object that matches no documented shape is rejected here.
+        # Free-text extraction below must never inspect arbitrary JSON values.
+        raise ModelResponseParseError(
+            "Lenient parsing rejected the JSON response: it matches no documented "
+            "recovery shape (WriteFileAction, structural AST, documented known key, "
+            "or repair patch)."
+        )
+
+    # 4. Raw SystemVerilog passthrough: begins with a comment/header/module and
+    #    contains a complete module block. Returned verbatim.
+    raw_search = _MODULE_REGEX.search(cleaned)
+    if re.match(r"\s*(?:/\*|//|module\b)", cleaned, flags=re.I) and raw_search:
+        return _apply_naming(raw_search.group(1).strip())
+
+    # 5. Fence fallback when the JSON-dict branch matched nothing.
     if fence_match:
         fenced = fence_match.group(1).strip()
         if "module" in fenced and "endmodule" in fenced:
-            return _apply_naming(_unescape(fenced))
+            return _apply_naming(fenced)
 
-    # 4. Regex-extract first module-to-endmodule block
+    # 6. First module-to-endmodule block, verbatim.
     mod_match = _MODULE_REGEX.search(raw_output)
     if mod_match:
-        return _apply_naming(_unescape(mod_match.group(1).strip()))
+        return _apply_naming(mod_match.group(1).strip())
 
-    # 5. Fail closed
+    # 7. Fail closed.
     raise ModelResponseParseError("Failed to extract valid synthesizable SystemVerilog module from model response")
 
 
@@ -582,6 +646,7 @@ class PhaseDriver:
         base_url: str | None = None,
         loopback_only: bool = False,
         air_gapped: bool | None = None,
+        parser_mode: str = "strict",
     ) -> None:
         """Initialize the driver runtime.
 
@@ -604,7 +669,16 @@ class PhaseDriver:
             base_url: Optional custom provider API base URL.
             loopback_only: When True, enforces loopback-only inference endpoint enforcement (127.0.0.1 or localhost) and forbids cloud LLM providers.
             air_gapped: Alias for loopback_only.
+            parser_mode: Model-response parser mode, exactly "strict" (default) or
+                "lenient". Lenient recovery must be explicitly opted in here; it is
+                never inferred from provider, model name, failure count,
+                environment, or hostname.
         """
+        if parser_mode not in ("strict", "lenient"):
+            raise ValueError(
+                f"Unknown parser_mode {parser_mode!r}. Expected 'strict' or 'lenient'."
+            )
+        self.parser_mode: str = parser_mode
         self.session_id: str = session_id
         self.workspace: Path = Path(workspace).resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
@@ -1514,12 +1588,12 @@ class PhaseDriver:
 
         self._emit_trace(
             PhaseEnum.MODEL_CALL,
-            {"role": "Principal RTL Design Engineer", "module": contract.module_name, "stage": "rtl_generation"},
+            {"role": "Principal RTL Design Engineer", "module": contract.module_name, "stage": "rtl_generation", "parser_mode": self.parser_mode},
         )
         rtl_messages = self._build_prompt_messages(system_instruction=rtl_prompt["system"], task_prompt=rtl_prompt["user"])
         try:
             raw_rtl = self._query_model(rtl_messages)
-            rtl_code = _parse_model_code_response(raw_rtl, default_module_name=contract.module_name)
+            rtl_code = _parse_model_code_response(raw_rtl, default_module_name=contract.module_name, parser_mode=self.parser_mode)
             rtl_action = WriteFileAction(path=f"{contract.module_name}.sv", content=rtl_code)
             self._policy_check(rtl_action)
             exec_rtl = self._execute_action(rtl_action)
@@ -1552,6 +1626,7 @@ class PhaseDriver:
                     "failure_reason": str(exc),
                     "error_category": "RESPONSE_PARSE_FAILURE",
                     "gate": "RTL generation/parser",
+                    "parser_mode": self.parser_mode,
                     "diagnostic": evidence.model_dump(mode="json"),
                 },
             )
@@ -1603,7 +1678,7 @@ class PhaseDriver:
                 self.total_repair_calls += 1
                 self._emit_trace(
                     PhaseEnum.MODEL_CALL,
-                    {"role": "Independent RTL Verification Repair Engineer", "turn": self.turn, "stage": stage_key, "attempt": attempt, "guidance": repair_guidance},
+                    {"role": "Independent RTL Verification Repair Engineer", "turn": self.turn, "stage": stage_key, "attempt": attempt, "guidance": repair_guidance, "parser_mode": self.parser_mode},
                 )
                 repair_messages = self._build_prompt_messages(
                     system_instruction=repair_system_instruction,
@@ -1611,7 +1686,7 @@ class PhaseDriver:
                 )
                 try:
                     raw_repair = self._query_model(repair_messages)
-                    repaired_code = _parse_model_code_response(raw_repair, default_module_name=contract.module_name, base_code=current_rtl)
+                    repaired_code = _parse_model_code_response(raw_repair, default_module_name=contract.module_name, base_code=current_rtl, parser_mode=self.parser_mode)
                     diff_stats = _repair_diff_stats(current_rtl, repaired_code) if current_rtl else {"changed_line_ratio": 0.0, "line_growth_ratio": 1.0}
                     if current_rtl and len(current_rtl.splitlines()) >= 12 and (
                         diff_stats["changed_line_ratio"] > REPAIR_MAX_CHANGED_LINE_RATIO
@@ -1645,6 +1720,18 @@ class PhaseDriver:
                     repair_guidance = None
                 except ModelResponseParseError as exc:
                     repair_history.append("RESPONSE_PARSE_FAILURE")
+                    self._emit_trace(
+                        PhaseEnum.VERIFY,
+                        {
+                            "passed": False,
+                            "domain": "RTL",
+                            "exit_code": 1,
+                            "failure_reason": str(exc),
+                            "error_category": "RESPONSE_PARSE_FAILURE",
+                            "gate": "RTL repair/parser",
+                            "parser_mode": self.parser_mode,
+                        },
+                    )
                     repair_guidance = (
                         f"The previous repair response could not be parsed: {exc}.\n"
                         "Return ONLY the complete SystemVerilog module, including its module declaration and endmodule."
@@ -1848,6 +1935,9 @@ class PPAOptimizer:
 
 __all__ = [
     "PhaseDriver",
+    "ParserMode",
+    "LENIENT_KNOWN_KEYS",
+    "_parse_model_code_response",
     "ModelResponseParseError",
     "OpenRouterModelRegistry",
     "OpenRouterModelRegistryError",

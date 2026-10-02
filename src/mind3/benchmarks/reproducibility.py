@@ -341,8 +341,13 @@ def execute_full_benchmark(
     liberty_path: str | list[str] | None = None,
     required_min_tasks: int = 100,
     diagnostic: bool = False,
+    parser_mode: str = "strict",
 ) -> Path:
     """Run full benchmark, baselines, and emit all required artifacts in output_dir."""
+    if parser_mode not in ("strict", "lenient"):
+        raise ValueError(
+            f"Unknown parser_mode {parser_mode!r}. Expected 'strict' or 'lenient'."
+        )
     repo_root = Path(__file__).resolve().parents[3]
     suite_path = Path(suite_dir).resolve()
     out = Path(output_dir).resolve()
@@ -400,6 +405,7 @@ def execute_full_benchmark(
             api_key=api_key,
             base_url=base_url,
             liberty_path=liberty_path,
+            parser_mode=parser_mode,
         )
         cmp_report = baseline_runner.execute_comparison()
         execution_status = "COMPLETED"
@@ -495,6 +501,8 @@ def execute_full_benchmark(
         "mean_cost_usd": round(sum(r.estimated_cost_usd for r in mind_runs) / n_total, 5) if n_total else 0.0,
         "failure_categories": dict(fails_count),
         "tool_versions": tool_versions,
+        "parser_mode": parser_mode,
+        "parser_mode_note": "Benchmarks run with parser_mode='lenient' are not equivalent to parser_mode='strict' runs: lenient mode permits bounded recovery of malformed local-model output.",
     }
 
     # Write files
@@ -534,6 +542,7 @@ def execute_full_benchmark(
         "provider": provider,
         "performance_claim_valid": is_release_eligible,
         "seed": seed,
+        "parser_mode": parser_mode,
         "git_commit_sha": git_sha,
         "environment": {
             "platform": platform.system(),

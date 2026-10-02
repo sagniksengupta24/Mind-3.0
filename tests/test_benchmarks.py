@@ -593,3 +593,31 @@ def test_unit_diagnostic_flag_changes_evidence_tier_rather_than_bypassing() -> N
     assert summary_diag.evidence_tier == "diagnostic"
     assert summary_diag.performance_claim_valid is False
     assert "explicitly executed in diagnostic mode" in summary_diag.caveat.lower()
+
+
+def test_benchmark_methodology_records_parser_mode() -> None:
+    """Benchmark summaries must record parser_mode and never equate lenient with strict."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner()
+    real_5 = [
+        BenchmarkTranscript(
+            task_id=f"t_{i}", category="FSM", name=f"t_{i}", natural_language_spec="s",
+            is_schema_validation_fixture=False, model="qwen", provider="ollama",
+            final_outcome={"passed": True, "silicon_verified": True},
+            environment={"parser_mode": "lenient"},
+        )
+        for i in range(5)
+    ]
+    # Default is strict.
+    summary_default = runner.evaluate_transcripts(real_5)
+    assert summary_default.methodology["parser_mode"] == "strict"
+    # Explicit lenient is recorded and distinguished from strict.
+    summary_lenient = runner.evaluate_transcripts(real_5, parser_mode="lenient")
+    assert summary_lenient.methodology["parser_mode"] == "lenient"
+    assert "not equivalent" in summary_lenient.methodology["parser_mode_note"]
+    assert summary_lenient.methodology["observed_parser_modes"] == ["lenient"]
+    # Invalid modes are rejected loudly.
+    import pytest
+    with pytest.raises(ValueError):
+        runner.evaluate_transcripts(real_5, parser_mode="auto")

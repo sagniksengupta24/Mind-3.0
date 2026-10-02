@@ -136,7 +136,12 @@ class BaselineComparisonRunner:
         base_url: str | None = None,
         liberty_path: str | list[str] | None = None,
         artifact_root: Path | None = None,
+        parser_mode: str = "strict",
     ) -> None:
+        if parser_mode not in ("strict", "lenient"):
+            raise ValueError(
+                f"Unknown parser_mode {parser_mode!r}. Expected 'strict' or 'lenient'."
+            )
         self.tasks = tasks
         self.model = model
         self.provider = provider
@@ -146,6 +151,7 @@ class BaselineComparisonRunner:
         self.base_url = base_url
         self.liberty_path = liberty_path
         self.artifact_root = Path(artifact_root).resolve() if artifact_root is not None else None
+        self.parser_mode = parser_mode
 
     def _compute_run_hash(self, task_id: str, baseline: str, rtl: str) -> str:
         h = hashlib.sha256()
@@ -192,6 +198,7 @@ class BaselineComparisonRunner:
             max_repairs=max_repairs,
             api_key=self.api_key,
             base_url=self.base_url,
+            parser_mode=self.parser_mode,
         )
         return driver, verifier
 
@@ -214,7 +221,7 @@ class BaselineComparisonRunner:
         prompt = RTLGenerator.build_prompt(contract)
         messages = driver._build_prompt_messages(prompt["system"], prompt["user"])
         raw = driver._query_model(messages)
-        rtl = _parse_model_code_response(raw, default_module_name=contract.module_name)
+        rtl = _parse_model_code_response(raw, default_module_name=contract.module_name, parser_mode=driver.parser_mode)
         action = WriteFileAction(path=f"{contract.module_name}.sv", content=rtl)
         driver._policy_check(action)
         driver._execute_action(action)
@@ -375,7 +382,7 @@ class BaselineComparisonRunner:
                 )
                 raw = driver._query_model(driver._build_prompt_messages(generic_system, generic_user))
                 try:
-                    rtl = _parse_model_code_response(raw, default_module_name=contract.module_name, base_code=rtl)
+                    rtl = _parse_model_code_response(raw, default_module_name=contract.module_name, base_code=rtl, parser_mode=driver.parser_mode)
                     path = workspace / f"{contract.module_name}.sv"; path.write_text(rtl, encoding="utf-8")
                     result = verifier.verify(workspace, None)
                 except (ModelResponseParseError, Exception):

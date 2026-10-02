@@ -34,6 +34,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     print(f"Output: {out_dir}")
     print(f"Seed: {args.seed}")
     print(f"Model: {args.model}")
+    print(f"Parser mode: {getattr(args, 'parser_mode', 'strict')}")
 
     try:
         out_path = execute_full_benchmark(
@@ -48,6 +49,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
             liberty_path=args.liberty,
             required_min_tasks=args.min_tasks if getattr(args, "min_tasks", None) is not None else 100,
             diagnostic=getattr(args, "diagnostic", False),
+            parser_mode=getattr(args, "parser_mode", "strict"),
         )
         print(f"\nBenchmark completed successfully!")
         print(f"Artifacts generated in: {out_path}")
@@ -109,6 +111,7 @@ def main(argv: list[str] | None = None) -> int:
     p_bench.add_argument("--sample-size", type=int, default=None, help="Limit number of tasks to run")
     p_bench.add_argument("--diagnostic", action="store_true", help="Explicitly mark run as diagnostic/development mode (not release-eligible)")
     p_bench.add_argument("--min-tasks", type=int, default=None, help="Minimum tasks required for release qualification (default: 100)")
+    p_bench.add_argument("--parser-mode", choices=("strict", "lenient"), default="strict", help="Model-response parser mode: strict (default) or lenient opt-in recovery for local models; recorded in traces and summaries")
     p_bench.set_defaults(func=cmd_benchmark)
 
     # smoke-test

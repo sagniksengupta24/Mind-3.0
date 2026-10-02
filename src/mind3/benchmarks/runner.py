@@ -277,6 +277,7 @@ class BenchmarkRunner:
             "python": subprocess.run(["python3", "--version"], capture_output=True, text=True, check=False).stdout.strip(),
             "eda_versions": getattr(driver.verifier, "detected_versions", {}),
             "sandbox": type(driver.sandbox).__name__,
+            "parser_mode": getattr(driver, "parser_mode", "strict"),
         }
         artifact_hashes: dict[str, str] = {}
         for candidate in (
@@ -323,6 +324,7 @@ class BenchmarkRunner:
         api_key: str | None = None,
         base_url: str | None = None,
         workspace_root: Path | None = None,
+        parser_mode: str = "strict",
     ) -> BenchmarkTranscript:
         """Run one task through the real, fail-closed PhaseDriver pipeline."""
         ws_root = Path(workspace_root).resolve() if workspace_root else Path(tempfile.mkdtemp(prefix=f"mind3_{task.task_id}_"))
@@ -385,6 +387,7 @@ class BenchmarkRunner:
             max_repairs=max_repairs,
             api_key=api_key,
             base_url=base_url,
+            parser_mode=parser_mode,
         )
         try:
             passed = driver.run_silicon_pipeline(self.build_task_prompt(task), liberty_path=liberty_path, contract_override=contract)
@@ -414,7 +417,12 @@ class BenchmarkRunner:
         transcripts: Iterable[BenchmarkTranscript],
         required_min_tasks: int = 100,
         diagnostic: bool = False,
+        parser_mode: str = "strict",
     ) -> BenchmarkRunSummary:
+        if parser_mode not in ("strict", "lenient"):
+            raise ValueError(
+                f"Unknown parser_mode {parser_mode!r}. Expected 'strict' or 'lenient'."
+            )
         rows = list(transcripts)
         real = [t for t in rows if not t.is_schema_validation_fixture and getattr(t, "provider", "") != "mock"]
         fixtures = [t for t in rows if t.is_schema_validation_fixture]
@@ -497,6 +505,9 @@ class BenchmarkRunner:
                 "specialist_thresholds": {"functional": 0.70, "full_verified": 0.40},
                 "strong_thresholds": {"functional": 0.80, "full_verified": 0.60},
                 "9_of_10_target_thresholds": {"functional": 0.85, "full_verified": 0.70},
+                "parser_mode": parser_mode,
+                "parser_mode_note": "Benchmarks run with parser_mode='lenient' are not equivalent to parser_mode='strict' runs: lenient mode permits bounded recovery of malformed local-model output.",
+                "observed_parser_modes": sorted({str(t.environment.get("parser_mode", "unknown")) for t in rows}),
             },
         )
 
@@ -743,6 +754,7 @@ def _cli() -> int:
     parser.add_argument("--baselines", type=Path, default=None, help="JSON array of baselines measured on the exact same task-set hash")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--require-live", action="store_true")
+    parser.add_argument("--parser-mode", choices=("strict", "lenient"), default="strict", help="Model-response parser mode: strict (default) accepts only WriteFileAction, fenced blocks, repair patches, or exactly one module; lenient additionally permits bounded recovery of malformed local-model output and is recorded in traces and summaries")
     args = parser.parse_args()
 
     runner = BenchmarkRunner(tasks_file=args.tasks, transcripts_dir=args.transcripts)
@@ -772,7 +784,8 @@ def _cli() -> int:
             "tasks": len(tasks),
             "required_min_tasks": required_min_tasks,
             "evidence_tier": "diagnostic" if is_diagnostic else "release-eligible",
-            "missing_live_prerequisites": missing
+            "missing_live_prerequisites": missing,
+            "parser_mode": args.parser_mode
         }, indent=2))
         return 0 if not args.require_live or not missing else 2
     else:
@@ -784,11 +797,11 @@ def _cli() -> int:
         work_root.mkdir(parents=True, exist_ok=True)
         for index, task in enumerate(tasks, 1):
             print(f"[{index}/{len(tasks)}] {task.task_id}", flush=True)
-            transcript = runner.run_live_task(task, model=args.model, provider=args.provider, max_repairs=args.max_repairs, liberty_path=args.liberty, api_key=args.api_key, base_url=args.base_url, workspace_root=work_root)
+            transcript = runner.run_live_task(task, model=args.model, provider=args.provider, max_repairs=args.max_repairs, liberty_path=args.liberty, api_key=args.api_key, base_url=args.base_url, workspace_root=work_root, parser_mode=args.parser_mode)
             runner.persist_transcript(transcript)
             transcripts.append(transcript)
 
-    summary = runner.evaluate_transcripts(transcripts, required_min_tasks=required_min_tasks, diagnostic=is_diagnostic)
+    summary = runner.evaluate_transcripts(transcripts, required_min_tasks=required_min_tasks, diagnostic=is_diagnostic, parser_mode=args.parser_mode)
     if args.baselines is not None:
         summary = runner.attach_baselines(summary, runner.load_baselines(args.baselines, summary.task_set_sha256))
     summary_path, report_path, html_path = runner.write_report(summary, args.report_dir)

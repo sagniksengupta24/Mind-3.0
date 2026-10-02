@@ -2067,9 +2067,13 @@ def test_parse_model_code_response_robustness() -> None:
     json_action = '{"action": "write_file", "path": "alu.sv", "content": "module alu(input clk); endmodule"}'
     assert _parse_model_code_response(json_action) == "module alu(input clk); endmodule"
 
-    # Case 2: Generic JSON dictionary wrapping code under 'content' key is unwrapped (was previously asserting bug)
+    # Case 2: Phase 0 strict guarantee restored — a generic JSON dictionary wrapping
+    # code under 'content' is NOT unwrapped in strict mode (default). It recovers
+    # only under explicitly enabled lenient mode via the documented known-key list.
     json_dict = '{"content": "module fifo(); endmodule"}'
-    assert _parse_model_code_response(json_dict) == "module fifo(); endmodule"
+    with pytest.raises(ModelResponseParseError):
+        _parse_model_code_response(json_dict)
+    assert _parse_model_code_response(json_dict, parser_mode="lenient") == "module fifo(); endmodule"
 
     # Case 3: Markdown code fences
     fenced_code = "```systemverilog\nmodule counter(input clk);\nendmodule\n```"
@@ -2088,41 +2092,48 @@ def test_parse_model_code_response_robustness() -> None:
 
 
 def test_parse_model_code_response_regression_suite() -> None:
-    """Regression suite covering all 5 extraction precedence levels and audit payload shapes."""
-    # 1. Exact 3 payload shapes captured in original 3-task live audit
+    """Regression suite covering strict acceptance and lenient documented recovery."""
+    # 1. Exact 3 payload shapes captured in original 3-task live audit.
+    #    These are lenient-mode documented known keys; strict mode rejects them.
     audit_module_code = '{"module_code": "module audit1(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule"}'
-    assert _parse_model_code_response(audit_module_code) == "module audit1(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule"
+    assert _parse_model_code_response(audit_module_code, parser_mode="lenient") == "module audit1(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule"
 
     audit_content = '{"content": "module audit2(input clk, output q); assign q = 1\'b1; endmodule"}'
-    assert _parse_model_code_response(audit_content) == "module audit2(input clk, output q); assign q = 1'b1; endmodule"
+    assert _parse_model_code_response(audit_content, parser_mode="lenient") == "module audit2(input clk, output q); assign q = 1'b1; endmodule"
 
     audit_response = '{"response": "module audit3(input a, b, output y); assign y = a & b; endmodule"}'
-    assert _parse_model_code_response(audit_response) == "module audit3(input a, b, output y); assign y = a & b; endmodule"
+    assert _parse_model_code_response(audit_response, parser_mode="lenient") == "module audit3(input a, b, output y); assign y = a & b; endmodule"
 
-    # 2. Key precedence and remaining valid keys (verilog_code, code, rtl, text)
+    for audit_payload in (audit_module_code, audit_content, audit_response):
+        with pytest.raises(ModelResponseParseError):
+            _parse_model_code_response(audit_payload)
+
+    # 2. Key precedence and remaining documented keys (verilog_code, code, rtl, text)
     for key in ("verilog_code", "code", "rtl", "text"):
         payload = json.dumps({key: f"module mod_{key}(); endmodule"})
-        assert _parse_model_code_response(payload) == f"module mod_{key}(); endmodule"
+        assert _parse_model_code_response(payload, parser_mode="lenient") == f"module mod_{key}(); endmodule"
+        with pytest.raises(ModelResponseParseError):
+            _parse_model_code_response(payload)
 
     # module_code takes precedence over text
     precedence_payload = json.dumps({
         "module_code": "module winner(); endmodule",
         "text": "module loser(); endmodule",
     })
-    assert _parse_model_code_response(precedence_payload) == "module winner(); endmodule"
+    assert _parse_model_code_response(precedence_payload, parser_mode="lenient") == "module winner(); endmodule"
 
     # Inner markdown fence within JSON value
     inner_fence_payload = json.dumps({
         "module_code": "```verilog\nmodule inner_fenced();\nendmodule\n```",
     })
-    assert _parse_model_code_response(inner_fence_payload) == "module inner_fenced();\nendmodule"
+    assert _parse_model_code_response(inner_fence_payload, parser_mode="lenient") == "module inner_fenced();\nendmodule"
 
-    # 3. Markdown-fenced responses across all supported tags
+    # 3. Markdown-fenced responses across all supported tags (strict accepts)
     for tag in ("systemverilog", "verilog", "sv", ""):
         fenced = f"```{tag}\nmodule fence_{tag or 'bare'}();\nendmodule\n```"
         assert _parse_model_code_response(fenced) == f"module fence_{tag or 'bare'}();\nendmodule"
 
-    # 4. Clean WriteFileAction-schema response (confirm existing path unchanged)
+    # 4. Clean WriteFileAction-schema response (strict accepts, unchanged path)
     clean_action = json.dumps({
         "action": "write_file",
         "path": "design_top.sv",
@@ -2130,7 +2141,8 @@ def test_parse_model_code_response_regression_suite() -> None:
     })
     assert _parse_model_code_response(clean_action) == "module design_top(input wire clk); endmodule"
 
-    # 5. Raw unstructured text with embedded module...endmodule block
+    # 5. Raw unstructured text with embedded module...endmodule block.
+    #    Strict rejects prose-wrapped modules as ambiguous; lenient extracts them.
     prose_response = (
         "Here is the synthesizable SystemVerilog module implementing the required register:\n\n"
         "module embedded_reg(input clk, input rst_n, input [7:0] d, output reg [7:0] q);\n"
@@ -2141,13 +2153,15 @@ def test_parse_model_code_response_regression_suite() -> None:
         "endmodule\n\n"
         "Note: reset is asynchronous active-low. Let me know if you need testbench verification."
     )
-    extracted_prose = _parse_model_code_response(prose_response)
+    with pytest.raises(ModelResponseParseError):
+        _parse_model_code_response(prose_response)
+    extracted_prose = _parse_model_code_response(prose_response, parser_mode="lenient")
     assert extracted_prose.startswith("module embedded_reg")
     assert extracted_prose.endswith("endmodule")
     assert "Here is the synthesizable" not in extracted_prose
     assert "Note: reset is asynchronous" not in extracted_prose
 
-    # 6. Genuinely unparseable garbage fails closed
+    # 6. Genuinely unparseable garbage fails closed in both modes
     garbage_cases = [
         "I am an LLM and I cannot answer this prompt.",
         '{"status": "error", "message": "token limit exceeded"}',
@@ -2160,6 +2174,8 @@ def test_parse_model_code_response_regression_suite() -> None:
     for garbage in garbage_cases:
         with pytest.raises(ModelResponseParseError):
             _parse_model_code_response(garbage)
+        with pytest.raises(ModelResponseParseError):
+            _parse_model_code_response(garbage, parser_mode="lenient")
 
 
 def test_parse_model_code_response_benchmark_ast_format() -> None:
@@ -2176,7 +2192,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         ],
         "implementation": "assign out = 1'b0;"
     })
-    result = _parse_model_code_response(benchmark_payload)
+    result = _parse_model_code_response(benchmark_payload, parser_mode="lenient")
     assert result.startswith("module TopModule")
     assert "endmodule" in result
     assert "output logic out" in result or "output wire out" in result
@@ -2191,7 +2207,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         ],
         "implementation": "assign out = 1'b0;\\n"
     })
-    result = _parse_model_code_response(escaped_payload)
+    result = _parse_model_code_response(escaped_payload, parser_mode="lenient")
     assert "assign out = 1'b0;\n" in result  # unescaping worked
 
     # With "name" instead of "module" key
@@ -2200,7 +2216,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         "pinout": [{"name": "clk", "direction": "input", "width": 1}, {"name": "q", "direction": "output", "width": 1}],
         "implementation": "always @(posedge clk) q <= 1'b1;"
     })
-    result = _parse_model_code_response(name_payload)
+    result = _parse_model_code_response(name_payload, parser_mode="lenient")
     assert "module MyModule" in result
     assert "input logic clk" in result
     assert "output logic q" in result
@@ -2211,7 +2227,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         "ports": [{"name": "a", "direction": "input", "width": 8}, {"name": "y", "direction": "output", "width": 8}],
         "implementation": "assign y = a + 1;"
     })
-    result = _parse_model_code_response(ports_payload)
+    result = _parse_model_code_response(ports_payload, parser_mode="lenient")
     assert "module TestMod" in result
     assert "input logic [7:0] a" in result
     assert "output logic [7:0] y" in result
@@ -2222,7 +2238,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         "pinout": [{"name": "x", "direction": "input", "width": 1}],
         "implementation": "module FullMod(input x); assign x = 1'b0; endmodule"
     })
-    result = _parse_model_code_response(full_module_payload)
+    result = _parse_model_code_response(full_module_payload, parser_mode="lenient")
     assert result == "module FullMod(input x); assign x = 1'b0; endmodule"
 
 
@@ -4046,3 +4062,147 @@ def test_empty_gate_reports_not_verified() -> None:
         assert res.passed is False
         assert res.silicon_verified is False
         assert res.error_category == "MISSING_SOURCE_FILES"
+
+
+# ── Stage 3 parser-mode tests ──────────────────────────────────────────────
+
+
+def _stage3_architect_json(module_name: str) -> str:
+    return json.dumps({
+        "module_name": module_name,
+        "functional_spec": "Stage 3 parser mode test spec",
+        "ports": [
+            {"name": "clk", "direction": "input", "width": 1, "description": "Clock"},
+            {"name": "out", "direction": "output", "width": 1, "description": "Output"},
+        ],
+        "sva_properties": [],
+        "timing": {"clock_name": "clk", "period_ns": 5.0},
+    })
+
+
+def test_parser_mode_defaults_to_strict_and_rejects_inference() -> None:
+    """Strict is the default; provider/model/failure signals never enable lenient mode."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        for provider, model in (("ollama", "qwen2.5-coder:7b"), ("ollama", "tiny-local-model"), ("openrouter", "some-model")):
+            kwargs: dict[str, Any] = {"session_id": "s", "workspace": ws, "verifier": MockVerifier()}
+            if provider == "openrouter":
+                kwargs["api_key"] = "test-key"
+            driver = PhaseDriver(provider=provider, model=model, **kwargs)  # type: ignore
+            assert driver.parser_mode == "strict"
+            driver.close()
+        # Invalid modes are rejected loudly, never coerced.
+        with pytest.raises(ValueError):
+            PhaseDriver(session_id="s", workspace=ws, verifier=MockVerifier(), parser_mode="auto")  # type: ignore
+
+
+def test_strict_mode_recorded_in_trace(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A default (strict) run records parser_mode='strict' on MODEL_CALL and parse-failure traces."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        driver = PhaseDriver(
+            session_id="stage3-strict-trace",
+            workspace=ws,
+            verifier=MockVerifier(should_pass=True),
+            sandbox=mock_sb,  # type: ignore
+            max_repairs=1,
+        )
+        assert driver.parser_mode == "strict"
+
+        query_count = 0
+
+        def mock_queries(messages: list[dict[str, str]]) -> str:
+            nonlocal query_count
+            query_count += 1
+            if query_count == 1:
+                return _stage3_architect_json("strict_trace_mod")
+            return '{"status": "error"}'
+
+        monkeypatch.setattr(driver, "_query_ollama", mock_queries)
+        assert driver.run_silicon_pipeline("Synthesize strict_trace_mod", liberty_path="sky130.lib") is False
+
+        model_calls = [r for r in driver.transcript if r.phase == PhaseEnum.MODEL_CALL and "parser_mode" in r.event.payload]
+        assert len(model_calls) >= 1
+        assert all(r.event.payload["parser_mode"] == "strict" for r in model_calls)
+        failures = [r for r in driver.transcript if r.event.payload.get("error_category") == "RESPONSE_PARSE_FAILURE"]
+        assert len(failures) >= 1
+        assert all(r.event.payload.get("parser_mode") == "strict" for r in failures)
+        # No trace may claim lenient when strict was configured.
+        assert all(r.event.payload.get("parser_mode") != "lenient" for r in driver.transcript)
+
+
+def test_lenient_mode_recorded_in_trace(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An explicit lenient run records parser_mode='lenient' and recovers documented keys."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        driver = PhaseDriver(
+            session_id="stage3-lenient-trace",
+            workspace=ws,
+            verifier=MockVerifier(should_pass=True),
+            sandbox=mock_sb,  # type: ignore
+            max_repairs=1,
+            parser_mode="lenient",
+        )
+
+        calls = 0
+
+        def mock_queries(messages: list[dict[str, str]]) -> str:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return _stage3_architect_json("lenient_trace_mod")
+            return '{"content": "module m(input clk, output out); assign out = 1\'b0; endmodule"}'
+
+        monkeypatch.setattr(driver, "_query_ollama", mock_queries)
+        driver.run_silicon_pipeline("Synthesize lenient_trace_mod", liberty_path="sky130.lib")
+
+        # Lenient recovery extracted the documented content-key module: the
+        # EXECUTE trace carries the recovered RTL (a later mocked-EDA abort
+        # rolls the workspace file back, which is out of scope here).
+        executions = [
+            r for r in driver.transcript
+            if r.phase == PhaseEnum.EXECUTE and r.event.payload.get("role") == "Principal RTL Design Engineer"
+        ]
+        assert len(executions) >= 1
+        assert executions[0].event.payload["content"] == "module lenient_trace_mod(input clk, output out); assign out = 1'b0; endmodule"
+
+        model_calls = [r for r in driver.transcript if r.phase == PhaseEnum.MODEL_CALL and "parser_mode" in r.event.payload]
+        assert len(model_calls) >= 1
+        assert all(r.event.payload["parser_mode"] == "lenient" for r in model_calls)
+        # No trace may claim strict when lenient was actually used.
+        assert all(r.event.payload.get("parser_mode") != "strict" for r in driver.transcript)
+
+
+def test_benchmark_transcript_environment_records_parser_mode() -> None:
+    """Benchmark transcripts carry the configured parser_mode in environment data."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTask
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        runner = BenchmarkRunner()
+        task = BenchmarkTask(
+            task_id="fsm_01",
+            category="FSM",
+            name="fsm",
+            natural_language_spec="spec",
+            expected_ports=[
+                {"name": "clk", "direction": "input", "width": 1},
+                {"name": "out", "direction": "output", "width": 1},
+            ],
+            sva_properties=["assert a", "assert b"],
+            benchmark_origin="x",
+        )
+        for mode in ("strict", "lenient"):
+            driver = PhaseDriver(
+                session_id=f"stage3-env-{mode}",
+                workspace=ws,
+                verifier=MockVerifier(),
+                sandbox=mock_sb,  # type: ignore
+                parser_mode=mode,  # type: ignore
+            )
+            transcript = runner.extract_transcript_tuple(task, driver, False)
+            assert transcript.environment["parser_mode"] == mode
+            driver.close()

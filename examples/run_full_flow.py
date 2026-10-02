@@ -178,8 +178,9 @@ endmodule
 
         result = verifier.verify(workspace, runner)
 
-        print(f"\nSignoff Verdict: {'PASSED (Tapeout Ready)' if result.passed else 'FAILED'}")
-        print(f"Silicon Verified: {result.silicon_verified} (Honest simulated/mock tracking)")
+        verdict_str = "PASSED (Real EDA Execution)" if (result.passed and result.silicon_verified) else ("PASSED (Simulated/Mock Mode - NOT Real EDA)" if result.passed else "FAILED")
+        print(f"\nSignoff Verdict: {verdict_str}")
+        print(f"Silicon Verified: {result.silicon_verified} (Real EDA: {result.silicon_verified}, Mock/Simulated Fallback: {not result.silicon_verified})")
         print("\nHierarchical Gate Reports:")
         for idx, gate in enumerate(result.gate_reports, 1):
             print(format_gate_report_row(gate, idx))

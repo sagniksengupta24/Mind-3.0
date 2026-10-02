@@ -1,0 +1,22 @@
+{
+  "task_id": "fsm_heldout_04",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 3,
+  "runtime_sec": 193.278,
+  "token_usage": 3348,
+  "estimated_cost_usd": 0.0,
+  "failure_category": "RTL_SYNTAX_ERROR",
+  "tool_versions": {},
+  "model_version": "qwen2.5-coder:7b",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "6cb0d67d6e15291128ecaeefa826d12462a91ab6fd03713cadf8f682ba3b81c9",
+  "run_hash": "cc0364228787d5193eafaf1e860fe34b8cda070028acb251429745c66604cc36",
+  "token_usage_known": true,
+  "cost_known": false
+}

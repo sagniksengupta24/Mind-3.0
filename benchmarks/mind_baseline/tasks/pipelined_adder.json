@@ -1,0 +1,59 @@
+{
+  "task_id": "pipelined_adder",
+  "task_name": "32-bit Pipelined Adder (2 Stages)",
+  "category": "Arithmetic",
+  "module_name": "pipelined_adder",
+  "functional_spec": "Implement a synthesizable 32-bit 2-stage pipelined adder in SystemVerilog.\nPorts:\n  input  wire        clk\n  input  wire        rst_n\n  input  wire        valid_in\n  input  wire [31:0] a\n  input  wire [31:0] b\n  output reg  [31:0] sum\n  output reg         carry_out\n  output reg         valid_out\nBehavior:\n  Stage 1: Adds lower 16 bits {c1, sum_lo} = a[15:0] + b[15:0], registers upper halves a[31:16], b[31:16], c1, sum_lo, and propagates valid_in.\n  Stage 2: Adds upper 16 bits with carry {carry_out, sum[31:16]} = a_hi + b_hi + c1, registers sum[15:0] = sum_lo, and outputs valid_out.\n  Latency from valid_in to valid_out is exactly 2 clock cycles.\n  Active-low synchronous or asynchronous reset 'rst_n' clears all pipeline registers, clearing sum, carry_out, and valid_out.",
+  "interface": {
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "valid_in",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "a",
+        "direction": "input",
+        "width": 32
+      },
+      {
+        "name": "b",
+        "direction": "input",
+        "width": 32
+      },
+      {
+        "name": "sum",
+        "direction": "output",
+        "width": 32
+      },
+      {
+        "name": "carry_out",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "valid_out",
+        "direction": "output",
+        "width": 1
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Clock clk; active-low reset rst_n.",
+  "expected_behavior": "sum and carry_out produce a + b with 2-cycle fixed latency and valid_out tracking.",
+  "verification_strategy": "Cycle simulation with carry across stage boundary + back-to-back additions + SBY BMC.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_pipelined_adder;\n    reg clk;\n    reg rst_n;\n    reg valid_in;\n    reg [31:0] a;\n    reg [31:0] b;\n    wire [31:0] sum;\n    wire carry_out;\n    wire valid_out;\n\n    pipelined_adder dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .valid_in(valid_in),\n        .a(a),\n        .b(b),\n        .sum(sum),\n        .carry_out(carry_out),\n        .valid_out(valid_out)\n    );\n\n    always #5 clk = ~clk;\n\n    reg [31:0] exp_a [0:99];\n    reg [31:0] exp_b [0:99];\n    reg [32:0] exp_res [0:99];\n    integer i;\n\n    initial begin\n        clk = 0;\n        rst_n = 0;\n        valid_in = 0;\n        a = 0;\n        b = 0;\n        #20;\n        rst_n = 1;\n        #10;\n\n        for (i = 0; i < 50; i = i + 1) begin\n            @(posedge clk);\n            valid_in = 1;\n            if (i == 0) begin\n                a = 32'h0000_FFFF; b = 32'h0000_0001;\n            end else if (i == 1) begin\n                a = 32'hFFFF_FFFF; b = 32'h0000_0001;\n            end else begin\n                a = $random; b = $random;\n            end\n            exp_a[i] = a;\n            exp_b[i] = b;\n            exp_res[i] = {1'b0, a} + {1'b0, b};\n        end\n\n        @(posedge clk);\n        valid_in = 0;\n\n        for (i = 0; i < 50; i = i + 1) begin\n            @(posedge clk);\n            #1;\n            if (i >= 1) begin\n                integer chk;\n                chk = i - 1;\n                if (valid_out !== 1'b1) begin\n                    $display(\"FAIL: valid_out not asserted for item %0d\", chk);\n                    $fatal(1);\n                end\n                if ({carry_out, sum} !== exp_res[chk]) begin\n                    $display(\"FAIL: %0h + %0h: got {c,s}=%0h, expected %0h\",\n                             exp_a[chk], exp_b[chk], {carry_out, sum}, exp_res[chk]);\n                    $fatal(1);\n                end\n            end\n        end\n\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module pipelined_adder_formal(\n    input wire clk,\n    input wire rst_n,\n    input wire valid_in,\n    input wire [31:0] a,\n    input wire [31:0] b\n);\n    wire [31:0] sum;\n    wire carry_out;\n    wire valid_out;\n\n    pipelined_adder dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .valid_in(valid_in),\n        .a(a),\n        .b(b),\n        .sum(sum),\n        .carry_out(carry_out),\n        .valid_out(valid_out)\n    );\n\n    reg [32:0] expected_sum_d1;\n    reg [32:0] expected_sum_d2;\n    reg v_d1, v_d2;\n\n    always @(posedge clk) begin\n        if (!rst_n) begin\n            v_d1 <= 0;\n            v_d2 <= 0;\n        end else begin\n            v_d1 <= valid_in;\n            v_d2 <= v_d1;\n            expected_sum_d1 <= {1'b0, a} + {1'b0, b};\n            expected_sum_d2 <= expected_sum_d1;\n            if (v_d2) begin\n                assert(valid_out == 1'b1);\n                assert({carry_out, sum} == expected_sum_d2);\n            end\n        end\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable 32-bit 2-stage pipelined adder in SystemVerilog.\nModule name: pipelined_adder\nPorts:\n  input  wire        clk,\n  input  wire        rst_n,\n  input  wire        valid_in,\n  input  wire [31:0] a,\n  input  wire [31:0] b,\n  output reg  [31:0] sum,\n  output reg         carry_out,\n  output reg         valid_out\nRequirements:\n- 2 pipeline stages: Stage 1 sums lower 16 bits with carry out; Stage 2 sums upper 16 bits with carry.\n- Exact 2-cycle latency from valid_in to valid_out.\n- Active-low reset rst_n clears all pipeline registers.\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

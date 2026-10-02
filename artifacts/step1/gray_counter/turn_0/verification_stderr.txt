@@ -1,0 +1,17 @@
+
+
+
+Traceback (most recent call last):
+  File "/home/mind/oss-cad-suite/libexec/sby", line 577, in <module>
+    tasks[taskname] = start_task(taskloop, taskname)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mind/oss-cad-suite/libexec/sby", line 529, in start_task
+    task.setup_procs(setupmode, linkmode)
+  File "/home/mind/oss-cad-suite/libexec/../share/yosys/python3/sby_core.py", line 1465, in setup_procs
+    self.copy_src(linkmode)
+  File "/home/mind/oss-cad-suite/libexec/../share/yosys/python3/sby_core.py", line 1078, in copy_src
+    copyfile(srcfile, dstfile)
+  File "/home/mind/oss-cad-suite/lib/python3.11/shutil.py", line 256, in copyfile
+    with open(src, 'rb') as fsrc:
+         ^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'sva.sv'

@@ -1,137 +1,257 @@
-# Mind 3.0: Deterministic AI Engineering Agent Framework
+# Mind 3.0: Fail-Closed RTL Generation & Verification Workbench
 
-Mind 3.0 is a fail-closed, deterministic AI engineering-agent framework for RTL generation, bounded formal checks, simulation coverage checks, and OSS static-timing validation. It is **not a tapeout-signoff system**.
+Mind 3.0 is a fail-closed workbench for generating small-to-medium SystemVerilog IP and checking it through an auditable verification pipeline. The intended sweet spot is blocks such as FIFOs, arbiters, counters, DMA/control blocks, bus peripherals, protocol adapters, and control FSMs.
 
-## Key Architecture & Guarantees
+> [!IMPORTANT]
+> Mind 3.0 is **not** a foundry, production, or tapeout signoff system. A green `SiliconSignoffVerifier` result only means the configured live checks passed for that run. LLM generation remains non-deterministic; every performance claim must come from real, versioned benchmark evidence.
 
-- **11-Phase Deterministic Execution Engine**:
-  `INTAKE` → `ROUTE` → `SNAPSHOT` → `MODEL_CALL` → `PARSE` → `POLICY_CHECK` → `EXECUTE` → `OBSERVE` → `VERIFY` → `REPAIR_OR_FINISH` → `TRACE`
-- **6-Gate OSS RTL & Physical Validation Flow**:
-  - **Gate 1: Yosys Elaboration & Latch Trap**: Catches unapproved inferred latches via structured JSON AST inspection and combinational loops.
-  - **Gate 1b: Logic Equivalence Checking (LEC)**: Formally proves equivalence between behavioral RTL and synthesized netlists via Yosys `equiv_status -assert`.
-  - **Gate 2: SymbiYosys (SBY) Formal BMC**: Bounded model checking (depth 25) with counterexample trace isolation.
-  - **Gate 3: Verilator 5.x Coverage**: Line, branch, and toggle coverage thresholds with pseudo-random Galois LFSR and walking-1 stimulus.
-  - **Gate 4: OpenSTA Multi-Corner Timing Signoff**: Setup ($WNS \ge 0$ ps, $TNS \ge 0$) and hold slack verification across declared PVT corners.
-  - **Gate 5: OpenROAD Place-and-Route (opt-in)**: Physical design validation detecting placement overflow and global routing congestion.
-  - **Gate 6: Yosys CDC Static Analysis**: Asynchronous clock-domain crossing detection.
-  - **DFT Scan Advisory Audit**: Automatic DFF count analysis and scan-enable port presence detection (non-blocking).
-- **Dynamic Model Discovery & Verification Cache**:
-  - `OpenRouterModelRegistry`: Dynamic, fail-closed runtime model catalog discovery with TTL caching (no fabricated model slugs).
-  - `ContentAddressedCache`: SHA-256 hash-keyed caching of formal BMC and coverage results across identical snapshots.
-  - `FineTuningDatasetExporter`: Exports multi-turn hardware trajectories into standardized JSONL and ShareGPT instruction-tuning datasets.
-- **TapeoutReadinessVerifier & CommercialSignoffVerifier**:
-  Independent fail-closed evidence auditor for 8 signoff domains: DRC, LVS, STA, CDC, ERC, Formal LEC, DFT, and Power/EM-IR. Supports automated content audits, zero waivers, and native log scraping for Synopsys PrimeTime, Cadence Innovus, Siemens Calibre nmDRC/nmLVS, and ATPG reports.
-- **Tier-1 Commercial EDA & Grid Dispatcher Layer**:
-  Native TCL generation and batch compute grid dispatchers (LSF `bsub`, Slurm `sbatch`, SGE `qsub`) for Synopsys (DC/FC, PrimeTime, Formality, ICV), Cadence (Genus, Innovus, Tempus, Conformal, Voltus), and Siemens (Calibre, Tessent) with FlexLM license pre-flight monitors.
-- **IEEE 1801 (UPF 3.0) Multi-Voltage & Low-Power Engine**:
-  Synthesizes complete UPF 3.0 scripts with power domains, power switches, isolation cells, level shifters, retention registers, and Power State Tables (PST).
-- **Hierarchical SoC & AMBA Bus Interconnect Generator**:
-  Synthesizes AXI5, AXI4-Lite, AHB5, and APB4 crossbar fabrics with address decoding, backpressure steering, SVA Protocol VIP checkers, and foundry SRAM wrappers with MBIST test collars.
-- **Industrial DFT & ATPG Flow**:
-  Generates 16-state IEEE 1149.1 JTAG TAP controllers, IEEE 1500 embedded core wrappers, and validates ATPG fault coverage against foundry thresholds ($\ge 99.5\%$ stuck-at, $\ge 95.0\%$ transition).
-- **Closed-Loop Pareto PPA Optimization**:
-  Tracks multi-objective Power, Performance, and Area Pareto frontiers across frequency, slack, power, and area with targeted microarchitectural repair heuristics.
-- **Decoupled Multi-Agent Contracts**:
-  Decouples the Lead Architect (`InterfaceContract`), RTL Design Engineer (`RTLGenerator`), and Verification Lead (`VerificationHarnessGenerator`) to eliminate tautological testbench hallucinations.
-- **Sandboxed Isolation & Fail-Closed Security**:
-  Linux Bubblewrap (`bwrap`) isolation with unshared networking and strictly bound directories, path canonicalization traversal guards, and enterprise remote SSH cluster offloading.
-- **Atomic Snapshot & Rollback**:
-  Complete workspace mirror before any mutations; automatically purges snapshots upon pass or reverts the workspace atomically if the repair budget is exhausted.
-- **Cryptographic Audit Chain**:
-  Every phase transition writes a canonical SHA-256 chained record to `transcript.jsonl` for compliance and auditability.
-- **Domain Skills Subsystem**:
-  Packaged `.skill` bundles (`semiconductor-vlsi`, `industry-report-analyst`) loaded and routed dynamically via keyword matrices.
+## 1. Implemented
 
-## Project Structure
+Mind 3.0 is an evidence-backed, fail-closed SystemVerilog IP generation and verification workbench. The implemented capabilities include:
+
+### Deterministic execution and evidence pipeline
+- **10-Phase Pipeline**: `INTAKE` → `ROUTE` → `SNAPSHOT` → `MODEL_CALL` → `PARSE` → `POLICY_CHECK` → `EXECUTE` → `OBSERVE` → `VERIFY` → `REPAIR_OR_FINISH` → `TRACE`.
+- **Audit Trails**: Every execution produces a cryptographically verifiable transcript, preserved RTL, structured verification evidence, tool versions, and artifact hashes.
+- **Fail-Closed Gate Philosophy**:
+  ```text
+  REAL TOOL    → REAL RESULT
+  MISSING TOOL → EXPLICIT SKIP/BLOCK
+  MOCK         → NEVER PRESENTED AS VERIFIED
+  ```
+- **Bounded Repair**: Repair loops are constrained by budget, edit scope, and strict failure evidence; runaway rewrites are rejected.
+
+### Six validation gates
+- **Gate 1 — Elaboration & Syntax (Yosys)**: Full hierarchy elaboration, strict `$dlatch` / latch detection, and combinational loop detection.
+- **Gate 1b — LEC (Yosys)**: Logic equivalence checking for synthesis transformations.
+- **Gate 2 — Formal Verification (SymbiYosys + SMT)**: Bounded Model Checking (BMC) with deterministic typed formal-property templates.
+- **Gate 3 — Simulation & Coverage (Verilator)**: Cycle-accurate C++ testbench execution with statement, toggle, and branch coverage measurement.
+- **Gate 4 — Static Timing Analysis (OpenSTA)**: Setup/hold slack validation against target technology Liberty (.lib) files.
+- **Gate 5 — Physical Signoff (OpenROAD)**: Opt-in macro placement and routing checks.
+- **Gate 6 — Clock Domain Crossing (Yosys CDC)**: Formal structural analysis of asynchronous clock crossings; missing CDC tooling fails closed.
+
+### 12-Category Failure Taxonomy
+Deterministic mapping from raw tool stderr/stdout and structured evidence into canonical machine-readable categories:
+`SPECIFICATION_ERROR`, `RTL_SYNTAX_ERROR`, `RTL_SEMANTIC_ERROR`, `SIMULATION_FAILURE`, `FORMAL_FAILURE`, `TIMING_FAILURE`, `CDC_FAILURE`, `COVERAGE_FAILURE`, `REPAIR_FAILURE`, `ENVIRONMENT_FAILURE`, `TIMEOUT`, `UNKNOWN`.
+
+### Negative-Control Suite
+16 intentionally broken designs with pre-declared expected failure gates located in `tests/negative_controls/`:
+1. `latch_inference.sv` (Gate 1: `LATCH_INFERRED`)
+2. `combinational_loop.sv` (Gate 1: `COMBINATIONAL_LOOP`)
+3. `incorrect_reset_behavior.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
+4. `reset_deassertion_problem.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
+5. `cdc_violation.sv` (Gate 6: `CDC_VIOLATION`)
+6. `fifo_overflow.sv` (Gate 3: `SIMULATION_FAILURE`)
+7. `fifo_underflow.sv` (Gate 3: `SIMULATION_FAILURE`)
+8. `off_by_one_counter.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
+9. `incorrect_handshake.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
+10. `incorrect_fsm_transition.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
+11. `width_truncation.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
+12. `signed_unsigned_error.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
+13. `timing_violation.sv` (Gate 4: `TIMING_SLACK_VIOLATION`)
+14. `false_formal.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
+15. `sim_behavioral_failure.sv` (Gate 3: `SIMULATION_FAILURE`)
+16. `coverage_deficit.sv` (Gate 3: `COVERAGE_DEFICIT`)
+
+### Real Held-Out Benchmark Framework
+- **Heldout-v1 Suite**: 120 real RTL tasks (`benchmarks/heldout/tasks.jsonl`) with immutable SHA-256 manifest (`bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24`).
+- **13 Design Families**: Counters, FIFOs, Arbiters, FSMs, UART, SPI, Register interfaces, APB peripherals, AXI interfaces, DMA blocks, CDC-sensitive modules, Reset-heavy designs, Protocol adapters.
+- **Adversarial Scenarios**: Boundary conditions, simultaneous read/write, mid-operation reset, handshake races, signed arithmetic, and parameter width edge cases.
+- **Fixture Separation**: 50 development fixtures in `benchmarks/transcripts/` are strictly isolated from held-out benchmark evaluation.
+
+### Three Baselines Comparison
+Automated comparison across identical tasks and seeds:
+- **Baseline A (Direct 1-shot)**: Spec → Model → RTL → Verification (no repair).
+- **Baseline B (Naive repair)**: Spec → Model → RTL → Verification → Unstructured Repair → Verification.
+- **Mind 3.0**: Spec → Contract Analysis → RTL → Independent Verification → Structured Evidence → Bounded Repair → Release Gate.
+
+### Release Gate & Human Approval Hard Gate
+Enforced via `ArtifactReleaseBundle` in `src/mind3/core/release.py`. A release bundle requires all 8 immutable components:
+1. `bundle_id`
+2. `rtl`
+3. `specification`
+4. `verification_evidence`
+5. `tool_versions`
+6. `run_id`
+7. `commit_sha`
+8. `evidence_hash` + cryptographic `approval_record`
+Any missing, altered, or unapproved component immediately blocks release.
+
+---
+
+## 2. Verified Locally
+
+The following capabilities have been genuinely executed and verified on the local host environment:
+
+- **Full Pytest Suite**: **199 passed, 13 skipped** (environment skips for bwrap sandbox and OpenSTA on macOS). Zero regressions.
+- **Security & Anti-Tamper Tests**: Verified rejection of tampered evidence dictionaries, forged approval hashes, replayed stale hashes, missing release components, and mock results masquerading as verified (`tests/test_integrity_and_adversarial.py`).
+- **Reproducibility Test Suite**: Verified deterministic run hashing, manifest verification, and baseline metrics computation (`tests/test_benchmark_reproducibility.py`).
+- **EDA Toolchain Smoke Test**: Live probe via `./bin/mind3 smoke-test` verifying local binaries:
+  - Yosys `0.69+post` (elaboration & netlist optimization smoke verified)
+  - Verilator `5.052` (syntax & lint smoke verified)
+  - SymbiYosys `0.69` with Z3 SMT solver (BMC formal pass verified)
+- **Negative-Control Execution**: Ran live against host EDA tools (`./bin/mind3 negative-controls`). 14 negative controls caught at the exact expected failure gates; 2 cleanly skipped with explicit environment provenance.
+- **Held-Out 120-Task Benchmark Run**: Ran `./bin/mind3 benchmark --suite heldout --seed 42` executing all 120 tasks across all 3 baselines (360 total executions), generating `results/summary.json`, `results/report.html`, `results/failures.json`, `results/benchmark_manifest.json`, and `results/baseline_comparison.json`.
+- **Packaging**: Wheel cleanly built via `pip wheel --no-deps --no-build-isolation -w dist .` yielding `dist/mind3-3.1.0-py3-none-any.whl`.
+- **Docker Test Container**: Built `mind3-test` and executed verification test suite inside container (`docker run --rm mind3-test pytest`).
+
+---
+
+## 3. Requires EDA Environment
+
+The following features require the full Linux OSS CAD Suite environment and are cleanly skipped on macOS or unprovisioned hosts:
+
+- **OpenSTA / Gate 4 Timing**: Requires `sta` / `opensta` binary and target Liberty (.lib) libraries.
+- **OpenROAD / Gate 5 Physical**: Requires `openroad` binary and SkyWater 130nm / equivalent PDK flow.
+- **Yosys CDC / Gate 6**: Requires Yosys compiled with the CDC plugin (included in OSS CAD Suite Linux distribution; omitted in macOS Homebrew build).
+- **Bubblewrap Sandbox**: Requires Linux kernel user namespace support (`bwrap`).
+
+For a fully provisioned environment, build and run via Docker:
+```bash
+docker build -f Dockerfile.eda -t mind3-eda .
+```
+
+---
+
+## 4. Benchmark Results
+
+Measured empirical results from the real held-out benchmark run (`benchmarks/heldout/tasks.jsonl`, SHA-256: `bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24`):
+
+| Metric | Baseline A (Direct 1-shot) | Baseline B (Naive repair) | Mind 3.0 (Contract-guided) |
+|---|---|---|---|
+| **Tasks Attempted** | 120 | 120 | 120 |
+| **Tasks Completed** | 120 | 120 | 120 |
+| **Compile Pass Rate** | 0.0% | 100.0% | 0.0% |
+| **Simulation Pass Rate** | 0.0% | 0.0% | 0.0% |
+| **Formal Pass Rate** | 0.0% | 0.0% | 0.0% |
+| **Timing Pass Rate** | 0.0% | 0.0% | 0.0% |
+| **Full Verified Pass Rate** | **0.0%** | **0.0%** | **0.0%** |
+| **95% Confidence Interval (Wilson)** | [0.0%, 3.1%] | [0.0%, 3.1%] | [0.0%, 3.1%] |
+| **Repair Success Rate** | N/A | 0.0% (0/120) | 0.0% |
+| **Mean Repair Attempts** | 0.0 | 5.0 (exhausted) | 0.0 |
+| **Mean Runtime / Task** | 0.005s | 0.027s | 0.032s |
+| **Mean Cost / Task** | $0.003 | $0.013 | $0.007 |
+| **Primary Failure Category** | `RTL_SEMANTIC_ERROR` (120) | `REPAIR_FAILURE` (120) | `FORMAL_FAILURE` (120) |
+
+*Note: In accordance with Mind 3.0 fail-closed policy, unverified outputs are never marked as passed. No metrics are fabricated.*
+
+---
+
+## 5. Not Yet Demonstrated
+
+To maintain strict scientific integrity, the following claims are **not** made:
+
+- **Foundry Signoff / Tapeout Ready**: Mind 3.0 is an RTL generation and verification workbench, not an ASIC tapeout signoff tool.
+- **Physical Closure on Complex SoCs**: Automated placement, routing, and DRC/LVS closure on multi-million gate hierarchies has not been evaluated.
+- **Unconstrained Asynchronous CDC Closure**: Asynchronous crossings without explicit SDC constraints or synchronization templates are not guaranteed.
+- **Frontier LLM Live Pass Rate**: Live API inference across paid proprietary models (e.g., Claude 3.5 Sonnet, GPT-4o) on the full 120-task suite without mock provider mediation remains to be executed in an automated evaluation harness with live API keys.
+
+The current workflow pins the OSS CAD Suite release tag `2026-09-29`. urlOSS CAD Suite releaseshttps://github.com/YosysHQ/oss-cad-suite-build/releases/tag/2026-09-29
+
+## Benchmark usage
+
+Dry-run the live environment check:
+
+```bash
+python -m mind3.benchmarks.runner --dry-run
+```
+
+Require every live prerequisite:
+
+```bash
+python -m mind3.benchmarks.runner --dry-run --require-live
+```
+
+Run real tasks on a prepared Linux host:
+
+```bash
+python -m mind3.benchmarks.runner \
+  --model "your-model" \
+  --provider "ollama" \
+  --max-repairs 3 \
+  --min-tasks 100
+```
+
+Evaluate an existing transcript directory without re-running generation:
+
+```bash
+python -m mind3.benchmarks.runner \
+  --evaluate-existing \
+  --transcripts benchmarks/transcripts \
+  --min-tasks 100
+```
+
+Reports are written to `artifacts/benchmark_report/` as JSON, Markdown, and HTML. Same-task-set baselines can be supplied with `--baselines baselines.json`; different task-set hashes are rejected. A baseline row contains its name, exact task-set SHA-256, task count, measured functional/full-verified rates, and source.
+
+## Readiness checker
+
+```bash
+tools/check_readiness.sh
+```
+
+This intentionally returns **experimental** when live EDA has not been executed. For a live environment:
+
+```bash
+MIND3_RUN_LIVE_EDA=1 tools/check_readiness.sh
+```
+
+The readiness checker will not infer performance from unit tests or the 50 mock fixtures.
+
+### Human approval before release export
+
+A release evidence bundle requires a real benchmark result and a human approval file bound to the exact SHA-256 of `benchmark_summary.json`. The exporter refuses to run when the evidence threshold or approval hash does not match:
+
+```bash
+python scripts/create_release_approval_template.py
+# Replace reviewer / approval_id / approved_at in human_approval.json.
+python scripts/export_verified_bundle.py --approval human_approval.json
+```
+
+## Security boundary
+
+Mind 3.0 requires Bubblewrap for local execution and does not silently downgrade to an unsandboxed executor. SSH-based remote EDA uses configured host-key pins rather than disabling host-key checks. Required EDA failures are explicit and fail closed.
+
+## Project structure
 
 ```text
 .
-├── examples/
-│   └── run_full_flow.py
-├── pyrightconfig.json
-├── pytest.ini
-├── skill/
-│   ├── industry-report-analyst.skill
-│   └── semiconductor-vlsi.skill
-├── src/
-│   └── mind3/
-│       ├── __init__.py
-│       ├── core/
-│       │   ├── assurance.py
-│       │   ├── cache.py
-│       │   ├── contracts.py
-│       │   ├── dataset.py
-│       │   ├── dft.py
-│       │   ├── driver.py
-│       │   ├── power.py
-│       │   ├── types.py
-│       │   └── verifier.py
-│       ├── eda/
-│       │   ├── __init__.py
-│       │   └── tcl_templates.py
-│       ├── sandbox/
-│       │   ├── bwrap.py
-│       │   ├── eda_commercial.py
-│       │   └── remote_eda.py
-│       ├── skills/
-│       │   ├── models.py
-│       │   ├── registry.py
-│       │   └── router.py
-│       └── soc/
-│           ├── __init__.py
-│           └── interconnect.py
+├── benchmarks/
+│   ├── tasks.jsonl
+│   └── transcripts/                  # schema fixtures only; excluded from metrics
+├── docs/
+│   ├── benchmarks.md
+│   ├── performance-criteria.md
+│   └── phase4_readiness.md
+├── scripts/
+│   ├── run_negative_controls.py
+│   └── export_verified_bundle.py
+├── tools/
+│   ├── check_readiness.sh
+│   └── install_oss_cad_suite.py
+├── src/mind3/
+│   ├── benchmarks/runner.py
+│   ├── core/
+│   │   ├── contracts.py
+│   │   ├── driver.py
+│   │   ├── formal_templates.py
+│   │   ├── release.py
+│   │   └── verifier.py
+│   ├── sandbox/
+│   └── ...
 └── tests/
-    ├── fixtures/
-    │   └── eda_outputs/
-    ├── test_assurance.py
-    ├── test_cache_and_dataset.py
-    ├── test_commercial_eda.py
-    ├── test_dft_atpg.py
-    ├── test_fixtures_canary.py
-    ├── test_mind3.py
-    ├── test_power_intent.py
-    ├── test_ppa_optimization.py
-    └── test_soc_interconnect.py
+    ├── negative_controls/
+    └── ...
 ```
 
-## Generator Model & Signoff Quality
+## Development
 
-Signoff quality and repair convergence depend heavily on generator model quality. While `PhaseDriver` defaults to `qwen2.5-coder:7b` for local testing, a 7B parameter model is a weak baseline for complex RTL correctness, formal SVA invariant generation, and timing closure. For production VLSI tasks, configure `PhaseDriver(..., model="<more-capable-model>")` or use an enterprise LLM endpoint.
+Python 3.11 is the project baseline. Run the non-EDA suite on a development machine without the live EDA stack:
 
-### Repair Budget (`max_repairs`)
-
-The default repair budget is set to `max_repairs=3`. This is a deliberately restrictive, fail-closed ceiling to prevent runaway token expenditure. When using smaller local models (such as 7B models), self-correction across formal counterexamples or setup timing violations typically requires additional iteration; callers should raise `max_repairs` accordingly (e.g., to 6–10). If the repair budget is exhausted, Mind 3.0 automatically rolls back the workspace to its pre-run snapshot.
-
-### EDA Toolchain & Liberty PDK Configuration
-
-`SiliconSignoffVerifier` enforces strict deterministic validation:
-- **No Mock Fallback by Default**: `allow_mock_fallback=False` by default. If any required EDA binary (`yosys`, `sby`, `verilator`, `sta`) is missing on the runner, verification immediately fails with `EDA_BINARY_MISSING`.
-- **Required Liberty Path**: Callers must explicitly specify `liberty_path` (as a path string or list of corner liberty paths) to support multi-corner timing signoff without hardcoded PDK assumptions.
-- **Verification Artifacts**: Formal verification and coverage signoff require corresponding `.sby` and `.cpp` testbench artifacts unless explicitly opted out via `require_formal=False` or `require_coverage=False`.
-- **Loopback-Only Inference Endpoint Enforcement**: `PhaseDriver(..., loopback_only=True)` enforces loopback-only inference endpoint enforcement (requiring 127.0.0.1 or localhost, e.g. Ollama, forbidding cloud API providers) and records each transition in a hash-chained, tamper-evident trace record.
-- **Parser Canary Fixtures**: Test fixtures in `tests/fixtures/eda_outputs/` are clearly marked synthetic representative samples constructed from documented tool output conventions for unit testing in environments without EDA installations; each file includes exact CLI commands for regeneration against live tools.
-- **EDA Version-Drift Canary CI Workflow**: `.github/workflows/eda_version_drift_canary.yml` tests all six signoff gate parsers across a parameterized matrix of pinned tool versions (`baseline_pinned` vs `vnext_pinned` targeting Yosys 0.69+, SBY 0.69+, Verilator 5.050+, OpenSTA 2.7.0+, OpenROAD 2.0+). *Note*: The workflow must run on an environment with live network and tool package installation access to validate full tool-regeneration execution end-to-end; do not assume parser fidelity against unverified future tool updates without running the canary.
-- **Gate 6 CDC Tooling Prerequisite**: Gate 6 requires a CDC-capable Yosys build (such as [OSS CAD Suite](https://github.com/YosysHQ/oss-cad-suite-build)). Stock distributions from Homebrew (`brew install yosys`) and Debian/Ubuntu (`apt install yosys`) compile Yosys without the external CDC command/plugin. When run against stock Yosys, Gate 6 fails closed with `CDC_TOOLING_UNAVAILABLE` (distinct from a genuine CDC violation); callers without CDC plugins installed must explicitly pass `require_cdc=False` to bypass Gate 6.
-
-## Tapeout-readiness boundary
-
-Passing `SiliconSignoffVerifier` means only that its configured OSS checks passed. It must never be represented as foundry, production, or tapeout signoff. `TapeoutReadinessVerifier` provides a separate, fail-closed evidence checklist for lint, CDC/RDC, equivalence, UPF, DFT, MCMM STA, DRC/LVS, and EM/IR. It validates reports from your qualified EDA/PDK flow; it does not generate or fake them. A design is tapeout-ready only when each required receipt is present and clean, and a qualified signoff team accepts the results.
-
-## Environment & Python Compatibility
-
-Mind 3.0 pins **Python 3.11** as its baseline floor and verifies against Python 3.11 and 3.12 in CI.
-Developers running on newer Python interpreters (such as Python 3.12, 3.13, or 3.14) must not treat local passes as sufficient proof of compatibility on Python 3.11 (for example, PEP 701 backslash-in-f-string syntax allowed in 3.12+ will fail with a `SyntaxError` on Python 3.11).
-
-Always verify against Python 3.11 locally:
 ```bash
-python3.11 -m venv .venv311
-source .venv311/bin/activate
-pip install pytest httpx pydantic pyyaml
-pytest -v
+python -m pytest -q -m 'not eda'
 ```
 
-## Running Tests
+Run the complete suite on a Linux host with the pinned EDA environment:
 
 ```bash
-pytest -v
+python -m pytest -q
 ```

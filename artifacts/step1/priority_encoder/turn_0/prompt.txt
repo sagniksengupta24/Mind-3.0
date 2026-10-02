@@ -1,0 +1,13 @@
+Write a synthesizable 8-to-3 priority encoder in SystemVerilog.
+Module name: priority_encoder
+Ports:
+  input  wire [7:0] in,
+  output reg  [2:0] out,
+  output reg        valid
+Requirements:
+- Bit 7 has highest priority, bit 0 lowest priority.
+- 'out' encodes the index of the highest 1-bit.
+- 'valid' is 1 if any bit in 'in' is 1, otherwise 0.
+- When in == 8'b0, out must be 3'b000 and valid must be 1'b0.
+- Must be synthesizable with zero latches.
+Output only SystemVerilog code inside ```systemverilog ... ```.

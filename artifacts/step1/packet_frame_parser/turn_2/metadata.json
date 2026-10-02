@@ -1,0 +1,27 @@
+{
+  "task_id": "packet_frame_parser",
+  "turn": 2,
+  "provider": "Ollama (local)",
+  "model": "qwen2.5-coder:30b",
+  "endpoint": "http://127.0.0.1:11434",
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "seed": 42,
+  "max_tokens": 2048,
+  "system_prompt_hash": "0eb373634b2e0351a0f21c9b5615d8466f41c554c01aa842bd774fe9100ab95d",
+  "task_prompt_hash": "bdd945eaa4b891eb213f026eae580dac7ffcaa76002d0ddcf5ab8137316ce7d7",
+  "request_timestamp": "2026-09-28T00:34:30.235122+00:00",
+  "response_timestamp": "2026-09-28T00:35:52.428551+00:00",
+  "latency_seconds": 82.193,
+  "bmc_depth": 25,
+  "verification": {
+    "syntax": "PASS",
+    "lint": "PASS",
+    "simulation": "FAIL",
+    "bmc": "NOT_RUN",
+    "bmc_depth": 25,
+    "passed": false,
+    "failure_gate": "Functional",
+    "failure_reason": "Testbench simulation failed (exit code 1):\nFAIL: Test 1: frame_valid not asserted on valid EOF\nFATAL: /home/mind/Desktop/AI/Mind-3.0/artifacts/step1/packet_frame_parser/turn_2/tb_packet_frame_parser.sv:65: \n       Time: 146000  Scope: tb_packet_frame_parser\n\n"
+  }
+}

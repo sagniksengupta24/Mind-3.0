@@ -1,0 +1,28 @@
+{
+  "task_id": "reg_if_01",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 3,
+  "runtime_sec": 108.505,
+  "token_usage": 5572,
+  "estimated_cost_usd": 0.0,
+  "failure_category": "RTL_SYNTAX_ERROR",
+  "tool_versions": {
+    "yosys": "Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)",
+    "sta": "3.1.0",
+    "verilator": "Verilator 5.052 2026-09-05 rev vUNKNOWN-built20260905",
+    "sby": "SBY v0.69",
+    "openroad": "missing"
+  },
+  "model_version": "qwen2.5-coder:7b",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "4e000798bb68f88f3f5ad82fe5c2af2ef631a2eb223d56d17110ad3db8326ed1",
+  "run_hash": "adad17dcb8b46ec51932bbaa674d4006d730127c63f64bb7d5dda2cc6bde7363",
+  "token_usage_known": true,
+  "cost_known": false
+}

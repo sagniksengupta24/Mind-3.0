@@ -1,0 +1,10 @@
+{
+  "syntax": "PASS",
+  "lint": "PASS",
+  "simulation": "FAIL",
+  "bmc": "NOT_RUN",
+  "bmc_depth": 25,
+  "passed": false,
+  "failure_gate": "Functional",
+  "failure_reason": "Testbench simulation failed (exit code 1):\nFAIL: Expected Main YELLOW, Side RED, got main=00, side=10\nFATAL: /home/mind/Desktop/AI/Mind-3.0/artifacts/step1/traffic_light_controller/turn_3/tb_traffic_light_controller.sv:60: \n       Time: 166000  Scope: tb_traffic_light_controller\n\n"
+}

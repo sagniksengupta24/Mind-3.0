@@ -1,0 +1,16 @@
+Write a synthesizable traffic light controller FSM in SystemVerilog.
+Module name: traffic_light_controller
+Ports:
+  input  wire       clk,
+  input  wire       rst_n,
+  input  wire       car_side,
+  output reg  [1:0] light_main,
+  output reg  [1:0] light_side
+Light encodings: 2'b00=RED, 2'b01=YELLOW, 2'b10=GREEN.
+States:
+1. S_MAIN_GREEN: Main=GREEN, Side=RED. Minimum 4 cycles. If car_side=1 after 4 cycles, goto S_MAIN_YELLOW.
+2. S_MAIN_YELLOW: Main=YELLOW, Side=RED. Exactly 2 cycles. Then goto S_SIDE_GREEN.
+3. S_SIDE_GREEN: Main=RED, Side=GREEN. Stays 4 cycles (or exits if car_side=0 after 2 cycles). Then goto S_SIDE_YELLOW.
+4. S_SIDE_YELLOW: Main=RED, Side=YELLOW. Exactly 2 cycles. Then goto S_MAIN_GREEN.
+Safety rule: light_main and light_side must NEVER both be non-red simultaneously!
+Output only SystemVerilog code inside ```systemverilog ... ```.

@@ -267,3 +267,66 @@ def test_benchmark_runner_extract_transcript_tuple(tmp_path: Path) -> None:
     assert extracted.final_outcome["turns_taken"] == 2
 
 
+
+
+def test_benchmark_evaluator_excludes_fixtures_and_computes_confidence_intervals(tmp_path: Path) -> None:
+    """Evaluation must ignore mock fixtures and report bounded uncertainty for real outputs."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner(transcripts_dir=tmp_path)
+    fixtures = runner.load_transcripts(Path(__file__).parent.parent / "benchmarks" / "transcripts")[:2]
+    real = [
+        BenchmarkTranscript(
+            task_id="real_01", category="FSM", name="real", natural_language_spec="spec", model="model-a", provider="openrouter",
+            gate_failure_category=None,
+            final_outcome={"passed": True, "silicon_verified": True, "turns_taken": 1, "gate_reports": [{"gate": "Gate 3", "passed": True}]},
+            environment={"eda_versions": {"yosys": "0.69"}},
+        ),
+        BenchmarkTranscript(
+            task_id="real_02", category="FSM", name="real2", natural_language_spec="spec", model="model-a", provider="openrouter",
+            gate_failure_category="FORMAL_INVARIANT_BREACH",
+            final_outcome={"passed": False, "silicon_verified": False, "turns_taken": 2, "gate_reports": [{"gate": "Gate 3", "passed": True}]},
+            environment={"eda_versions": {"yosys": "0.69"}},
+        ),
+    ]
+    summary = runner.evaluate_transcripts([*fixtures, *real])
+    assert summary.transcript_count == 4
+    assert summary.fixture_count == 2
+    assert summary.real_transcript_count == 2
+    assert summary.initial_pass_count == 1
+    assert summary.functional_pass_count == 2
+    assert summary.full_verified_pass_count == 1
+    assert summary.initial_pass_ci95[0] < 0.5 < summary.initial_pass_ci95[1]
+
+
+def test_benchmark_report_writes_json_markdown_and_html(tmp_path: Path) -> None:
+    from mind3.benchmarks.runner import BenchmarkRunner
+
+    runner = BenchmarkRunner()
+    summary = runner.evaluate_transcripts([])
+    paths = runner.write_report(summary, tmp_path)
+    assert len(paths) == 3
+    assert all(p.exists() for p in paths)
+    assert paths[2].suffix == ".html"
+    assert "Mind 3.0 Benchmark Report" in paths[2].read_text(encoding="utf-8")
+
+
+def test_benchmark_baselines_require_matching_task_set(tmp_path: Path) -> None:
+    from mind3.benchmarks.runner import BenchmarkRunner
+
+    runner = BenchmarkRunner()
+    summary = runner.evaluate_transcripts([])
+    valid = [{
+        "name": "direct-prompting",
+        "task_set_sha256": summary.task_set_sha256,
+        "real_task_count": 100,
+        "functional_pass_rate": 0.45,
+        "full_verified_pass_rate": 0.20,
+        "source": "example-only-no-score-claim",
+    }]
+    baseline_path = tmp_path / "baselines.json"
+    baseline_path.write_text(json.dumps(valid), encoding="utf-8")
+    baselines = runner.load_baselines(baseline_path, summary.task_set_sha256)
+    attached = runner.attach_baselines(summary, baselines)
+    assert attached.baseline_comparisons[0]["name"] == "direct-prompting"
+    assert attached.baseline_comparisons[0]["functional_delta_vs_mind3"] == -0.45

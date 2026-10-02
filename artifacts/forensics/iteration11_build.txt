@@ -1,0 +1,4 @@
+wheel=rebuild-skipped (build isolation requires network access)
+python=Python 3.13.5
+pytest=pytest 9.0.2
+live_prereq_linux_container=bwrap,yosys,sby,verilator,sta/opensta

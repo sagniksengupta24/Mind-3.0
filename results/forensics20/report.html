@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind 3.0 Real Benchmark Evaluation Report</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --border: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+        }
+        h1 { margin: 0 0 8px 0; font-size: 2rem; color: var(--primary); }
+        .badge {
+            display: inline-block;
+            background: #0284c7;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .metric-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 4px;
+            color: var(--text);
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            color: var(--text);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: #0f172a80;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        pre {
+            background: #090d16;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <h1>Mind 3.0 RTL Benchmark Report</h1>
+            <span class="badge">Suite: heldout</span>
+        </div>
+        <p style="color: var(--text-muted); margin: 4px 0 0 0;">
+            Evaluated at: <strong>2026-09-30T07:03:04Z</strong> | Commit: <code>UNKNOWN_</code> | Seed: <code>42</code>
+        </p>
+    </header>
+
+    <h2>1. Overall Results</h2>
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-label">Tasks Attempted / Done</div>
+            <div class="metric-value">20 / 20</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Compile Pass Rate</div>
+            <div class="metric-value" style="color: #38bdf8;">0.0%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Simulation Pass Rate</div>
+            <div class="metric-value" style="color: #818cf8;">0.0%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Formal BMC Pass Rate</div>
+            <div class="metric-value" style="color: #a78bfa;">0.0%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Full Verified Pass Rate</div>
+            <div class="metric-value" style="color: #10b981;">0.0%</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">95% CI: [0.0%, 16.1%]</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Repair Success Rate</div>
+            <div class="metric-value" style="color: #fbbf24;">0.0%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Average Runtime</div>
+            <div class="metric-value">0.00s</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Average Cost</div>
+            <div class="metric-value">$0.0070</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2. Baseline Comparison</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Architecture</th>
+                    <th>Tasks</th>
+                    <th>Compile</th>
+                    <th>Simulation</th>
+                    <th>Formal</th>
+                    <th>Full Verified (95% CI)</th>
+                    <th>Repair Rate</th>
+                    <th>Avg Repairs</th>
+                    <th>Avg Cost</th>
+                    <th>Avg Runtime</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td style="font-weight: 600;">Baseline A (Direct 1-shot)</td>
+            <td>20</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td style="font-weight: bold; color: #10b981;">0.0% [0.0%, 16.1%]</td>
+            <td>0.0%</td>
+            <td>0.0</td>
+            <td>$0.0030</td>
+            <td>0.00s</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight: 600;">Baseline B (Naive repair)</td>
+            <td>20</td>
+            <td>100.0%</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td style="font-weight: bold; color: #10b981;">0.0% [0.0%, 16.1%]</td>
+            <td>0.0%</td>
+            <td>5.0</td>
+            <td>$0.0130</td>
+            <td>0.00s</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight: 600;">Mind 3.0 (Contract-guided fail-closed)</td>
+            <td>20</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td style="font-weight: bold; color: #10b981;">0.0% [0.0%, 16.1%]</td>
+            <td>0.0%</td>
+            <td>0.0</td>
+            <td>$0.0070</td>
+            <td>0.00s</td>
+        </tr>
+        
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>3. Failure Analysis (Deterministic Taxonomy)</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+            
+        <div style="background: #1e293b; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span style="font-family: monospace; color: #f87171;">FORMAL_FAILURE</span>
+            <span style="font-weight: 600; color: #f1f5f9;">20</span>
+        </div>
+        
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>4. Individual Task Evidence & Diagnostics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Task ID</th>
+                    <th>Failure Category</th>
+                    <th>Failing Gate</th>
+                    <th>Deterministic Tool Evidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td style="font-family: monospace;">counter_01</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 6d8fffb84d12d2ac</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_02</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 0b9123db3300b100</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_03</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 028fd46d6d1083da</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 520fe8fa72db26ac</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_05</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 280bacf1fa1ecc71</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_06</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 402fcad1be96b64e</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_07</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash b7fe408b904be06c</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_08</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 26ec6c17d78e6d1d</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_09</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash d19f1d3cdbb6613e</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">counter_10</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 60b202d8c0dae789</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_01</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash b1d373ea6014e4e8</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_02</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 3c029b09fa2ea78d</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_03</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash bf7be1e59726d2a6</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 2bfaf2fc994539c7</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_05</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 9eada0192e863aab</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_06</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash c7a4d6cd24be53bc</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_07</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash b9089e0806957cc5</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_08</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash ed319d14dfefd34e</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_09</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 6be3d92e839bf089</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_10</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">FORMAL_FAILURE</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 4e31e7d70d10581f</td>
+        </tr>
+        
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>5. Provenance & Cryptographic Manifest</h2>
+        <pre><code>{
+  "benchmark_suite": "heldout",
+  "task_set_sha256": "bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24",
+  "task_count": 20,
+  "model_version": "gemini-1.5-pro",
+  "provider": "mock",
+  "seed": 42,
+  "git_commit_sha": "UNKNOWN_COMMIT",
+  "environment": {
+    "platform": "Linux",
+    "python": "3.13.5",
+    "tool_versions": {
+      "yosys": "missing",
+      "verilator": "missing",
+      "sby": "missing",
+      "opensta": "missing",
+      "openroad": "missing"
+    }
+  },
+  "summary_sha256": "235de2446b81316e838d70db1e63ed496309ec3e715a268b0a989fa024990a47",
+  "baseline_comparison_sha256": "85123d43c6cde0e45b87219db5020456b072a506aec705e56b6aa41038da5386",
+  "failures_sha256": "62107068ecb81ee770cfac72e19b073c02c92a1e2462a30d8cdb737f11835edc",
+  "created_at": "2026-09-30T07:03:04Z"
+}</code></pre>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{
+  "task_id": "packet_frame_parser",
+  "task_name": "Packet Frame Parser FSM",
+  "category": "FSM/control",
+  "module_name": "packet_frame_parser",
+  "functional_spec": "Implement a synthesizable packet frame parser FSM in SystemVerilog.\nPorts:\n  input  wire       clk\n  input  wire       rst_n\n  input  wire       valid_in\n  input  wire [7:0] data_in\n  output reg        frame_valid\n  output reg  [7:0] payload_byte\n  output reg        payload_valid\n  output reg        frame_error\nFrame Protocol:\n  1. Start of Frame (SOF): 8'hA5\n  2. Length byte (L): 1 to 8 (valid payload length)\n  3. Payload bytes: Exactly L bytes. On each payload byte when valid_in=1, emit payload_byte = data_in and payload_valid = 1.\n  4. End of Frame (EOF): 8'h5A immediately following the last payload byte. When EOF matches, assert frame_valid=1 for 1 cycle.\n  Error Handling:\n  - In IDLE: any valid_in != 8'hA5 asserts frame_error=1 for 1 cycle.\n  - In LENGTH: if data_in == 0 or data_in > 8, asserts frame_error=1 and returns to IDLE.\n  - In EOF: if data_in != 8'h5A, asserts frame_error=1 and returns to IDLE.",
+  "interface": {
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "valid_in",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "data_in",
+        "direction": "input",
+        "width": 8
+      },
+      {
+        "name": "frame_valid",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "payload_byte",
+        "direction": "output",
+        "width": 8
+      },
+      {
+        "name": "payload_valid",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "frame_error",
+        "direction": "output",
+        "width": 1
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Clock clk; active-low reset rst_n.",
+  "expected_behavior": "Extracts payload bytes and emits frame_valid on correct EOF; flags errors on invalid bytes.",
+  "verification_strategy": "Cycle simulation with valid packets, invalid SOF, corrupt EOF, variable lengths + SBY BMC.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_packet_frame_parser;\n    reg clk;\n    reg rst_n;\n    reg valid_in;\n    reg [7:0] data_in;\n    wire frame_valid;\n    wire [7:0] payload_byte;\n    wire payload_valid;\n    wire frame_error;\n\n    packet_frame_parser dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .valid_in(valid_in),\n        .data_in(data_in),\n        .frame_valid(frame_valid),\n        .payload_byte(payload_byte),\n        .payload_valid(payload_valid),\n        .frame_error(frame_error)\n    );\n\n    always #5 clk = ~clk;\n\n    task send_byte(input [7:0] b);\n        begin\n            @(posedge clk);\n            valid_in = 1;\n            data_in = b;\n            @(posedge clk);\n            valid_in = 0;\n            data_in = 0;\n        end\n    endtask\n\n    integer received_payloads;\n    reg [7:0] rx_buf [0:15];\n\n    always @(posedge clk) begin\n        if (payload_valid) begin\n            rx_buf[received_payloads] <= payload_byte;\n            received_payloads <= received_payloads + 1;\n        end\n    end\n\n    initial begin\n        clk = 0;\n        rst_n = 0;\n        valid_in = 0;\n        data_in = 0;\n        received_payloads = 0;\n        #20;\n        rst_n = 1;\n        #10;\n\n        send_byte(8'hA5);\n        send_byte(8'h03);\n        send_byte(8'h11);\n        send_byte(8'h22);\n        send_byte(8'h33);\n        send_byte(8'h5A);\n        #1;\n        if (!frame_valid) begin\n            $display(\"FAIL: Test 1: frame_valid not asserted on valid EOF\");\n            $fatal(1);\n        end\n        if (received_payloads !== 3 || rx_buf[0] !== 8'h11 || rx_buf[1] !== 8'h22 || rx_buf[2] !== 8'h33) begin\n            $display(\"FAIL: Test 1: incorrect payload received\");\n            $fatal(1);\n        end\n\n        send_byte(8'hFF);\n        #1;\n        if (!frame_error) begin\n            $display(\"FAIL: Test 2: frame_error not asserted on invalid SOF\");\n            $fatal(1);\n        end\n\n        send_byte(8'hA5);\n        send_byte(8'h02);\n        send_byte(8'hAA);\n        send_byte(8'hBB);\n        send_byte(8'hEE);\n        #1;\n        if (!frame_error) begin\n            $display(\"FAIL: Test 3: frame_error not asserted on corrupt EOF\");\n            $fatal(1);\n        end\n\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module packet_frame_parser_formal(\n    input wire clk,\n    input wire rst_n,\n    input wire valid_in,\n    input wire [7:0] data_in\n);\n    wire frame_valid;\n    wire [7:0] payload_byte;\n    wire payload_valid;\n    wire frame_error;\n\n    packet_frame_parser dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .valid_in(valid_in),\n        .data_in(data_in),\n        .frame_valid(frame_valid),\n        .payload_byte(payload_byte),\n        .payload_valid(payload_valid),\n        .frame_error(frame_error)\n    );\n\n    always @(posedge clk) begin\n        if (!rst_n) begin\n            assert(!frame_valid);\n            assert(!payload_valid);\n            assert(!frame_error);\n        end\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable packet frame parser FSM in SystemVerilog.\nModule name: packet_frame_parser\nPorts:\n  input  wire       clk,\n  input  wire       rst_n,\n  input  wire       valid_in,\n  input  wire [7:0] data_in,\n  output reg        frame_valid,\n  output reg  [7:0] payload_byte,\n  output reg        payload_valid,\n  output reg        frame_error\nProtocol:\n- SOF: 8'hA5\n- LEN: 1 to 8 bytes\n- PAYLOAD: LEN bytes (emit on payload_byte with payload_valid=1)\n- EOF: 8'h5A (assert frame_valid=1 for 1 cycle)\n- Error: if invalid byte, assert frame_error=1 for 1 cycle and reset to IDLE.\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

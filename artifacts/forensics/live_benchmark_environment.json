@@ -1,0 +1,13 @@
+{
+  "python": "3.13.5",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "required_binaries": {
+    "bwrap": null,
+    "iverilog": null,
+    "verilator": null,
+    "yosys": null,
+    "sby": null,
+    "sta": null
+  },
+  "model_binary": null
+}

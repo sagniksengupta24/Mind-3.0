@@ -1,0 +1,20 @@
+{
+  "task_id": "uart_03",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 0,
+  "runtime_sec": 0.031,
+  "token_usage": 2500,
+  "estimated_cost_usd": 0.007,
+  "failure_category": "FORMAL_FAILURE",
+  "tool_versions": {},
+  "model_version": "gemini-1.5-pro",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "96a41db207450977d3120b109f2d5854f54cf44d710d0ccc45ce03da500baa9c",
+  "run_hash": "10c4f0dfe2d3c33185e80f186fcfca1b386b79e7e825c828446b641e8d371094"
+}

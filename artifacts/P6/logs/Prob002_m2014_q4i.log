@@ -1,0 +1,21 @@
+=== Execution Log for Prob002_m2014_q4i ===
+Time: Wed Sep 30 03:44:27 2026
+Duration: 10.83s
+Benchmark Verdict: PASS
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: 9765cd8afabc8fad8b90e2f83160aaae52c2187ecf53716537339b1c84102890
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     9765cd8afabc8fad8b90e2f83160aaae52c2187ecf53716537339b1c84102890
+SHA Match:          True
+Diagnostic:         VCD info: dumpfile wave.vcd opened for output.
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob002_m2014_q4i_test.sv:14: $finish called at 501 (1ps)
+Hint: Output 'out' has no mismatches.
+Hint: Total mismatched samples is 0 out of 100 samples
+
+Simulation finished at 501 ps
+Mismatches: 0 in 100 samples
+
+

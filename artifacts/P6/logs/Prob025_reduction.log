@@ -1,0 +1,16 @@
+=== Execution Log for Prob025_reduction ===
+Time: Wed Sep 30 03:53:53 2026
+Duration: 26.07s
+Benchmark Verdict: COMPILER_ERROR
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: 731f295e1e03e91ad765521e327c4a29f39003f03df521a7aa17ea365f7017f3
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     731f295e1e03e91ad765521e327c4a29f39003f03df521a7aa17ea365f7017f3
+SHA Match:          True
+Diagnostic:         /home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob025_reduction/dut.sv:20: error: parity is not a valid l-value in tb.top_module1.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob025_reduction/dut.sv:5:      : parity is declared here as wire.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob025_reduction/dut.sv:22: error: parity is not a valid l-value in tb.top_module1.
+/home/mind/Desktop/AI/artifacts/P6/run_30_results/grades/Prob025_reduction/dut.sv:5:      :

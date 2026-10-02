@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+REPO_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+export PYTHONPATH="$REPO_ROOT/src:$PYTHONPATH"
+exec python3 -m mind3.cli "$@"

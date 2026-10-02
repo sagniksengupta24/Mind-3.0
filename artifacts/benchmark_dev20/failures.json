@@ -1,0 +1,142 @@
+[
+  {
+    "task_id": "counter_04",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 360ad3db059b286f",
+    "run_hash": "360ad3db059b286f5592f81111dd80644cd1e81eeeafb3cc15fd8d88264f74b7"
+  },
+  {
+    "task_id": "arbiter_02",
+    "canonical_category": "SPECIFICATION_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 3b34209aaa85463e",
+    "run_hash": "3b34209aaa85463e6437d8a986e88d313c912c044d50093f1567968edda1eafb"
+  },
+  {
+    "task_id": "fifo_01",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash f3b721152144a785",
+    "run_hash": "f3b721152144a785cf978c63de1a512b860f01361ca42ab4d2271372e4565fe4"
+  },
+  {
+    "task_id": "fsm_heldout_04",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash cc0364228787d519",
+    "run_hash": "cc0364228787d5193eafaf1e860fe34b8cda070028acb251429745c66604cc36"
+  },
+  {
+    "task_id": "uart_01",
+    "canonical_category": "UNKNOWN",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 3a1069756a6972ad",
+    "run_hash": "3a1069756a6972ad37675e2af692d51fc52f4d0df6c46693369cb1856729dd8f"
+  },
+  {
+    "task_id": "reg_if_01",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash adad17dcb8b46ec5",
+    "run_hash": "adad17dcb8b46ec51932bbaa674d4006d730127c63f64bb7d5dda2cc6bde7363"
+  },
+  {
+    "task_id": "apb_01",
+    "canonical_category": "UNKNOWN",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 81dbc6e5691a047b",
+    "run_hash": "81dbc6e5691a047b00acb3fcbd08f169a2d163b3a5dae5d2fc7e95fcf7d79957"
+  },
+  {
+    "task_id": "fifo_04",
+    "canonical_category": "UNKNOWN",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 2a76826107f26c66",
+    "run_hash": "2a76826107f26c66dfee6e36edcb9f4696e870c580d2cb3a42bc4a3cd11d57f0"
+  },
+  {
+    "task_id": "spi_02",
+    "canonical_category": "UNKNOWN",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 217ba5fb7b391baa",
+    "run_hash": "217ba5fb7b391baa939f51e41822347a82f544252ab4732ea48659555319432d"
+  },
+  {
+    "task_id": "axi_04",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 5d3c75082c6dc770",
+    "run_hash": "5d3c75082c6dc7702f9ca8888704b70baaadfd5ffd64de95d66039f96f81e142"
+  },
+  {
+    "task_id": "dma_04",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash a7a80099d9412cef",
+    "run_hash": "a7a80099d9412cef620e6cee0d6a24441fa70e91b4d0553a44535183152ae528"
+  },
+  {
+    "task_id": "cdc_04",
+    "canonical_category": "UNKNOWN",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 8dce938a6f069c12",
+    "run_hash": "8dce938a6f069c12a6d9a3d7bce1431bcbddfe20a7cb29dce493e738f65558a9"
+  },
+  {
+    "task_id": "reset_02",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash bbe7cce44863e734",
+    "run_hash": "bbe7cce44863e734365519d6f9118d526779dbac7b46b2396380e601aa947dbb"
+  },
+  {
+    "task_id": "adapters_03",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 6aa0265cff33e2cd",
+    "run_hash": "6aa0265cff33e2cdb5fb881c8cdd3ee23747b926368d2739cef046107f0a47b8"
+  },
+  {
+    "task_id": "fifo_03",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash af0ce834d333fec5",
+    "run_hash": "af0ce834d333fec51aec89cfae5b971d5e81fa3ecf6b5c95933894a93497a679"
+  },
+  {
+    "task_id": "arbiter_03",
+    "canonical_category": "UNKNOWN",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash f3a8479013cfc36e",
+    "run_hash": "f3a8479013cfc36eab42317b4fc6524014eb670dc24d3707332b39ffe781013a"
+  },
+  {
+    "task_id": "axi_05",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash bdfce72f7a724daa",
+    "run_hash": "bdfce72f7a724daaf60900775f8031998d3eebaed2d5b9cb4b6311408ee0411f"
+  },
+  {
+    "task_id": "cdc_05",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash df66292f775a6c9e",
+    "run_hash": "df66292f775a6c9ee82999b075bf41f11bf25b6b3854539b7200dc145ee9d603"
+  },
+  {
+    "task_id": "reset_04",
+    "canonical_category": "UNKNOWN",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash 07c738cbdaa15c58",
+    "run_hash": "07c738cbdaa15c58a6cd4aa37bc600f6e631885d5c52149599bf094d8b001750"
+  },
+  {
+    "task_id": "adapters_09",
+    "canonical_category": "RTL_SYNTAX_ERROR",
+    "gate_name": "SiliconSignoffVerifier",
+    "deterministic_evidence": "Run failed verification with run_hash ec203a4d524664ac",
+    "run_hash": "ec203a4d524664ac49fc13465b490d7633f1c33ec1da66e4b1ebecbde333657e"
+  }
+]

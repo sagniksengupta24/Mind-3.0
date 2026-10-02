@@ -1,0 +1,21 @@
+=== Execution Log for Prob012_xnorgate ===
+Time: Wed Sep 30 03:47:32 2026
+Duration: 20.18s
+Benchmark Verdict: PASS
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: 516e0e5dcce8e35ee17a9eb2949767352c100f7ef55d664ae3c420f775d17d64
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     516e0e5dcce8e35ee17a9eb2949767352c100f7ef55d664ae3c420f775d17d64
+SHA Match:          True
+Diagnostic:         VCD info: dumpfile wave.vcd opened for output.
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob012_xnorgate_test.sv:38: $finish called at 1096 (1ps)
+Hint: Output 'out' has no mismatches.
+Hint: Total mismatched samples is 0 out of 219 samples
+
+Simulation finished at 1096 ps
+Mismatches: 0 in 219 samples
+
+

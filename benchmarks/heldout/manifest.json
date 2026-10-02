@@ -1,0 +1,24 @@
+{
+  "suite_name": "heldout-v1",
+  "task_count": 120,
+  "tasks_file": "tasks.jsonl",
+  "tasks_sha256": "bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24",
+  "categories": [
+    "SPI",
+    "protocol adapters",
+    "UART",
+    "arbiters",
+    "counters",
+    "register interfaces",
+    "APB peripherals",
+    "CDC-sensitive blocks",
+    "reset-heavy designs",
+    "DMA blocks",
+    "FSMs",
+    "AXI interfaces",
+    "FIFOs"
+  ],
+  "adversarial_count": 30,
+  "created_for": "Mind 3.0 Real Held-out Benchmark and Adversarial Evaluation",
+  "immutable": true
+}

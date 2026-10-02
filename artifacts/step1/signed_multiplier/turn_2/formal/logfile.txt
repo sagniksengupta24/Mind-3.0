@@ -1,0 +1,3 @@
+SBY  6:00:26 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal] Removing directory '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal'.
+SBY  6:00:26 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/signed_multiplier.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal/src/signed_multiplier.sv'.
+SBY  6:00:26 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/sva.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/signed_multiplier/turn_2/formal/src/sva.sv'.

@@ -1,0 +1,20 @@
+{
+  "task_id": "fifo_08",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 0,
+  "runtime_sec": 0.032,
+  "token_usage": 2500,
+  "estimated_cost_usd": 0.007,
+  "failure_category": "FORMAL_FAILURE",
+  "tool_versions": {},
+  "model_version": "gemini-1.5-pro",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "5f3960ac322a71da4bc2245bc1f6d3dc48838f8ec54eceefc13068b49601090b",
+  "run_hash": "5cd094412f92c4ffaa92d9b73b60e5a8898acdc2c63c35448f522c5d50fbbe26"
+}

@@ -1,0 +1,22 @@
+{
+  "task_id": "reset_02",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 3,
+  "runtime_sec": 35.46,
+  "token_usage": 2792,
+  "estimated_cost_usd": 0.0,
+  "failure_category": "RTL_SYNTAX_ERROR",
+  "tool_versions": {},
+  "model_version": "qwen2.5-coder:7b",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "3f850a881fcc491359bcc1b8bd7fbd6aaba85532983108fc2bb1005689dcc20f",
+  "run_hash": "bbe7cce44863e734365519d6f9118d526779dbac7b46b2396380e601aa947dbb",
+  "token_usage_known": true,
+  "cost_known": false
+}

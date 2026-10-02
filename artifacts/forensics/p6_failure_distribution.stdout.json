@@ -1,0 +1,202 @@
+{
+  "sample_size": 20,
+  "classification_taxonomy": [
+    "SPECIFICATION_ERROR",
+    "INTERFACE_ERROR",
+    "SYNTAX_ERROR",
+    "TYPE_WIDTH_ERROR",
+    "CLOCK_RESET_ERROR",
+    "SIMULATION_FAILURE",
+    "FORMAL_FAILURE",
+    "REPAIR_FAILURE",
+    "ENVIRONMENT_FAILURE",
+    "OTHER"
+  ],
+  "distribution": {
+    "SYNTAX_ERROR": 12,
+    "ENVIRONMENT_FAILURE": 8
+  },
+  "tasks": [
+    {
+      "task_id": "Prob001_zero",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob001_zero.log"
+    },
+    {
+      "task_id": "Prob002_m2014_q4i",
+      "benchmark_verdict": "PASS",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE2_INFRASTRUCTURE_FAILURE",
+      "original_failure_category": "UNSUPPORTED_FORMAL_PROPERTY",
+      "classified_category": "ENVIRONMENT_FAILURE",
+      "log_path": "artifacts/P6/logs/Prob002_m2014_q4i.log"
+    },
+    {
+      "task_id": "Prob003_step_one",
+      "benchmark_verdict": "SYNTAX_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE1_GENUINE_RTL_FAILURE",
+      "original_failure_category": "SYNTHESIS_ELABORATION_ERROR",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob003_step_one.log"
+    },
+    {
+      "task_id": "Prob004_vector2",
+      "benchmark_verdict": "MISMATCH",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE2_INFRASTRUCTURE_FAILURE",
+      "original_failure_category": "UNSUPPORTED_FORMAL_PROPERTY",
+      "classified_category": "ENVIRONMENT_FAILURE",
+      "log_path": "artifacts/P6/logs/Prob004_vector2.log"
+    },
+    {
+      "task_id": "Prob005_notgate",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob005_notgate.log"
+    },
+    {
+      "task_id": "Prob006_vectorr",
+      "benchmark_verdict": "MISMATCH",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE2_INFRASTRUCTURE_FAILURE",
+      "original_failure_category": "UNSUPPORTED_FORMAL_PROPERTY",
+      "classified_category": "ENVIRONMENT_FAILURE",
+      "log_path": "artifacts/P6/logs/Prob006_vectorr.log"
+    },
+    {
+      "task_id": "Prob007_wire",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob007_wire.log"
+    },
+    {
+      "task_id": "Prob008_m2014_q4h",
+      "benchmark_verdict": "PASS",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE2_INFRASTRUCTURE_FAILURE",
+      "original_failure_category": "UNSUPPORTED_FORMAL_PROPERTY",
+      "classified_category": "ENVIRONMENT_FAILURE",
+      "log_path": "artifacts/P6/logs/Prob008_m2014_q4h.log"
+    },
+    {
+      "task_id": "Prob009_popcount3",
+      "benchmark_verdict": "MISMATCH",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE2_INFRASTRUCTURE_FAILURE",
+      "original_failure_category": "UNSUPPORTED_FORMAL_PROPERTY",
+      "classified_category": "ENVIRONMENT_FAILURE",
+      "log_path": "artifacts/P6/logs/Prob009_popcount3.log"
+    },
+    {
+      "task_id": "Prob010_mt2015_q4a",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob010_mt2015_q4a.log"
+    },
+    {
+      "task_id": "Prob011_norgate",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob011_norgate.log"
+    },
+    {
+      "task_id": "Prob012_xnorgate",
+      "benchmark_verdict": "PASS",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE2_INFRASTRUCTURE_FAILURE",
+      "original_failure_category": "UNSUPPORTED_FORMAL_PROPERTY",
+      "classified_category": "ENVIRONMENT_FAILURE",
+      "log_path": "artifacts/P6/logs/Prob012_xnorgate.log"
+    },
+    {
+      "task_id": "Prob013_m2014_q4e",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob013_m2014_q4e.log"
+    },
+    {
+      "task_id": "Prob014_andgate",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob014_andgate.log"
+    },
+    {
+      "task_id": "Prob015_vector1",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob015_vector1.log"
+    },
+    {
+      "task_id": "Prob016_m2014_q4j",
+      "benchmark_verdict": "PASS",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE2_INFRASTRUCTURE_FAILURE",
+      "original_failure_category": "UNSUPPORTED_FORMAL_PROPERTY",
+      "classified_category": "ENVIRONMENT_FAILURE",
+      "log_path": "artifacts/P6/logs/Prob016_m2014_q4j.log"
+    },
+    {
+      "task_id": "Prob017_mux2to1v",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob017_mux2to1v.log"
+    },
+    {
+      "task_id": "Prob018_mux256to1",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "None",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob018_mux256to1.log"
+    },
+    {
+      "task_id": "Prob019_m2014_q4f",
+      "benchmark_verdict": "PASS",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "GATE2_INFRASTRUCTURE_FAILURE",
+      "original_failure_category": "UNSUPPORTED_FORMAL_PROPERTY",
+      "classified_category": "ENVIRONMENT_FAILURE",
+      "log_path": "artifacts/P6/logs/Prob019_m2014_q4f.log"
+    },
+    {
+      "task_id": "Prob020_mt2015_eq2",
+      "benchmark_verdict": "COMPILER_ERROR",
+      "mind3_signoff": "FAIL",
+      "original_failure_class": "MODEL_GENERATION_FAILURE",
+      "original_failure_category": "RESPONSE_PARSE_FAILURE",
+      "classified_category": "SYNTAX_ERROR",
+      "log_path": "artifacts/P6/logs/Prob020_mt2015_eq2.log"
+    }
+  ],
+  "source": "preserved prior real EDA run; not a new benchmark result"
+}

@@ -1,0 +1,225 @@
+=== GATE 1: SYNTAX CHECK (iverilog compile) ===
+
+
+=== GATE 2: LINT CHECK (Yosys AST & latch trap) ===
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+
+-- Running command `read_verilog -sv pipelined_adder.sv; prep -top pipelined_adder' --
+
+1. Executing Verilog-2005 frontend: pipelined_adder.sv
+Parsing SystemVerilog input from `pipelined_adder.sv' to AST representation.
+Generating RTLIL representation for module `\pipelined_adder'.
+Successfully finished Verilog frontend.
+
+2. Executing PREP pass.
+
+2.1. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1.1. Analyzing design hierarchy..
+Top module:  \pipelined_adder
+
+2.1.2. Analyzing design hierarchy..
+Top module:  \pipelined_adder
+Removed 0 unused modules.
+
+2.2. Executing PROC pass (convert processes to netlists).
+
+2.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 1 switch rules as full_case in process $proc$pipelined_adder.sv:17$1 in module pipelined_adder.
+Removed a total of 0 dead cases.
+
+2.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 7 redundant assignments.
+Promoted 0 assignments to connections.
+
+2.2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.2.5. Executing PROC_ARST pass (detect async resets in processes).
+Found async reset \rst_n in `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+
+2.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+2.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+     1/7: $0\carry_out[0:0]
+     2/7: $0\sum[31:0]
+     3/7: $0\valid_out[0:0]
+     4/7: $0\carry_out_stage2[0:0]
+     5/7: $0\sum_stage2[31:0]
+     6/7: $0\valid_in_d2[0:0]
+     7/7: $0\valid_in_d1[0:0]
+
+2.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+2.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\pipelined_adder.\sum' using process `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+  created $adff cell `$procdff$17' with positive edge clock and positive level reset.
+Creating register for signal `\pipelined_adder.\carry_out' using process `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+  created $adff cell `$procdff$22' with positive edge clock and positive level reset.
+Creating register for signal `\pipelined_adder.\valid_out' using process `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+  created $adff cell `$procdff$27' with positive edge clock and positive level reset.
+Creating register for signal `\pipelined_adder.\valid_in_d1' using process `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+  created $adff cell `$procdff$32' with positive edge clock and positive level reset.
+Creating register for signal `\pipelined_adder.\valid_in_d2' using process `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+  created $adff cell `$procdff$37' with positive edge clock and positive level reset.
+Creating register for signal `\pipelined_adder.\sum_stage2' using process `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+  created $adff cell `$procdff$42' with positive edge clock and positive level reset.
+Creating register for signal `\pipelined_adder.\carry_out_stage2' using process `\pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+  created $adff cell `$procdff$47' with positive edge clock and positive level reset.
+
+2.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Removing empty process `pipelined_adder.$proc$pipelined_adder.sv:17$1'.
+Cleaned up 0 empty switches.
+
+2.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pipelined_adder.
+<suppressed ~15 debug messages>
+
+2.3. Executing FUTURE pass.
+
+2.4. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pipelined_adder.
+
+2.5. Executing CHECK pass (checking for obvious problems).
+Checking module pipelined_adder...
+Found and reported 0 problems.
+
+2.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pipelined_adder..
+Removed 8 unused cells and 26 unused wires.
+<suppressed ~11 debug messages>
+
+2.7. Executing OPT pass (performing simple optimizations).
+
+2.7.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pipelined_adder.
+
+2.7.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\pipelined_adder'.
+Computing hashes of 16 cells of `\pipelined_adder'.
+Finding duplicate cells in `\pipelined_adder'.
+Computing hashes of 14 cells of `\pipelined_adder'.
+Finding duplicate cells in `\pipelined_adder'.
+<suppressed ~6 debug messages>
+Removed a total of 2 cells.
+
+2.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \pipelined_adder..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+2.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \pipelined_adder.
+Performed a total of 0 changes.
+
+2.7.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\pipelined_adder'.
+Computing hashes of 14 cells of `\pipelined_adder'.
+Finding duplicate cells in `\pipelined_adder'.
+Removed a total of 0 cells.
+
+2.7.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pipelined_adder..
+Removed 0 unused cells and 2 unused wires.
+<suppressed ~1 debug messages>
+
+2.7.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pipelined_adder.
+
+2.7.8. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.7.9. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \pipelined_adder..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+2.7.10. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \pipelined_adder.
+Performed a total of 0 changes.
+
+2.7.11. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\pipelined_adder'.
+Computing hashes of 14 cells of `\pipelined_adder'.
+Finding duplicate cells in `\pipelined_adder'.
+Removed a total of 0 cells.
+
+2.7.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pipelined_adder..
+
+2.7.13. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pipelined_adder.
+
+2.7.14. Finished fast OPT passes. (There is nothing left to do.)
+
+2.8. Executing WREDUCE pass (reducing word size of cells).
+
+2.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pipelined_adder..
+
+2.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+2.11. Executing OPT pass (performing simple optimizations).
+
+2.11.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module pipelined_adder.
+
+2.11.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\pipelined_adder'.
+Computing hashes of 14 cells of `\pipelined_adder'.
+Finding duplicate cells in `\pipelined_adder'.
+Removed a total of 0 cells.
+
+2.11.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \pipelined_adder..
+
+2.11.4. Finished fast OPT passes.
+
+2.12. Executing SORT pass.
+
+2.13. Printing statistics.
+
+=== pipelined_adder ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       18 wires
+      188 wire bits
+       12 public wires
+      136 public wire bits
+        8 ports
+      101 port bits
+       14 cells
+        3   $add
+        7   $adff
+        1   $eq
+        1   $gt
+        1   $logic_and
+        1   $logic_or
+
+2.14. Executing CHECK pass (checking for obvious problems).
+Checking module pipelined_adder...
+Found and reported 0 problems.
+
+End of script. Logfile hash: eaffd680fe, time: 0.01s, user: 0.00s, system: 0.00s, MEM: 32.41 MB peak
+Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 27% 2x read_verilog (0 sec), 16% 5x opt_clean (0 sec), ...
+
+
+=== GATE 3: SIMULATION (vvp execution) ===
+FAIL: valid_out not asserted for item 0
+FATAL: /home/mind/Desktop/AI/Mind-3.0/artifacts/step1/pipelined_adder/turn_1/tb_pipelined_adder.sv:66: 
+       Time: 556000  Scope: tb_pipelined_adder.$unm_blk_7

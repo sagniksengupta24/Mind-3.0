@@ -1,0 +1,13 @@
+=== Execution Log for Prob009_popcount3 ===
+Time: Wed Sep 30 03:46:27 2026
+Duration: 30.29s
+Benchmark Verdict: MISMATCH
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: 696070633b9833c285c1026f60e52b1e13191df936f98b642bc47fa9ef696b44
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     696070633b9833c285c1026f60e52b1e13191df936f98b642bc47fa9ef696b44
+SHA Match:          True
+Diagnostic:         220 mismatches detected

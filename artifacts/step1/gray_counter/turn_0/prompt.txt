@@ -1,0 +1,13 @@
+Write a synthesizable 4-bit synchronous Gray code counter in SystemVerilog.
+Module name: gray_counter
+Ports:
+  input  wire       clk,
+  input  wire       rst_n,
+  input  wire       enable,
+  output reg  [3:0] gray_out
+Requirements:
+- Active-low reset 'rst_n' clears 'gray_out' to 4'b0000.
+- When enable is 1 on rising clock, advances through the 16-step Gray code sequence.
+- Sequence: 0000, 0001, 0011, 0010, 0110, 0111, 0101, 0100, 1100, 1101, 1111, 1110, 1010, 1011, 1001, 1000, wrap to 0000.
+- When enable is 0, holds value.
+Output only SystemVerilog code inside ```systemverilog ... ```.

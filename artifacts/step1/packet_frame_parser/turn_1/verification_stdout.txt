@@ -1,0 +1,341 @@
+=== GATE 1: SYNTAX CHECK (iverilog compile) ===
+
+
+=== GATE 2: LINT CHECK (Yosys AST & latch trap) ===
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+
+-- Running command `read_verilog -sv packet_frame_parser.sv; prep -top packet_frame_parser' --
+
+1. Executing Verilog-2005 frontend: packet_frame_parser.sv
+Parsing SystemVerilog input from `packet_frame_parser.sv' to AST representation.
+Generating RTLIL representation for module `\packet_frame_parser'.
+Successfully finished Verilog frontend.
+
+2. Executing PREP pass.
+
+2.1. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1.1. Analyzing design hierarchy..
+Top module:  \packet_frame_parser
+
+2.1.2. Analyzing design hierarchy..
+Top module:  \packet_frame_parser
+Removed 0 unused modules.
+
+2.2. Executing PROC pass (convert processes to netlists).
+
+2.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 1 switch rules as full_case in process $proc$packet_frame_parser.sv:83$13 in module packet_frame_parser.
+Marked 8 switch rules as full_case in process $proc$packet_frame_parser.sv:36$3 in module packet_frame_parser.
+Marked 1 switch rules as full_case in process $proc$packet_frame_parser.sv:24$1 in module packet_frame_parser.
+Removed a total of 0 dead cases.
+
+2.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 7 redundant assignments.
+Promoted 1 assignment to connection.
+
+2.2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.2.5. Executing PROC_ARST pass (detect async resets in processes).
+Found async reset \rst_n in `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+Found async reset \rst_n in `\packet_frame_parser.$proc$packet_frame_parser.sv:24$1'.
+
+2.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~18 debug messages>
+
+2.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+     1/6: $0\frame_error[0:0]
+     2/6: $0\payload_valid[0:0]
+     3/6: $0\payload_byte[7:0]
+     4/6: $0\frame_valid[0:0]
+     5/6: $1\len_value[2:0]
+     6/6: $1\len_counter[2:0]
+Creating decoders for process `\packet_frame_parser.$proc$packet_frame_parser.sv:36$3'.
+     1/8: $8\next_state[2:0]
+     2/8: $7\next_state[2:0]
+     3/8: $6\next_state[2:0]
+     4/8: $5\next_state[2:0]
+     5/8: $4\next_state[2:0]
+     6/8: $3\next_state[2:0]
+     7/8: $2\next_state[2:0]
+     8/8: $1\next_state[2:0]
+Creating decoders for process `\packet_frame_parser.$proc$packet_frame_parser.sv:24$1'.
+     1/3: $0\len_value[2:0]
+     2/3: $0\len_counter[2:0]
+     3/3: $0\current_state[2:0]
+
+2.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\packet_frame_parser.\next_state' from process `\packet_frame_parser.$proc$packet_frame_parser.sv:36$3'.
+
+2.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\packet_frame_parser.\frame_valid' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+  created $adff cell `$procdff$146' with positive edge clock and positive level reset.
+Creating register for signal `\packet_frame_parser.\payload_byte' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+  created $adff cell `$procdff$151' with positive edge clock and positive level reset.
+Creating register for signal `\packet_frame_parser.\payload_valid' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+  created $adff cell `$procdff$156' with positive edge clock and positive level reset.
+Creating register for signal `\packet_frame_parser.\frame_error' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+  created $adff cell `$procdff$161' with positive edge clock and positive level reset.
+Creating register for signal `\packet_frame_parser.\len_counter' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+  created $adff cell `$procdff$166' with positive edge clock and positive level reset.
+Creating register for signal `\packet_frame_parser.\len_value' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+  created $adff cell `$procdff$171' with positive edge clock and positive level reset.
+Creating register for signal `\packet_frame_parser.\current_state' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:24$1'.
+  created $adff cell `$procdff$176' with positive edge clock and positive level reset.
+Creating register for signal `\packet_frame_parser.\len_counter' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:24$1'.
+  created $adff cell `$procdff$181' with positive edge clock and positive level reset.
+Creating register for signal `\packet_frame_parser.\len_value' using process `\packet_frame_parser.$proc$packet_frame_parser.sv:24$1'.
+  created $adff cell `$procdff$186' with positive edge clock and positive level reset.
+
+2.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 10 empty switches in `\packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+Removing empty process `packet_frame_parser.$proc$packet_frame_parser.sv:83$13'.
+Found and cleaned up 8 empty switches in `\packet_frame_parser.$proc$packet_frame_parser.sv:36$3'.
+Removing empty process `packet_frame_parser.$proc$packet_frame_parser.sv:36$3'.
+Removing empty process `packet_frame_parser.$proc$packet_frame_parser.sv:24$1'.
+Cleaned up 18 empty switches.
+
+2.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module packet_frame_parser.
+<suppressed ~21 debug messages>
+
+2.3. Executing FUTURE pass.
+
+2.4. Executing OPT_EXPR pass (perform const folding).
+Optimizing module packet_frame_parser.
+
+2.5. Executing CHECK pass (checking for obvious problems).
+Checking module packet_frame_parser...
+Warning: multiple conflicting drivers for packet_frame_parser.\len_counter [2]:
+    port Q[2] of cell $procdff$181 ($adff)
+    port Q[2] of cell $procdff$166 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_counter [1]:
+    port Q[1] of cell $procdff$181 ($adff)
+    port Q[1] of cell $procdff$166 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_counter [0]:
+    port Q[0] of cell $procdff$181 ($adff)
+    port Q[0] of cell $procdff$166 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_value [2]:
+    port Q[2] of cell $procdff$171 ($adff)
+    port Q[2] of cell $procdff$186 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_value [1]:
+    port Q[1] of cell $procdff$171 ($adff)
+    port Q[1] of cell $procdff$186 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_value [0]:
+    port Q[0] of cell $procdff$171 ($adff)
+    port Q[0] of cell $procdff$186 ($adff)
+Found and reported 6 problems.
+
+2.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \packet_frame_parser..
+Removed 13 unused cells and 61 unused wires.
+<suppressed ~14 debug messages>
+
+2.7. Executing OPT pass (performing simple optimizations).
+
+2.7.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module packet_frame_parser.
+
+2.7.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\packet_frame_parser'.
+Computing hashes of 86 cells of `\packet_frame_parser'.
+Finding duplicate cells in `\packet_frame_parser'.
+Computing hashes of 65 cells of `\packet_frame_parser'.
+Finding duplicate cells in `\packet_frame_parser'.
+Computing hashes of 64 cells of `\packet_frame_parser'.
+Finding duplicate cells in `\packet_frame_parser'.
+<suppressed ~66 debug messages>
+Removed a total of 22 cells.
+
+2.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \packet_frame_parser..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $procmux$94.
+    dead port 2/2 on $mux $procmux$87.
+    dead port 2/2 on $mux $procmux$85.
+    dead port 2/2 on $mux $procmux$77.
+    dead port 2/2 on $mux $procmux$133.
+    dead port 2/2 on $mux $procmux$123.
+    dead port 2/2 on $mux $procmux$114.
+    dead port 2/2 on $mux $procmux$102.
+    dead port 2/2 on $mux $procmux$112.
+Removed 9 multiplexer ports.
+<suppressed ~41 debug messages>
+
+2.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \packet_frame_parser.
+    New ctrl vector for $pmux cell $procmux$136: { $procmux$138_CMP $procmux$139_CMP $procmux$140_CMP $procmux$141_CMP }
+  Optimizing cells in module \packet_frame_parser.
+Performed a total of 1 changes.
+
+2.7.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\packet_frame_parser'.
+Computing hashes of 55 cells of `\packet_frame_parser'.
+Finding duplicate cells in `\packet_frame_parser'.
+Removed a total of 0 cells.
+
+2.7.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \packet_frame_parser..
+Removed 0 unused cells and 31 unused wires.
+<suppressed ~1 debug messages>
+
+2.7.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module packet_frame_parser.
+
+2.7.8. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.7.9. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \packet_frame_parser..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~32 debug messages>
+
+2.7.10. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \packet_frame_parser.
+Performed a total of 0 changes.
+
+2.7.11. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\packet_frame_parser'.
+Computing hashes of 55 cells of `\packet_frame_parser'.
+Finding duplicate cells in `\packet_frame_parser'.
+Removed a total of 0 cells.
+
+2.7.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \packet_frame_parser..
+
+2.7.13. Executing OPT_EXPR pass (perform const folding).
+Optimizing module packet_frame_parser.
+
+2.7.14. Finished fast OPT passes. (There is nothing left to do.)
+
+2.8. Executing WREDUCE pass (reducing word size of cells).
+Removed top 31 bits (of 32) from port B of cell packet_frame_parser.$sub$packet_frame_parser.sv:64$9 ($sub).
+Removed top 28 bits (of 32) from port Y of cell packet_frame_parser.$sub$packet_frame_parser.sv:64$9 ($sub).
+Removed top 31 bits (of 32) from port B of cell packet_frame_parser.$ge$packet_frame_parser.sv:103$15 ($ge).
+Removed top 28 bits (of 32) from port B of cell packet_frame_parser.$le$packet_frame_parser.sv:103$16 ($le).
+Removed top 31 bits (of 32) from port B of cell packet_frame_parser.$add$packet_frame_parser.sv:120$19 ($add).
+Removed top 29 bits (of 32) from port Y of cell packet_frame_parser.$add$packet_frame_parser.sv:120$19 ($add).
+Removed top 1 bits (of 8) from port B of cell packet_frame_parser.$eq$packet_frame_parser.sv:125$20 ($eq).
+Removed top 31 bits (of 32) from port B of cell packet_frame_parser.$lt$packet_frame_parser.sv:135$22 ($lt).
+Removed top 28 bits (of 32) from port B of cell packet_frame_parser.$gt$packet_frame_parser.sv:135$23 ($gt).
+Removed top 1 bits (of 8) from port B of cell packet_frame_parser.$ne$packet_frame_parser.sv:143$26 ($ne).
+Removed top 2 bits (of 3) from mux cell packet_frame_parser.$procmux$100 ($mux).
+Removed top 1 bits (of 3) from mux cell packet_frame_parser.$procmux$110 ($mux).
+Removed top 1 bits (of 3) from mux cell packet_frame_parser.$procmux$121 ($mux).
+Removed top 2 bits (of 3) from mux cell packet_frame_parser.$procmux$131 ($mux).
+Removed top 1 bits (of 3) from port B of cell packet_frame_parser.$procmux$138_CMP0 ($eq).
+Removed top 1 bits (of 3) from port B of cell packet_frame_parser.$procmux$139_CMP0 ($eq).
+Removed top 2 bits (of 3) from port B of cell packet_frame_parser.$procmux$140_CMP0 ($eq).
+Removed top 29 bits (of 32) from wire packet_frame_parser.$add$packet_frame_parser.sv:120$19_Y.
+Removed top 2 bits (of 3) from wire packet_frame_parser.$5\next_state[2:0].
+Removed top 1 bits (of 3) from wire packet_frame_parser.$4\next_state[2:0].
+Removed top 1 bits (of 3) from wire packet_frame_parser.$3\next_state[2:0].
+Removed top 2 bits (of 3) from wire packet_frame_parser.$2\next_state[2:0].
+
+2.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \packet_frame_parser..
+Removed 0 unused cells and 5 unused wires.
+<suppressed ~1 debug messages>
+
+2.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+2.11. Executing OPT pass (performing simple optimizations).
+
+2.11.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module packet_frame_parser.
+
+2.11.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\packet_frame_parser'.
+Computing hashes of 55 cells of `\packet_frame_parser'.
+Finding duplicate cells in `\packet_frame_parser'.
+Computing hashes of 54 cells of `\packet_frame_parser'.
+Finding duplicate cells in `\packet_frame_parser'.
+<suppressed ~3 debug messages>
+Removed a total of 1 cells.
+
+2.11.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \packet_frame_parser..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+2.11.4. Finished fast OPT passes.
+
+2.12. Executing SORT pass.
+
+2.13. Printing statistics.
+
+=== packet_frame_parser ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       56 wires
+      145 wire bits
+       12 public wires
+       34 public wire bits
+        8 ports
+       22 port bits
+       54 cells
+        1   $add
+        9   $adff
+        6   $eq
+        2   $ge
+        1   $gt
+        1   $le
+        4   $logic_and
+        1   $logic_not
+        1   $logic_or
+        2   $lt
+       20   $mux
+        1   $ne
+        4   $pmux
+        1   $sub
+
+2.14. Executing CHECK pass (checking for obvious problems).
+Checking module packet_frame_parser...
+Warning: multiple conflicting drivers for packet_frame_parser.\len_value [2]:
+    port Q[2] of cell $procdff$171 ($adff)
+    port Q[2] of cell $procdff$186 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_value [1]:
+    port Q[1] of cell $procdff$171 ($adff)
+    port Q[1] of cell $procdff$186 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_value [0]:
+    port Q[0] of cell $procdff$171 ($adff)
+    port Q[0] of cell $procdff$186 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_counter [2]:
+    port Q[2] of cell $procdff$166 ($adff)
+    port Q[2] of cell $procdff$181 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_counter [1]:
+    port Q[1] of cell $procdff$166 ($adff)
+    port Q[1] of cell $procdff$181 ($adff)
+Warning: multiple conflicting drivers for packet_frame_parser.\len_counter [0]:
+    port Q[0] of cell $procdff$166 ($adff)
+    port Q[0] of cell $procdff$181 ($adff)
+Found and reported 6 problems.
+
+Warnings: 9 unique messages, 12 total
+End of script. Logfile hash: 24e8e0bb77, time: 0.01s, user: 0.01s, system: 0.00s, MEM: 32.57 MB peak
+Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 27% 2x read_verilog (0 sec), 17% 5x opt_clean (0 sec), ...
+
+
+=== GATE 3: SIMULATION (vvp execution) ===
+FAIL: Test 1: frame_valid not asserted on valid EOF
+FATAL: /home/mind/Desktop/AI/Mind-3.0/artifacts/step1/packet_frame_parser/turn_1/tb_packet_frame_parser.sv:65: 
+       Time: 146000  Scope: tb_packet_frame_parser

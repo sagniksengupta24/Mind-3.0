@@ -1,0 +1,22 @@
+{
+  "task_id": "arbiter_02",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 0,
+  "runtime_sec": 0.0,
+  "token_usage": 0,
+  "estimated_cost_usd": 0.0,
+  "failure_category": "SPECIFICATION_ERROR",
+  "tool_versions": {},
+  "model_version": "qwen2.5-coder:7b",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "5122c2d9125439ff3ae3ca3bd0f825a6fb0fddde5db350d173f7839d619b2789",
+  "run_hash": "3b34209aaa85463e6437d8a986e88d313c912c044d50093f1567968edda1eafb",
+  "token_usage_known": false,
+  "cost_known": false
+}

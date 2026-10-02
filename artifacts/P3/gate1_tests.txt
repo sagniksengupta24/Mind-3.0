@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/mind/Desktop/AI/Mind-3.0
+configfile: pytest.ini
+plugins: anyio-4.15.1, mock-3.16.0
+collecting ... collected 2 items
+
+tests/test_p3_gate1.py::test_gate1_source_filtering PASSED               [ 50%]
+tests/test_p3_gate1.py::test_gate1_live_sv_synthesis PASSED              [100%]
+
+============================== 2 passed in 0.14s ===============================

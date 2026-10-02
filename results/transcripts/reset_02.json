@@ -1,0 +1,20 @@
+{
+  "task_id": "reset_02",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 0,
+  "runtime_sec": 0.03,
+  "token_usage": 2500,
+  "estimated_cost_usd": 0.007,
+  "failure_category": "FORMAL_FAILURE",
+  "tool_versions": {},
+  "model_version": "gemini-1.5-pro",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "c407c2d3da8b8f391e0f578d43db4601b10cf0625bfa5c818f3983fc506fad0a",
+  "run_hash": "b1028123e63785f3b9ca501da9052ad1f744b47b878fc8e9fea7abb88166ac71"
+}

@@ -1,0 +1,27 @@
+{
+  "task_id": "packet_frame_parser",
+  "turn": 0,
+  "provider": "Ollama (local)",
+  "model": "qwen2.5-coder:30b",
+  "endpoint": "http://127.0.0.1:11434",
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "seed": 42,
+  "max_tokens": 2048,
+  "system_prompt_hash": "0eb373634b2e0351a0f21c9b5615d8466f41c554c01aa842bd774fe9100ab95d",
+  "task_prompt_hash": "dd5e6c855e03d345bf5b0ee2f5d71373b5cc02f6c8e5b627301b0e9bddb55e71",
+  "request_timestamp": "2026-09-28T00:33:17.156015+00:00",
+  "response_timestamp": "2026-09-28T00:33:54.097087+00:00",
+  "latency_seconds": 36.941,
+  "bmc_depth": 25,
+  "verification": {
+    "syntax": "PASS",
+    "lint": "FAIL",
+    "simulation": "NOT_RUN",
+    "bmc": "NOT_RUN",
+    "bmc_depth": 25,
+    "passed": false,
+    "failure_gate": "Lint",
+    "failure_reason": "Unapproved inferred latch cell detected by Yosys:\n$adlatch"
+  }
+}

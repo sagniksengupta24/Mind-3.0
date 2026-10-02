@@ -1,0 +1,64 @@
+{
+  "task_id": "sync_fifo",
+  "task_name": "Synchronous FIFO with Full/Empty Flags",
+  "category": "Memory/interface",
+  "module_name": "sync_fifo",
+  "functional_spec": "Implement a synthesizable synchronous circular FIFO in SystemVerilog.\nParameters:\n  DATA_WIDTH = 8\n  DEPTH = 8\nPorts:\n  input  wire                  clk\n  input  wire                  rst_n\n  input  wire                  wr_en\n  input  wire [DATA_WIDTH-1:0] wr_data\n  input  wire                  rd_en\n  output reg  [DATA_WIDTH-1:0] rd_data\n  output wire                  full\n  output wire                  empty\n  output wire [3:0]            count\nBehavior:\n  Reset rst_n=0 clears count to 0, empty=1, full=0.\n  Write: when wr_en && !full, write wr_data into memory and increment count.\n  Read: when rd_en && !empty, read oldest data into rd_data and decrement count.\n  Simultaneous read and write when not empty and not full: writes new data, reads oldest data, count remains unchanged.\n  When full, ignore writes unless a valid read occurs simultaneously.\n  When empty, ignore reads.",
+  "interface": {
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "wr_en",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "wr_data",
+        "direction": "input",
+        "width": 8
+      },
+      {
+        "name": "rd_en",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rd_data",
+        "direction": "output",
+        "width": 8
+      },
+      {
+        "name": "full",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "empty",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "count",
+        "direction": "output",
+        "width": 4
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Clock clk; active-low reset rst_n.",
+  "expected_behavior": "Strict first-in-first-out delivery, accurate full/empty generation, overflow/underflow protection.",
+  "verification_strategy": "Cycle simulation: fill to full, overflow attempt, drain to empty, underflow attempt, simultaneous rw + SBY BMC.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_sync_fifo;\n    reg clk;\n    reg rst_n;\n    reg wr_en;\n    reg [7:0] wr_data;\n    reg rd_en;\n    wire [7:0] rd_data;\n    wire full;\n    wire empty;\n    wire [3:0] count;\n\n    sync_fifo dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .wr_en(wr_en),\n        .wr_data(wr_data),\n        .rd_en(rd_en),\n        .rd_data(rd_data),\n        .full(full),\n        .empty(empty),\n        .count(count)\n    );\n\n    always #5 clk = ~clk;\n\n    integer i;\n\n    initial begin\n        clk = 0;\n        rst_n = 0;\n        wr_en = 0;\n        rd_en = 0;\n        wr_data = 0;\n        #20;\n        rst_n = 1;\n        #10;\n\n        if (!empty || full || count !== 0) begin\n            $display(\"FAIL: FIFO not empty on reset\");\n            $fatal(1);\n        end\n\n        for (i = 0; i < 8; i = i + 1) begin\n            @(posedge clk);\n            wr_en = 1;\n            wr_data = 8'h10 + i;\n        end\n        @(posedge clk);\n        wr_en = 0;\n        #1;\n        if (!full || empty || count !== 8) begin\n            $display(\"FAIL: FIFO not full after 8 writes: full=%b empty=%b count=%0d\", full, empty, count);\n            $fatal(1);\n        end\n\n        @(posedge clk);\n        wr_en = 1;\n        wr_data = 8'hFF;\n        @(posedge clk);\n        wr_en = 0;\n        #1;\n        if (count !== 8) begin\n            $display(\"FAIL: Overflow write modified count: %0d\", count);\n            $fatal(1);\n        end\n\n        for (i = 0; i < 8; i = i + 1) begin\n            @(posedge clk);\n            rd_en = 1;\n            @(posedge clk);\n            rd_en = 0;\n            #1;\n            if (rd_data !== (8'h10 + i)) begin\n                $display(\"FAIL: Read mismatch at %0d: got %h expected %h\", i, rd_data, 8'h10 + i);\n                $fatal(1);\n            end\n        end\n\n        if (!empty || full || count !== 0) begin\n            $display(\"FAIL: FIFO not empty after 8 reads\");\n            $fatal(1);\n        end\n\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module sync_fifo_formal(\n    input wire clk,\n    input wire rst_n,\n    input wire wr_en,\n    input wire [7:0] wr_data,\n    input wire rd_en\n);\n    wire [7:0] rd_data;\n    wire full, empty;\n    wire [3:0] count;\n\n    sync_fifo dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .wr_en(wr_en),\n        .wr_data(wr_data),\n        .rd_en(rd_en),\n        .rd_data(rd_data),\n        .full(full),\n        .empty(empty),\n        .count(count)\n    );\n\n    always @(posedge clk) begin\n        if (rst_n) begin\n            assert(empty == (count == 0));\n            assert(full == (count == 8));\n            assert(!(full && empty));\n            assert(count <= 8);\n        end\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable synchronous circular FIFO in SystemVerilog.\nModule name: sync_fifo\nParameters: DATA_WIDTH = 8, DEPTH = 8\nPorts:\n  input  wire                  clk,\n  input  wire                  rst_n,\n  input  wire                  wr_en,\n  input  wire [DATA_WIDTH-1:0] wr_data,\n  input  wire                  rd_en,\n  output reg  [DATA_WIDTH-1:0] rd_data,\n  output wire                  full,\n  output wire                  empty,\n  output wire [3:0]            count\nRequirements:\n- Circular pointer or counter implementation.\n- empty = (count == 0), full = (count == DEPTH).\n- Ignore writes when full, ignore reads when empty.\n- Support simultaneous read and write.\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

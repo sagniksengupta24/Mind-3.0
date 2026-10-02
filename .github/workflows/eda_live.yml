@@ -1,0 +1,54 @@
+name: Live EDA Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths:
+      - 'src/mind3/**'
+      - 'tests/test_gate2_mandatory.py'
+      - 'tests/test_p3_gate1.py'
+      - 'tests/test_p5_coverage.py'
+      - 'tests/negative_controls/**'
+      - 'scripts/run_negative_controls.py'
+      - 'tools/install_oss_cad_suite.py'
+      - 'Dockerfile.eda'
+      - '.github/workflows/eda_live.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live-eda:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install host sandbox prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bubblewrap ca-certificates
+      - name: Install Python package
+        run: python -m pip install '.[dev]'
+      - name: Install pinned OSS CAD Suite
+        run: |
+          sudo python tools/install_oss_cad_suite.py --tag 2026-09-29 --destination /opt/oss-cad-suite
+          echo "/opt/oss-cad-suite/bin" >> "$GITHUB_PATH"
+          echo "MIND3_EDA_READONLY_PATHS=/opt/oss-cad-suite" >> "$GITHUB_ENV"
+      - name: Verify toolchain provenance
+        run: |
+          printf 'Yosys: '; yosys -V
+          printf 'SBY: '; sby --version || true
+          printf 'Verilator: '; verilator --version
+          printf 'OpenSTA: '; sta -version || true
+      - name: Unit suite (live environment, non-EDA tests)
+        run: pytest -q -m 'not eda'
+      - name: Live EDA integration tests
+        run: pytest -q -m eda
+      - name: Negative controls
+        env:
+          MIND3_NEGATIVE_CONTROL_LIBERTY: ${{ github.workspace }}/src/mind3/pdata/sky130/sky130_fd_sc_hd__tt_025C_1v80.lib
+        run: python scripts/run_negative_controls.py --require-live

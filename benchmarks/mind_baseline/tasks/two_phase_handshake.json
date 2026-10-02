@@ -1,0 +1,59 @@
+{
+  "task_id": "two_phase_handshake",
+  "task_name": "Two-Phase Valid/Ready Skid Buffer",
+  "category": "Multi-clock/handshake",
+  "module_name": "two_phase_handshake",
+  "functional_spec": "Implement a synthesizable valid/ready skid buffer pipeline register in SystemVerilog.\nPorts:\n  input  wire       clk\n  input  wire       rst_n\n  input  wire       s_valid\n  output wire       s_ready\n  input  wire [7:0] s_data\n  output reg        m_valid\n  input  wire       m_ready\n  output reg  [7:0] m_data\nBehavior:\n  Provides a 2-deep skid buffer decoupling upstream s_ready from downstream m_ready (zero combinational path between m_ready and s_ready).\n  When downstream is ready (m_ready=1), achieves full 1 beat/cycle throughput.\n  When downstream is stalled (m_ready=0), can absorb up to 2 items without losing data before dropping s_ready=0.\n  Maintains strict FIFO data ordering.\n  Active-low reset rst_n clears valid flags.",
+  "interface": {
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "s_valid",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "s_ready",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "s_data",
+        "direction": "input",
+        "width": 8
+      },
+      {
+        "name": "m_valid",
+        "direction": "output",
+        "width": 1
+      },
+      {
+        "name": "m_ready",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "m_data",
+        "direction": "output",
+        "width": 8
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Clock clk; active-low reset rst_n.",
+  "expected_behavior": "Zero-bubble throughput when ready; buffers stall beats without drop or combinational feedback.",
+  "verification_strategy": "Cycle simulation with burst data and random backpressure + SBY BMC handshake safety.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_two_phase_handshake;\n    reg clk;\n    reg rst_n;\n    reg s_valid;\n    wire s_ready;\n    reg [7:0] s_data;\n    wire m_valid;\n    reg m_ready;\n    wire [7:0] m_data;\n\n    two_phase_handshake dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .s_valid(s_valid),\n        .s_ready(s_ready),\n        .s_data(s_data),\n        .m_valid(m_valid),\n        .m_ready(m_ready),\n        .m_data(m_data)\n    );\n\n    always #5 clk = ~clk;\n\n    initial begin\n        #20000;\n        $display(\"FAIL: Simulation watchdog timeout (Handshake stall/hang)\");\n        $fatal(1);\n    end\n\n    reg [7:0] sent_data [0:99];\n    reg [7:0] recv_data [0:99];\n    integer send_idx, recv_idx;\n\n    always @(posedge clk) begin\n        if (rst_n) begin\n            if (m_valid && m_ready) begin\n                recv_data[recv_idx] <= m_data;\n                recv_idx <= recv_idx + 1;\n            end\n        end\n    end\n\n    initial begin\n        clk = 0;\n        rst_n = 0;\n        s_valid = 0;\n        s_data = 0;\n        m_ready = 1;\n        send_idx = 0;\n        recv_idx = 0;\n        #20;\n        rst_n = 1;\n        #10;\n\n        while (send_idx < 50) begin\n            @(posedge clk);\n            s_valid = $random % 2;\n            s_data = send_idx + 8'h20;\n            m_ready = $random % 2;\n            if (s_valid && s_ready) begin\n                sent_data[send_idx] = s_data;\n                send_idx = send_idx + 1;\n            end\n        end\n\n        @(posedge clk);\n        s_valid = 0;\n        m_ready = 1;\n        while (recv_idx < send_idx) @(posedge clk);\n\n        #1;\n        for (integer i = 0; i < 50; i = i + 1) begin\n            if (sent_data[i] !== recv_data[i]) begin\n                $display(\"FAIL: Data mismatch at %0d: sent %h, got %h\", i, sent_data[i], recv_data[i]);\n                $fatal(1);\n            end\n        end\n\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module two_phase_handshake_formal(\n    input wire clk,\n    input wire rst_n,\n    input wire s_valid,\n    input wire [7:0] s_data,\n    input wire m_ready\n);\n    wire s_ready, m_valid;\n    wire [7:0] m_data;\n\n    two_phase_handshake dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .s_valid(s_valid),\n        .s_ready(s_ready),\n        .s_data(s_data),\n        .m_valid(m_valid),\n        .m_ready(m_ready),\n        .m_data(m_data)\n    );\n\n    always @(posedge clk) begin\n        if (rst_n) begin\n            if ($past(m_valid) && !$past(m_ready)) begin\n                assert(m_valid);\n                assert(m_data == $past(m_data));\n            end\n        end\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable valid/ready skid buffer pipeline register in SystemVerilog.\nModule name: two_phase_handshake\nPorts:\n  input  wire       clk,\n  input  wire       rst_n,\n  input  wire       s_valid,\n  output wire       s_ready,\n  input  wire [7:0] s_data,\n  output reg        m_valid,\n  input  wire       m_ready,\n  output reg  [7:0] m_data\nRequirements:\n- Skid buffer holding up to 2 elements.\n- Cuts combinational path between m_ready and s_ready (registered output).\n- Full throughput (1 beat/cycle) when m_ready is high.\n- Absorbs beats during downstream stall without data drop or duplication.\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

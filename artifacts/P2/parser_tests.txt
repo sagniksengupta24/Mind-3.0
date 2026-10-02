@@ -1,0 +1,16 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/mind/Desktop/AI/Mind-3.0
+configfile: pytest.ini
+plugins: anyio-4.15.1, mock-3.16.0
+collecting ... collected 6 items
+
+tests/test_p2_parser.py::test_direct_rtl PASSED                          [ 16%]
+tests/test_p2_parser.py::test_fenced_rtl PASSED                          [ 33%]
+tests/test_p2_parser.py::test_json_content_and_module_code PASSED        [ 50%]
+tests/test_p2_parser.py::test_ast_json_full PASSED                       [ 66%]
+tests/test_p2_parser.py::test_ast_json_empty_legal_body PASSED           [ 83%]
+tests/test_p2_parser.py::test_malformed_truncated_error PASSED           [100%]
+
+============================== 6 passed in 0.14s ===============================

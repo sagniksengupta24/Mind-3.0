@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-09-30T05:43:10Z",
+  "task_set_path": "/mnt/data/mind_work/Mind-3.0/benchmarks/tasks.jsonl",
+  "task_set_sha256": "9d137519b913a519d7e45c7f940378a27292e71ca88c728c4a8ad2cecf58e7c4",
+  "transcript_count": 50,
+  "real_transcript_count": 0,
+  "fixture_count": 50,
+  "initial_pass_count": 0,
+  "functional_pass_count": 0,
+  "full_verified_pass_count": 0,
+  "repair_success_count": 0,
+  "initial_pass_rate": 0.0,
+  "functional_pass_rate": 0.0,
+  "full_verified_pass_rate": 0.0,
+  "repair_success_rate": 0.0,
+  "initial_pass_ci95": [
+    0.0,
+    0.0
+  ],
+  "functional_pass_ci95": [
+    0.0,
+    0.0
+  ],
+  "full_verified_pass_ci95": [
+    0.0,
+    0.0
+  ],
+  "mean_turns_taken": null,
+  "p50_turns_taken": null,
+  "failure_categories": {},
+  "model_counts": {},
+  "provider_counts": {},
+  "tool_versions": {},
+  "baseline_comparisons": [],
+  "methodology": {
+    "initial_pass": "final result passes on turn 0 without repair",
+    "functional_pass": "final Gate 3 coverage succeeds as part of the signoff chain",
+    "full_verified_pass": "final_outcome.passed and silicon_verified are both true",
+    "repair_success": "final success occurred after at least one repair turn",
+    "confidence_interval": "95% Wilson binomial interval",
+    "fixtures_excluded_from_metrics": true,
+    "minimum_claim_tasks": 100,
+    "specialist_thresholds": {
+      "functional": 0.7,
+      "full_verified": 0.4
+    },
+    "strong_thresholds": {
+      "functional": 0.8,
+      "full_verified": 0.6
+    },
+    "9_of_10_target_thresholds": {
+      "functional": 0.85,
+      "full_verified": 0.7
+    }
+  }
+}

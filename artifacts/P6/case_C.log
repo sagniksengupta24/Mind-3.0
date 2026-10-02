@@ -1,0 +1,17 @@
+=== CASE C: INVALID RTL -> G1 FAIL ===
+Overall Passed: False
+Error Category: LATCH_INFERRED
+Failure Reason: Incomplete if-branch infers storage latch in case_c.sv.
+Gate Reports:
+[
+  {
+    "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+    "passed": false,
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Latch pattern in case_c.sv: combinational 'if' missing explicit 'else' branch.",
+    "details": "Incomplete if-branch infers storage latch in case_c.sv.",
+    "error_category": "LATCH_INFERRED",
+    "simulated": false
+  }
+]

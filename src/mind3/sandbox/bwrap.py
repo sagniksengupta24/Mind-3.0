@@ -5,6 +5,7 @@ Enforces host-write / bwrap-exec isolation with unshared networking and strictly
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -17,12 +18,14 @@ class BubblewrapSandbox:
         self,
         workspace: Path | str,
         bwrap_binary: str | Path | None = None,
+        extra_ro_binds: list[Path | str] | None = None,
     ) -> None:
         """Initialize the Bubblewrap sandbox targeting a verified workspace.
 
         Args:
             workspace: Path to the workspace directory. Must exist or will be created.
             bwrap_binary: Optional explicit path to bwrap executable.
+            extra_ro_binds: Optional list of additional directories or files to bind read-only.
 
         Raises:
             RuntimeError: If bwrap binary is not located on PATH.
@@ -43,11 +46,20 @@ class BubblewrapSandbox:
         self.workspace: Path = Path(workspace).resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
         self._bwrap_bin: str = discovered_binary
+        self._extra_ro_binds: list[Path] = [Path(p).resolve() for p in (extra_ro_binds or [])]
 
     @property
     def bwrap_binary(self) -> str:
         """Return the resolved path to the bwrap binary."""
         return self._bwrap_bin
+
+    @property
+    def runner_type(self) -> str:
+        return "local_bwrap"
+
+    @property
+    def execution_mode(self) -> str:
+        return "local_bwrap"
 
     def run(
         self,
@@ -97,6 +109,26 @@ class BubblewrapSandbox:
 
         if Path("/lib64").exists():
             cmd.extend(["--ro-bind", "/lib64", "/lib64"])
+        if Path("/etc").exists():
+            cmd.extend(["--ro-bind", "/etc", "/etc"])
+
+        # Tool/PDK locations are deployment configuration, never a developer's
+        # home directory baked into the runner.  Use a platform-neutral default
+        # plus MIND3_EDA_READONLY_PATHS (colon-separated) for custom installs.
+        configured_paths = os.environ.get("MIND3_EDA_READONLY_PATHS", "")
+        standard_ro_paths = [Path("/opt")]
+        standard_ro_paths.extend(
+            Path(raw).expanduser()
+            for raw in configured_paths.split(os.pathsep)
+            if raw.strip()
+        )
+        for p in standard_ro_paths:
+            if p.exists():
+                cmd.extend(["--ro-bind", str(p), str(p)])
+
+        for p in self._extra_ro_binds:
+            if p.exists():
+                cmd.extend(["--ro-bind", str(p), str(p)])
 
         cmd.extend([
             "--bind",

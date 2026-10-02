@@ -1,0 +1,73 @@
+# Mind 3.0 Preflight Tool Versions
+Generated: 2026-09-28T05:24:00+05:30
+
+[EDA & VERIFICATION TOOLCHAIN]
+yosys:
+  path: /home/mind/oss-cad-suite/bin/yosys
+  version: Yosys 0.69+77 (git sha1 9ff27d29c-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+  capabilities: Synthesis, AST JSON elaboration, latch inference detection, LEC (equiv_status)
+
+sby (SymbiYosys):
+  path: /home/mind/oss-cad-suite/bin/sby
+  version: SBY v0.69
+  capabilities: Bounded model checking (BMC), formal property verification, SVA bind
+
+z3 (SMT Solver):
+  path: /home/mind/oss-cad-suite/bin/z3
+  version: Z3 version 4.15.5 - 64 bit
+  capabilities: SMT solving for SymbiYosys BMC engine
+
+boolector (SMT Solver):
+  path: /home/mind/oss-cad-suite/bin/boolector
+  version: 3.2.4
+  capabilities: Bit-vector SMT engine for SBY
+
+verilator:
+  path: /home/mind/oss-cad-suite/bin/verilator
+  version: Verilator 5.053 devel rev v5.052-159-g46774fded (mod)
+  capabilities: C++ cycle-accurate simulation, line coverage, branch coverage, toggle coverage
+
+iverilog (Icarus Verilog):
+  path: /home/mind/oss-cad-suite/bin/iverilog
+  version: Icarus Verilog version 14.0 (devel) (s20260301-476-g1a23d1ffd-dirty)
+  capabilities: IEEE 1364/1800 simulation, lexical analysis
+
+sta (OpenSTA):
+  path: /home/mind/openroad-env/bin/sta
+  version: 2.3.1
+  capabilities: Multi-corner static timing analysis, WNS/TNS calculation, setup/hold slack checking
+
+openroad:
+  path: /home/mind/openroad-env/bin/openroad
+  version: f12e2f474102bfb875eeee57fb610d7d7de17770
+  capabilities: Floorplanning, placement legalization, global routing, congestion analysis
+
+[ISOLATION & BUILD TOOLS]
+bwrap (Bubblewrap):
+  path: /usr/bin/bwrap
+  version: bubblewrap 0.9.0
+  capabilities: Unprivileged user namespaces, network namespace unsharing (--unshare-all)
+
+git:
+  path: /usr/bin/git
+  version: git version 2.43.0
+
+docker:
+  path: /usr/bin/docker
+  version: Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2
+
+node:
+  path: /home/mind/.local/bin/node
+  version: v22.23.2
+
+npm:
+  path: /home/mind/.local/bin/npm
+  version: 10.9.8
+
+python:
+  path: /home/mind/Desktop/AI/Mind-3.0/.venv/bin/python
+  version: Python 3.11.16
+
+uv:
+  path: /home/mind/.local/bin/uv
+  version: uv 0.12.17 (x86_64-unknown-linux-gnu)

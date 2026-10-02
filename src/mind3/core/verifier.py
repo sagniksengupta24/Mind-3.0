@@ -885,6 +885,57 @@ class SiliconSignoffVerifier(BaseVerifier):
         self.require_lec: bool = require_lec
         self.detected_versions: dict[str, str] = {}
 
+    def _make_not_run_gate(self, gate_name: str, reason: str) -> dict[str, Any]:
+        """Create a gate report entry for a gate that was not executed due to earlier failure."""
+        return {
+            "gate": gate_name,
+            "passed": False,
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "",
+            "details": f"NOT_RUN: {reason}",
+            "error_category": "NOT_RUN",
+            "status": "NOT_RUN",
+            "not_run_reason": reason,
+            "simulated": False,
+            "skipped": False,
+        }
+
+    def _append_not_run_gates(self, gate_reports: list[dict[str, Any]], start_after_gate: str) -> None:
+        """Append NOT_RUN entries for all gates that would execute after the given gate."""
+        # Define the full execution order of gates
+        gate_order = [
+            ("Gate 1: Yosys Elaboration & Latch Trap", True),
+            ("Gate 1b: Logic Equivalence Checking (LEC)", self.require_lec),
+            ("Gate 3: Verilator Coverage Signoff", True),
+            ("Gate 2: SymbiYosys Formal Property Verification", self.require_formal),
+            ("Gate 4: OpenSTA Multi-Corner Timing Signoff", bool(self.liberty_paths)),
+            ("Gate 5: OpenROAD Place-and-Route", self.require_pnr),
+            ("Gate 6: Yosys CDC Static Analysis", self.require_cdc),
+            ("DFT Scan Audit (Advisory)", True),
+        ]
+        # Find the index of the gate that just failed
+        start_idx = -1
+        for i, (gate_name, _) in enumerate(gate_order):
+            if gate_name == start_after_gate:
+                start_idx = i
+                break
+        # If not found, don't add any NOT_RUN gates
+        if start_idx == -1:
+            return
+        # Add NOT_RUN for all subsequent gates that are enabled
+        for gate_name, condition in gate_order[start_idx + 1:]:
+            if condition:
+                reason = f"blocked by earlier gate failure ({start_after_gate})"
+                gate_reports.append(self._make_not_run_gate(gate_name, reason))
+
+    def _mark_gate_status(self, gate_report: dict[str, Any]) -> None:
+        """Set explicit status field on an executed gate report based on passed field."""
+        if gate_report.get("passed", False):
+            gate_report["status"] = "PASS"
+        else:
+            gate_report["status"] = "FAIL"
+
     def verify(
         self,
         workspace: Path,
@@ -921,7 +972,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── Gate 1: Yosys AST Elaboration & Latch Trap Detector ──────────────
         gate1_res = self._run_gate1_yosys(eda_runner, sources, resolved_ws)
         gate_reports.append(gate1_res)
+        self._mark_gate_status(gate1_res)
         if not gate1_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 1: Yosys Elaboration & Latch Trap")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -939,7 +992,9 @@ class SiliconSignoffVerifier(BaseVerifier):
                 eda_runner, sources, gate1_res.get("netlist_path", f"{self.top_module}_netlist.v"), resolved_ws
             )
             gate_reports.append(gate1b_res)
+            self._mark_gate_status(gate1b_res)
             if not gate1b_res["passed"]:
+                self._append_not_run_gates(gate_reports, "Gate 1b: Logic Equivalence Checking (LEC)")
                 return VerificationResult(
                     passed=False,
                     domain=VerificationDomain.RTL,
@@ -955,7 +1010,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         # Compile/simulate before formal so formal never runs on behaviorally unvalidated RTL.
         gate3_res = self._run_gate3_coverage(eda_runner, sources, resolved_ws)
         gate_reports.append(gate3_res)
+        self._mark_gate_status(gate3_res)
         if not gate3_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 3: Verilator Coverage Signoff")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -970,7 +1027,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── Gate 2: SymbiYosys Formal Property Verification ──────────────────
         gate2_res = self._run_gate2_formal_sby(eda_runner, sources, resolved_ws)
         gate_reports.append(gate2_res)
+        self._mark_gate_status(gate2_res)
         if not gate2_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 2: SymbiYosys Formal Property Verification")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -993,7 +1052,9 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "simulated": False, "skipped": False,
             }
         gate_reports.append(gate4_res)
+        self._mark_gate_status(gate4_res)
         if not gate4_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 4: OpenSTA Multi-Corner Timing Signoff")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -1010,7 +1071,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── Gate 5: OpenROAD Place-and-Route (opt-in) ─────────────────────────
         gate5_res = self._run_gate5_openroad_pnr(eda_runner, sources, resolved_ws)
         gate_reports.append(gate5_res)
+        self._mark_gate_status(gate5_res)
         if not gate5_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 5: OpenROAD Place-and-Route")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -1026,7 +1089,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── Gate 6: Yosys CDC Static Analysis ────────────────────────────────
         gate6_res = self._run_gate6_cdc_analysis(eda_runner, sources, resolved_ws)
         gate_reports.append(gate6_res)
+        self._mark_gate_status(gate6_res)
         if not gate6_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 6: Yosys CDC Static Analysis")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -1042,6 +1107,7 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── DFT Scan Audit (advisory — never blocks signoff) ──────────────────
         dft_res = self._run_dft_scan_audit(eda_runner, sources, resolved_ws)
         gate_reports.append(dft_res)
+        self._mark_gate_status(dft_res)
 
         # Integrity: silicon_verified is False if any required gate was simulated or skipped.
         # Exception: Gate 5 (PnR, opt-in via require_pnr=False) and the DFT advisory
@@ -2517,16 +2583,20 @@ class SiliconSignoffVerifier(BaseVerifier):
 
 
 def get_gate_presentation_label(gate: dict[str, Any]) -> str:
-    """Derive [REAL EDA] vs [SIMULATED] vs [SKIPPED] directly from gate report fields.
+    """Derive [REAL EDA] vs [SIMULATED] vs [SKIPPED] vs [NOT_RUN] directly from gate report fields.
 
     Precedence:
-    1. If gate is skipped (`gate.get("skipped", False)` is True) -> "[SKIPPED]"
-    2. Else if gate is simulated/mocked (`gate.get("simulated", False)` is True) -> "[SIMULATED]"
-    3. Else (`skipped` is False and `simulated` is False) -> "[REAL EDA]"
+    1. If gate is NOT_RUN (`gate.get("status") == "NOT_RUN"`) -> "[NOT_RUN]"
+    2. If gate is skipped (`gate.get("skipped", False)` is True) -> "[SKIPPED]"
+    3. Else if gate is simulated/mocked (`gate.get("simulated", False)` is True) -> "[SIMULATED]"
+    4. Else (`skipped` is False and `simulated` is False) -> "[REAL EDA]"
 
     Raises:
         ValueError: If gate fields are contradictory (e.g. both skipped=True and simulated=True).
     """
+    status = gate.get("status")
+    if status == "NOT_RUN":
+        return "[NOT_RUN]"
     skipped = bool(gate.get("skipped", False))
     simulated = bool(gate.get("simulated", False))
     if skipped and simulated:
@@ -2544,11 +2614,14 @@ def format_gate_report_row(gate: dict[str, Any], idx: int | None = None) -> str:
     """Format a single gate report row for CLI presentation.
 
     Derives both status tag and tool provenance tag directly from gate report flags:
-    - Status: [SKIP] if skipped, [PASS] if passed, [FAIL] if not passed.
-    - Provenance: [SKIPPED], [SIMULATED], or [REAL EDA] via get_gate_presentation_label.
+    - Status: [NOT_RUN] if status=NOT_RUN, [SKIP] if skipped, [PASS] if passed, [FAIL] if not passed.
+    - Provenance: [NOT_RUN], [SKIPPED], [SIMULATED], or [REAL EDA] via get_gate_presentation_label.
     """
     label = get_gate_presentation_label(gate)
-    if gate.get("skipped", False):
+    status_val = gate.get("status")
+    if status_val == "NOT_RUN":
+        status = "[NOT_RUN]"
+    elif gate.get("skipped", False):
         status = "[SKIP]"
     elif gate.get("passed", False):
         status = "[PASS]"

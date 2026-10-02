@@ -3675,3 +3675,374 @@ def test_security_doc_cites_real_code_locations_and_telemetry() -> None:
     # Architectural constraint on Darwin/bwrap documented
     assert "Darwin" in content
     assert "libcap" in content
+
+
+def test_gate_not_run_state_explicit() -> None:
+    """NOT_RUN state must be explicitly represented for gates blocked by earlier failures.
+
+    Verifies that gates which never execute due to an earlier gate failure
+    are recorded with status=NOT_RUN and a reason, never as PASS/FAIL/VERIFIED.
+    """
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class FailingGate1Runner:
+        """Runner that makes Gate 1 fail."""
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            return subprocess.CompletedProcess(
+                args=command,
+                returncode=1,
+                stdout="",
+                stderr="Yosys elaboration failed: latch inferred",
+            )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text(
+            "module top(input a, output b); assign b = a; endmodule\n"
+        )
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = FailingGate1Runner(ws)
+        res = verifier.verify(ws, runner)
+
+        # Gate 1 should have FAILED
+        gate1 = next(g for g in res.gate_reports if "Gate 1:" in g["gate"])
+        assert gate1["status"] == "FAIL"
+        assert gate1["passed"] is False
+
+        # Gates 3, 2, 4, 6, DFT should be NOT_RUN (Gate 1b is opt-in and not required)
+        not_run_gates = [g for g in res.gate_reports if g.get("status") == "NOT_RUN"]
+        not_run_names = [g["gate"] for g in not_run_gates]
+
+        expected_not_run = [
+            "Gate 3: Verilator Coverage Signoff",
+            "Gate 2: SymbiYosys Formal Property Verification",
+            "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+            "Gate 6: Yosys CDC Static Analysis",
+            "DFT Scan Audit (Advisory)",
+        ]
+        for expected in expected_not_run:
+            assert expected in not_run_names, f"Expected {expected} to be NOT_RUN"
+
+        # Verify NOT_RUN gates have reason
+        for g in not_run_gates:
+            assert "not_run_reason" in g
+            assert "blocked by earlier gate failure" in g["not_run_reason"]
+            assert g["passed"] is False  # NOT_RUN must not be PASS
+
+        # No gate should have status PASS or FAIL except Gate 1
+        for g in res.gate_reports:
+            if g["gate"] == gate1["gate"]:
+                continue
+            assert g.get("status") == "NOT_RUN", f"Gate {g['gate']} should be NOT_RUN but is {g.get('status')}"
+
+
+def test_gate3_fails_gate2_not_run() -> None:
+    """If Gate 3 fails, Gate 2 must be NOT_RUN (not PASS/FAIL)."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class FailingGate3Runner:
+        """Runner that makes Gate 1 pass but Gate 3 fail (simulation binary missing)."""
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            cmd_str = " ".join(command)
+
+            # Gate 2: sby - return success (won't be reached due to Gate 3 failure)
+            if "sby" in cmd_str:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+            # Everything else passes (Gate 3 will fail because sim binary missing)
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text(
+            "module top(input a, output b); assign b = a; endmodule\n"
+        )
+        (ws / "top.sby").write_text("[options]\nmode bmc\n")
+        (ws / "top_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = FailingGate3Runner(ws)
+        res = verifier.verify(ws, runner)
+
+        # Gate 1 should PASS
+        gate1 = next(g for g in res.gate_reports if "Gate 1:" in g["gate"])
+        assert gate1["status"] == "PASS"
+
+        # Gate 3 will FAIL (simulation binary not found)
+        gate3 = next(g for g in res.gate_reports if "Gate 3:" in g["gate"])
+        assert gate3["status"] == "FAIL"
+
+        # Gate 2 should be NOT_RUN (blocked by Gate 3 failure)
+        gate2 = next(g for g in res.gate_reports if "Gate 2:" in g["gate"])
+        assert gate2["status"] == "NOT_RUN"
+        assert "blocked by earlier gate failure (Gate 3:" in gate2["not_run_reason"]
+        assert gate2["passed"] is False
+
+        # Gates 4, 6, DFT should also be NOT_RUN
+        for g in res.gate_reports:
+            if "Gate 4:" in g["gate"] or "Gate 6:" in g["gate"] or "DFT" in g["gate"]:
+                assert g["status"] == "NOT_RUN"
+                assert "blocked by earlier gate failure (Gate 3:" in g["not_run_reason"]
+
+
+def test_gate2_fails_later_gates_not_run() -> None:
+    """If Gate 2 fails, Gates 4, 5, 6 must be NOT_RUN."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class FailingGate2Runner:
+        """Runner that makes Gate 1, 3 pass but Gate 2 fail."""
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            cmd_str = " ".join(command)
+
+            # Gate 2: sby - return failure
+            if "sby" in cmd_str:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=1,
+                    stdout="",
+                    stderr="Assert failed in top: assert_property",
+                )
+
+            # Gate 3: verilator --build - return success with coverage info in output
+            if "verilator" in cmd_str and "--build" in cmd_str:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout="branch coverage 98.2%\ntoggle coverage 94.5%",
+                    stderr="",
+                )
+
+            # Gate 3: simulation binary execution - return success
+            if "obj_dir" in cmd_str or "Vtop" in cmd_str:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+            # Everything else passes
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text(
+            "module top(input a, output b); assign b = a; endmodule\n"
+        )
+        (ws / "top.sby").write_text("[options]\nmode bmc\n")
+        (ws / "top_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = FailingGate2Runner(ws)
+        res = verifier.verify(ws, runner)
+
+        # Gate 1 should PASS
+        gate1 = next(g for g in res.gate_reports if "Gate 1:" in g["gate"])
+        assert gate1["status"] == "PASS"
+
+        # Gate 2 should FAIL (formal verification failure)
+        gate2 = next(g for g in res.gate_reports if "Gate 2:" in g["gate"])
+        assert gate2["status"] == "FAIL"
+
+        # Gates 4, 6, DFT should be NOT_RUN (blocked by Gate 2 failure)
+        for g in res.gate_reports:
+            if "Gate 4:" in g["gate"] or "Gate 6:" in g["gate"] or "DFT" in g["gate"]:
+                assert g["status"] == "NOT_RUN"
+                assert "blocked by earlier gate failure (Gate 2:" in g["not_run_reason"]
+
+
+def test_all_gates_pass_full_verification() -> None:
+    """All required gates PASS -> aggregate verification PASS."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class AllPassRunner:
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            cmd_str = " ".join(command)
+
+            # Gate 3: verilator --build - return success with coverage info
+            if "verilator" in cmd_str and "--build" in cmd_str:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout="branch coverage 98.2%\ntoggle coverage 94.5%",
+                    stderr="",
+                )
+
+            # Gate 3: simulation binary execution - return success
+            if "obj_dir" in cmd_str or "Vtop" in cmd_str:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+            # Gate 4: sta - return success with timing info
+            if "sta" in cmd_str or "opensta" in cmd_str:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout="OpenSTA 2.6.0\nwns 0.25\n",
+                    stderr="",
+                )
+
+            # Everything else passes
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text(
+            "module top(input a, output b); assign b = a; endmodule\n"
+        )
+        (ws / "top.sby").write_text("[options]\nmode bmc\n")
+        (ws / "top_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = AllPassRunner(ws)
+        res = verifier.verify(ws, runner)
+
+        # All required gates should PASS
+        required_gates = [
+            "Gate 1: Yosys Elaboration & Latch Trap",
+            "Gate 3: Verilator Coverage Signoff",
+            "Gate 2: SymbiYosys Formal Property Verification",
+            "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+            "Gate 6: Yosys CDC Static Analysis",
+        ]
+        for gate_name in required_gates:
+            g = next(g for g in res.gate_reports if g["gate"] == gate_name)
+            assert g["status"] == "PASS", f"Expected {gate_name} to PASS"
+
+        # DFT is advisory
+        dft = next(g for g in res.gate_reports if "DFT" in g["gate"])
+        assert dft["status"] == "PASS"
+
+        # Overall result
+        assert res.passed is True
+        assert res.silicon_verified is True  # No simulated/skipped required gates
+
+
+def test_not_run_prevents_aggregate_pass() -> None:
+    """Any required gate NOT_RUN must prevent aggregate silicon_verified PASS."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class FailingGate1Runner:
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            return subprocess.CompletedProcess(
+                args=command, returncode=1, stdout="", stderr="fail"
+            )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text("module top(); endmodule\n")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = FailingGate1Runner(ws)
+        res = verifier.verify(ws, runner)
+
+        # silicon_verified must be False because required gates are NOT_RUN
+        assert res.silicon_verified is False
+        assert res.passed is False
+
+
+def test_empty_gate_reports_not_verified() -> None:
+    """No gates execute (source missing) -> not verified."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class EmptyRunner:
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        # No .sv files
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+        )
+        runner = EmptyRunner(ws)
+        res = verifier.verify(ws, runner)
+
+        assert res.passed is False
+        assert res.silicon_verified is False
+        assert res.error_category == "MISSING_SOURCE_FILES"

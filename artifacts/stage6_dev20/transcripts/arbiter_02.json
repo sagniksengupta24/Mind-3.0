@@ -1,0 +1,107 @@
+{
+  "task_id": "arbiter_02",
+  "category": "arbiters",
+  "name": "fixed_priority_4req",
+  "natural_language_spec": "4-client fixed priority arbiter granting client 0 over 1, 2, and 3",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output - inconsistent immutable contract",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "arbiter_02",
+    "functional_spec": "4-client fixed priority arbiter granting client 0 over 1, 2, and 3",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "req",
+        "direction": "input",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "gnt",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      }
+    ],
+    "clock": null,
+    "reset": null,
+    "behavior": [
+      "4-client fixed priority arbiter granting client 0 over 1, 2, and 3"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) req[0] |-> gnt[0]);",
+      "assert property (@(posedge clk) $onehot0(gnt));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) req[0] |-> gnt[0]);",
+      "assert property (@(posedge clk) $onehot0(gnt));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": null,
+        "antecedent": "req[0]",
+        "consequent": "gnt[0]",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "onehot0",
+        "clock": "clk",
+        "reset": null,
+        "antecedent": null,
+        "consequent": null,
+        "expression": null,
+        "signal": "gnt",
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": null,
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": false,
+    "status": "CONTRACT_CONSISTENCY_FAILURE",
+    "error_category": "SPECIFICATION_ERROR",
+    "violations": [
+      {
+        "category": "SPECIFICATION_ERROR",
+        "message": "Formal property 'contract_property_1' references clock 'clk', but that clock is not an input port in the immutable contract."
+      },
+      {
+        "category": "SPECIFICATION_ERROR",
+        "message": "Formal property 'contract_property_2' references clock 'clk', but that clock is not an input port in the immutable contract."
+      }
+    ]
+  },
+  "timestamp": 1790979095.905372,
+  "duration_seconds": null,
+  "environment": {
+    "contract_validation": "failed"
+  },
+  "artifact_hashes": {}
+}

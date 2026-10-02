@@ -107,3 +107,12 @@ python scripts/export_verified_bundle.py --approval human_approval.json
 ```
 
 The checked-in fixture report intentionally fails the release threshold because it contains zero real benchmark tasks.
+
+## Stage 6 measured evidence (2026-10-02)
+
+Model `qwen2.5-coder:7b` via provider `ollama`, strict parser, seed 42:
+
+- Development-20 (`artifacts/stage6_dev20/`, task-set `539e79af…59c8c`): 20/20 real transcripts, 0 initial / 0 functional / 0 full-verified / 0 repair (95% Wilson CI [0.0, 0.1611]). Failures: 19 `RESPONSE_PARSE_FAILURE`, 1 `SPECIFICATION_ERROR` (`arbiter_02` contract consistency). Tier: diagnostic.
+- Heldout partial (`artifacts/stage6_heldout/`, task-set `bae56a8d…dd2c24`): 42/120 real transcripts before interruption, 0 initial / 0 functional / 0 full-verified / 0 repair (95% Wilson CI [0.0, 0.0838]). Failures: 41 `RESPONSE_PARSE_FAILURE`, 1 `SPECIFICATION_ERROR`. Tier: diagnostic. The `>=100`-task release run is `[PENDING-HUMAN]`.
+
+No release eligibility is claimed.

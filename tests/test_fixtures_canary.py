@@ -267,7 +267,9 @@ def test_environment_eda_tool_availability_honesty() -> None:
         if shutil.which(tool_name) is not None:
             # When installed on PATH, must report genuine version output
             assert versions[tool_name] != "missing"
-            NAME_OMITTING_TOOLS = {"sta", "openroad"}  # confirmed via real OpenSTA 2.3.1 and OpenROAD f12e2f4741 output on this host
+            # OpenSTA's -version output returns only the numeric version (e.g. '3.1.0' on this host),
+            # omitting the executable name 'sta' from its output string.
+            NAME_OMITTING_TOOLS = {"sta"}
             ver_lower = versions[tool_name].lower()
             assert (
                 tool_name.lower() in ver_lower

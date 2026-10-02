@@ -30,11 +30,17 @@ def main() -> int:
         raise SystemExit(f"RELEASE_BLOCKED: missing {summary_path}")
 
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    real_count = int(summary.get("real_transcript_count", 0))
+    tier = summary.get("evidence_tier", "diagnostic")
+    if tier != "release-eligible":
+        raise SystemExit(f"RELEASE_BLOCKED: evidence tier is {tier!r}, must be 'release-eligible'")
+    if args.min_tasks < 100:
+        raise SystemExit(f"RELEASE_BLOCKED: release threshold cannot be lowered below 100 (got {args.min_tasks})")
+
+    real_count = int(summary.get("actual_real_transcripts", summary.get("real_transcript_count", 0)))
     functional = float(summary.get("functional_pass_rate", 0.0))
     verified = float(summary.get("full_verified_pass_rate", 0.0))
-    if real_count < args.min_tasks:
-        raise SystemExit(f"RELEASE_BLOCKED: real tasks {real_count} < {args.min_tasks}")
+    if real_count < 100 or real_count < args.min_tasks:
+        raise SystemExit(f"RELEASE_BLOCKED: real tasks {real_count} < {max(100, args.min_tasks)}")
     if functional < args.min_functional:
         raise SystemExit(f"RELEASE_BLOCKED: functional rate {functional:.1%} < {args.min_functional:.1%}")
     if verified < args.min_verified:

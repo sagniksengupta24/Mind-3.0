@@ -39,7 +39,7 @@ from .baselines import (
     BaselineType,
     _wilson_ci95,
 )
-from .runner import BenchmarkRunner, BenchmarkTask, sha256_file
+from .runner import BenchmarkRunner, BenchmarkTask, generate_caveat, sha256_file
 
 
 def get_git_commit_sha(repo_root: Path) -> str:
@@ -227,6 +227,12 @@ def build_html_report(
         <p style="color: var(--text-muted); margin: 4px 0 0 0;">
             Evaluated at: <strong>{summary.get('generated_at', '')}</strong> | Commit: <code>{manifest.get('git_commit_sha', 'UNKNOWN')[:8]}</code> | Seed: <code>{manifest.get('seed', 42)}</code>
         </p>
+        <p style="color: var(--text-muted); margin: 4px 0 0 0;">
+            Evidence Tier: <strong>{summary.get('evidence_tier', 'diagnostic')}</strong> | Live Provenance: <strong>{str(summary.get('live_provenance', False))}</strong> | Required Min Tasks: <strong>{summary.get('required_min_tasks', 100)}</strong>
+        </p>
+        <p style="color: #94a3b8; font-style: italic; margin: 4px 0 0 0;">
+            {summary.get('caveat', '')}
+        </p>
     </header>
 
     <h2>1. Overall Results</h2>
@@ -333,6 +339,8 @@ def execute_full_benchmark(
     api_key: str | None = None,
     base_url: str | None = None,
     liberty_path: str | list[str] | None = None,
+    required_min_tasks: int = 100,
+    diagnostic: bool = False,
 ) -> Path:
     """Run full benchmark, baselines, and emit all required artifacts in output_dir."""
     repo_root = Path(__file__).resolve().parents[3]
@@ -433,15 +441,44 @@ def execute_full_benchmark(
     fails_count = Counter(r.failure_category.value for r in mind_runs if not r.full_verified_pass)
     ci_low, ci_high = _wilson_ci95(n_full, n_total)
 
+    actual_real_transcripts = n_total if provider != "mock" else 0
+    live_provenance = actual_real_transcripts > 0
+
+    is_diagnostic = (
+        diagnostic
+        or (sample_size is not None and sample_size < 100)
+        or len(tasks) < 100
+        or required_min_tasks < 100
+    )
+    is_release_eligible = (
+        live_provenance
+        and actual_real_transcripts >= 100
+        and required_min_tasks >= 100
+        and not is_diagnostic
+    )
+    evidence_tier = "release-eligible" if is_release_eligible else "diagnostic"
+    caveat = generate_caveat(
+        evidence_tier=evidence_tier,
+        live_provenance=live_provenance,
+        actual_real_transcripts=actual_real_transcripts,
+        required_min_tasks=required_min_tasks,
+        diagnostic_flag=is_diagnostic,
+    )
+
     summary_data = {
         "execution_status": execution_status,
         "execution_message": execution_message,
-        "performance_claim_valid": provider != "mock" and n_total > 0,
+        "live_provenance": live_provenance,
+        "required_min_tasks": required_min_tasks,
+        "actual_real_transcripts": actual_real_transcripts,
+        "evidence_tier": evidence_tier,
+        "caveat": caveat,
+        "performance_claim_valid": is_release_eligible,
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "task_set_path": str(tasks_file),
         "task_set_sha256": task_set_sha,
         "transcript_count": n_total,
-        "real_transcript_count": n_total if provider != "mock" else 0,
+        "real_transcript_count": actual_real_transcripts,
         "fixture_count": 0,
         "compile_pass_count": n_comp,
         "simulation_pass_count": n_sim,
@@ -485,12 +522,17 @@ def execute_full_benchmark(
         "benchmark_suite": suite_path.name,
         "task_set_sha256": task_set_sha,
         "task_count": len(tasks),
-        "real_task_count": n_total,
+        "real_task_count": actual_real_transcripts,
+        "actual_real_transcripts": actual_real_transcripts,
+        "required_min_tasks": required_min_tasks,
+        "evidence_tier": evidence_tier,
+        "caveat": caveat,
+        "live_provenance": live_provenance,
         "requested_task_count": len(tasks),
         "execution_status": execution_status,
         "model_version": model,
         "provider": provider,
-        "performance_claim_valid": provider != "mock" and n_total > 0,
+        "performance_claim_valid": is_release_eligible,
         "seed": seed,
         "git_commit_sha": git_sha,
         "environment": {

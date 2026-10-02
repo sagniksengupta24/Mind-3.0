@@ -18,7 +18,7 @@ import tempfile
 import time
 from collections import Counter
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -102,6 +102,44 @@ class BenchmarkBaseline(BaseModel):
     source: str = Field(min_length=1)
 
 
+def generate_caveat(
+    evidence_tier: str,
+    live_provenance: bool,
+    actual_real_transcripts: int,
+    required_min_tasks: int,
+    diagnostic_flag: bool = False,
+) -> str:
+    """Generate an honest, derived human-readable caveat explaining run provenance and evidence tier."""
+    if not live_provenance or actual_real_transcripts == 0:
+        return (
+            f"Diagnostic evidence only: run contains {actual_real_transcripts} real model transcripts "
+            f"(schema-validation fixtures or mock providers only; zero live model inferences). "
+            f"Not eligible for release claims."
+        )
+    if diagnostic_flag:
+        return (
+            f"Diagnostic evidence only: run was explicitly executed in diagnostic mode "
+            f"with {actual_real_transcripts} real transcripts (required_min_tasks={required_min_tasks}). "
+            f"Not eligible for release claims."
+        )
+    if actual_real_transcripts < 100:
+        return (
+            f"Diagnostic evidence only: evaluated {actual_real_transcripts} real model transcripts, "
+            f"which does not satisfy the mandatory release threshold of at least 100 real tasks "
+            f"(required_min_tasks={required_min_tasks}). Not eligible for release claims."
+        )
+    if required_min_tasks < 100:
+        return (
+            f"Diagnostic evidence only: required_min_tasks={required_min_tasks} is below the "
+            f"mandatory 100-task release floor. Not eligible for release claims."
+        )
+    return (
+        f"Release-eligible evaluation: evaluated {actual_real_transcripts} real non-mock transcripts "
+        f"meeting the 100+ task threshold (required_min_tasks={required_min_tasks}). "
+        f"Metrics represent measured empirical model performance."
+    )
+
+
 class BenchmarkRunSummary(BaseModel):
     """Machine-readable benchmark evaluation summary."""
 
@@ -113,6 +151,12 @@ class BenchmarkRunSummary(BaseModel):
     transcript_count: int
     real_transcript_count: int
     fixture_count: int
+    live_provenance: bool = False
+    required_min_tasks: int = 100
+    actual_real_transcripts: int = 0
+    evidence_tier: Literal["diagnostic", "release-eligible"] = "diagnostic"
+    caveat: str = ""
+    performance_claim_valid: bool = False
     initial_pass_count: int
     functional_pass_count: int
     full_verified_pass_count: int
@@ -365,10 +409,35 @@ class BenchmarkRunner:
         transcript.duration_seconds = round(time.monotonic() - start, 3)
         return transcript
 
-    def evaluate_transcripts(self, transcripts: Iterable[BenchmarkTranscript]) -> BenchmarkRunSummary:
+    def evaluate_transcripts(
+        self,
+        transcripts: Iterable[BenchmarkTranscript],
+        required_min_tasks: int = 100,
+        diagnostic: bool = False,
+    ) -> BenchmarkRunSummary:
         rows = list(transcripts)
-        real = [t for t in rows if not t.is_schema_validation_fixture and t.provider != "mock"]
+        real = [t for t in rows if not t.is_schema_validation_fixture and getattr(t, "provider", "") != "mock"]
         fixtures = [t for t in rows if t.is_schema_validation_fixture]
+        actual_real_transcripts = len(real)
+        live_provenance = actual_real_transcripts > 0
+
+        is_release_eligible = (
+            live_provenance
+            and actual_real_transcripts >= 100
+            and required_min_tasks >= 100
+            and not diagnostic
+        )
+        evidence_tier: Literal["diagnostic", "release-eligible"] = (
+            "release-eligible" if is_release_eligible else "diagnostic"
+        )
+        caveat = generate_caveat(
+            evidence_tier=evidence_tier,
+            live_provenance=live_provenance,
+            actual_real_transcripts=actual_real_transcripts,
+            required_min_tasks=required_min_tasks,
+            diagnostic_flag=diagnostic,
+        )
+
         initial_pass = [t for t in real if _initial_passed(t)]
         functional = [t for t in real if _functional_passed(t)]
         verified = [t for t in real if bool(t.final_outcome.get("passed")) and bool(t.final_outcome.get("silicon_verified"))]
@@ -394,6 +463,12 @@ class BenchmarkRunner:
             transcript_count=len(rows),
             real_transcript_count=n,
             fixture_count=len(fixtures),
+            live_provenance=live_provenance,
+            required_min_tasks=required_min_tasks,
+            actual_real_transcripts=actual_real_transcripts,
+            evidence_tier=evidence_tier,
+            caveat=caveat,
+            performance_claim_valid=is_release_eligible,
             initial_pass_count=len(initial_pass),
             functional_pass_count=len(functional),
             full_verified_pass_count=len(verified),
@@ -466,17 +541,21 @@ class BenchmarkRunner:
             f"Task-set SHA-256: `{summary.task_set_sha256}`",
             "",
             "## Evidence scope",
+            f"- Evidence tier: **{summary.evidence_tier}**",
+            f"- Live provenance: **{summary.live_provenance}**",
             f"- Transcripts observed: {summary.transcript_count}",
-            f"- Real generation outputs included in metrics: {summary.real_transcript_count}",
+            f"- Real generation outputs included in metrics: {summary.actual_real_transcripts}",
             f"- Fixtures excluded: {summary.fixture_count}",
+            f"- Required minimum tasks: {summary.required_min_tasks}",
+            f"- Caveat: *{summary.caveat}*",
             "",
             "## Metrics",
             "| Metric | Count | Rate | 95% CI |",
             "|---|---:|---:|---:|",
-            f"| Initial success (Pass@1) | {summary.initial_pass_count}/{summary.real_transcript_count} | {summary.initial_pass_rate:.1%} | {_fmt_ci(summary.initial_pass_ci95)} |",
-            f"| Functional success | {summary.functional_pass_count}/{summary.real_transcript_count} | {summary.functional_pass_rate:.1%} | {_fmt_ci(summary.functional_pass_ci95)} |",
-            f"| Full verified success | {summary.full_verified_pass_count}/{summary.real_transcript_count} | {summary.full_verified_pass_rate:.1%} | {_fmt_ci(summary.full_verified_pass_ci95)} |",
-            f"| Repair success | {summary.repair_success_count}/{summary.real_transcript_count} | {summary.repair_success_rate:.1%} | — |",
+            f"| Initial success (Pass@1) | {summary.initial_pass_count}/{summary.actual_real_transcripts} | {summary.initial_pass_rate:.1%} | {_fmt_ci(summary.initial_pass_ci95)} |",
+            f"| Functional success | {summary.functional_pass_count}/{summary.actual_real_transcripts} | {summary.functional_pass_rate:.1%} | {_fmt_ci(summary.functional_pass_ci95)} |",
+            f"| Full verified success | {summary.full_verified_pass_count}/{summary.actual_real_transcripts} | {summary.full_verified_pass_rate:.1%} | {_fmt_ci(summary.full_verified_pass_ci95)} |",
+            f"| Repair success | {summary.repair_success_count}/{summary.actual_real_transcripts} | {summary.repair_success_rate:.1%} | — |",
             "",
             "## Guardrails",
             f"- Performance claims require at least {method['minimum_claim_tasks']} real holdout tasks.",
@@ -504,10 +583,10 @@ class BenchmarkRunner:
             return (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;"))
 
         rows = [
-            ("Initial success (Pass@1)", f"{summary.initial_pass_count}/{summary.real_transcript_count}", f"{summary.initial_pass_rate:.1%}", _fmt_ci(summary.initial_pass_ci95)),
-            ("Functional success", f"{summary.functional_pass_count}/{summary.real_transcript_count}", f"{summary.functional_pass_rate:.1%}", _fmt_ci(summary.functional_pass_ci95)),
-            ("Full verified success", f"{summary.full_verified_pass_count}/{summary.real_transcript_count}", f"{summary.full_verified_pass_rate:.1%}", _fmt_ci(summary.full_verified_pass_ci95)),
-            ("Repair success", f"{summary.repair_success_count}/{summary.real_transcript_count}", f"{summary.repair_success_rate:.1%}", "—"),
+            ("Initial success (Pass@1)", f"{summary.initial_pass_count}/{summary.actual_real_transcripts}", f"{summary.initial_pass_rate:.1%}", _fmt_ci(summary.initial_pass_ci95)),
+            ("Functional success", f"{summary.functional_pass_count}/{summary.actual_real_transcripts}", f"{summary.functional_pass_rate:.1%}", _fmt_ci(summary.functional_pass_ci95)),
+            ("Full verified success", f"{summary.full_verified_pass_count}/{summary.actual_real_transcripts}", f"{summary.full_verified_pass_rate:.1%}", _fmt_ci(summary.full_verified_pass_ci95)),
+            ("Repair success", f"{summary.repair_success_count}/{summary.actual_real_transcripts}", f"{summary.repair_success_rate:.1%}", "—"),
         ]
         html_rows = "\n".join(
             f"<tr><td>{esc(metric)}</td><td>{esc(count)}</td><td>{esc(rate)}</td><td>{esc(ci)}</td></tr>"
@@ -525,7 +604,9 @@ class BenchmarkRunner:
 <h1>Mind 3.0 Benchmark Report</h1>
 <p class=\"muted\">Generated: <code>{esc(summary.generated_at)}</code><br>Task-set SHA-256: <code>{esc(summary.task_set_sha256)}</code></p>
 <h2>Evidence scope</h2>
-<p>Observed transcripts: <b>{summary.transcript_count}</b>; real generation outputs used for metrics: <b>{summary.real_transcript_count}</b>; fixtures excluded: <b>{summary.fixture_count}</b>.</p>
+<p>Evidence tier: <b>{esc(summary.evidence_tier)}</b> | Live provenance: <b>{esc(summary.live_provenance)}</b></p>
+<p>Observed transcripts: <b>{summary.transcript_count}</b>; real generation outputs used for metrics: <b>{summary.actual_real_transcripts}</b>; fixtures excluded: <b>{summary.fixture_count}</b>; required min tasks: <b>{summary.required_min_tasks}</b>.</p>
+<p><em>{esc(summary.caveat)}</em></p>
 <h2>Metrics</h2>
 <table><thead><tr><th>Metric</th><th>Count</th><th>Rate</th><th>95% CI</th></tr></thead><tbody>{html_rows}</tbody></table>
 <h2>Guardrails</h2>
@@ -656,7 +737,8 @@ def _cli() -> int:
     parser.add_argument("--liberty", action="append", default=None)
     parser.add_argument("--max-repairs", type=int, default=3)
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--min-tasks", type=int, default=None, help="Minimum real tasks required for an evidence-complete report (default: min(100, selected task count))")
+    parser.add_argument("--diagnostic", action="store_true", help="Explicitly mark run as diagnostic/development mode (not release-eligible)")
+    parser.add_argument("--min-tasks", type=int, default=None, help="Minimum real tasks required for an evidence-complete report (default: 100 for release, or task count in diagnostic mode)")
     parser.add_argument("--evaluate-existing", action="store_true")
     parser.add_argument("--baselines", type=Path, default=None, help="JSON array of baselines measured on the exact same task-set hash")
     parser.add_argument("--dry-run", action="store_true")
@@ -667,13 +749,31 @@ def _cli() -> int:
     tasks = runner.load_tasks()
     if args.limit is not None:
         tasks = tasks[: args.limit]
-    required_min_tasks = args.min_tasks if args.min_tasks is not None else min(100, len(tasks))
+
+    if args.diagnostic:
+        required_min_tasks = args.min_tasks if args.min_tasks is not None else len(tasks)
+        is_diagnostic = True
+    else:
+        if args.min_tasks is not None and args.min_tasks < 100:
+            required_min_tasks = args.min_tasks
+            is_diagnostic = True
+        elif len(tasks) < 100:
+            required_min_tasks = args.min_tasks if args.min_tasks is not None else min(100, len(tasks))
+            is_diagnostic = True
+        else:
+            required_min_tasks = args.min_tasks if args.min_tasks is not None else 100
+            is_diagnostic = False
 
     if args.evaluate_existing:
         transcripts = runner.load_transcripts(args.transcripts)
     elif args.dry_run:
         missing = check_live_prerequisites()
-        print(json.dumps({"tasks": len(tasks), "required_min_tasks": required_min_tasks, "missing_live_prerequisites": missing}, indent=2))
+        print(json.dumps({
+            "tasks": len(tasks),
+            "required_min_tasks": required_min_tasks,
+            "evidence_tier": "diagnostic" if is_diagnostic else "release-eligible",
+            "missing_live_prerequisites": missing
+        }, indent=2))
         return 0 if not args.require_live or not missing else 2
     else:
         missing = check_live_prerequisites()
@@ -688,15 +788,15 @@ def _cli() -> int:
             runner.persist_transcript(transcript)
             transcripts.append(transcript)
 
-    summary = runner.evaluate_transcripts(transcripts)
+    summary = runner.evaluate_transcripts(transcripts, required_min_tasks=required_min_tasks, diagnostic=is_diagnostic)
     if args.baselines is not None:
         summary = runner.attach_baselines(summary, runner.load_baselines(args.baselines, summary.task_set_sha256))
     summary_path, report_path, html_path = runner.write_report(summary, args.report_dir)
     print(summary_path)
     print(report_path)
     print(html_path)
-    if summary.real_transcript_count < required_min_tasks:
-        print(f"EVIDENCE_INSUFFICIENT: {summary.real_transcript_count} real tasks < required {required_min_tasks}")
+    if summary.actual_real_transcripts < required_min_tasks:
+        print(f"EVIDENCE_INSUFFICIENT: {summary.actual_real_transcripts} real tasks < required {required_min_tasks}")
         return 1
     return 0
 

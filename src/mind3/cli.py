@@ -46,6 +46,8 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
             api_key=args.api_key,
             base_url=args.base_url,
             liberty_path=args.liberty,
+            required_min_tasks=args.min_tasks if getattr(args, "min_tasks", None) is not None else 100,
+            diagnostic=getattr(args, "diagnostic", False),
         )
         print(f"\nBenchmark completed successfully!")
         print(f"Artifacts generated in: {out_path}")
@@ -105,6 +107,8 @@ def main(argv: list[str] | None = None) -> int:
     p_bench.add_argument("--liberty", action="append", default=None, help="Liberty file(s) for timing")
     p_bench.add_argument("--output", type=Path, default=None, help="Output directory (default: results/)")
     p_bench.add_argument("--sample-size", type=int, default=None, help="Limit number of tasks to run")
+    p_bench.add_argument("--diagnostic", action="store_true", help="Explicitly mark run as diagnostic/development mode (not release-eligible)")
+    p_bench.add_argument("--min-tasks", type=int, default=None, help="Minimum tasks required for release qualification (default: 100)")
     p_bench.set_defaults(func=cmd_benchmark)
 
     # smoke-test

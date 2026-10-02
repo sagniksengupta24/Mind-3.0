@@ -61,8 +61,8 @@ def test_banned_marketing_terms_enforced() -> None:
     violations: list[str] = []
 
     for rel_path in tracked_files:
-        # Skip audit status logs and recovery patches which document historical findings
-        if rel_path.startswith(("audit/", "artifacts/recovery/")):
+        # Skip audit status logs, recovery patches, and the hygiene test itself
+        if rel_path.startswith(("audit/", "artifacts/recovery/")) or rel_path == "tests/test_claim_hygiene.py":
             continue
 
         p = REPO_ROOT / rel_path

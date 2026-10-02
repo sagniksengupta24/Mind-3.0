@@ -297,6 +297,10 @@ def test_benchmark_evaluator_excludes_fixtures_and_computes_confidence_intervals
     assert summary.functional_pass_count == 2
     assert summary.full_verified_pass_count == 1
     assert summary.initial_pass_ci95[0] < 0.5 < summary.initial_pass_ci95[1]
+    assert summary.actual_real_transcripts == 2
+    assert summary.live_provenance is True
+    assert summary.evidence_tier == "diagnostic"
+    assert summary.performance_claim_valid is False
 
 
 def test_benchmark_report_writes_json_markdown_and_html(tmp_path: Path) -> None:
@@ -330,3 +334,262 @@ def test_benchmark_baselines_require_matching_task_set(tmp_path: Path) -> None:
     attached = runner.attach_baselines(summary, baselines)
     assert attached.baseline_comparisons[0]["name"] == "direct-prompting"
     assert attached.baseline_comparisons[0]["functional_delta_vs_mind3"] == -0.45
+
+
+def test_unit_dev20_run_labeled_diagnostic_and_not_release_eligible() -> None:
+    """A 20-task development run must be labeled diagnostic and cannot be release-eligible."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner()
+    # 20 real transcripts with a non-mock model provider
+    real_20 = [
+        BenchmarkTranscript(
+            task_id=f"fsm_{i:02d}",
+            category="FSM",
+            name=f"fsm_{i}",
+            natural_language_spec="spec",
+            is_schema_validation_fixture=False,
+            model="qwen2.5-coder:7b",
+            provider="ollama",
+            final_outcome={"passed": False, "turns_taken": 1, "silicon_verified": False},
+        )
+        for i in range(20)
+    ]
+    # Even if required_min_tasks is default 100, evidence_tier MUST be diagnostic
+    summary_default = runner.evaluate_transcripts(real_20)
+    assert summary_default.evidence_tier == "diagnostic"
+    assert summary_default.live_provenance is True
+    assert summary_default.actual_real_transcripts == 20
+    assert summary_default.required_min_tasks == 100
+    assert summary_default.performance_claim_valid is False
+    assert "not eligible for release claims" in summary_default.caveat.lower()
+    assert "mandatory release threshold" in summary_default.caveat.lower()
+
+    # Even if required_min_tasks is explicitly set to 20, tier MUST remain diagnostic
+    summary_20 = runner.evaluate_transcripts(real_20, required_min_tasks=20)
+    assert summary_20.evidence_tier == "diagnostic"
+    assert summary_20.actual_real_transcripts == 20
+    assert summary_20.required_min_tasks == 20
+    assert summary_20.performance_claim_valid is False
+    assert "mandatory release threshold of at least 100 real tasks" in summary_20.caveat.lower()
+
+    # If 100 tasks are evaluated but required_min_tasks is configured below 100
+    real_100 = [
+        BenchmarkTranscript(
+            task_id=f"fsm_{i:03d}",
+            category="FSM",
+            name=f"fsm_{i}",
+            natural_language_spec="spec",
+            is_schema_validation_fixture=False,
+            model="qwen2.5-coder:7b",
+            provider="ollama",
+            final_outcome={"passed": False, "turns_taken": 1, "silicon_verified": False},
+        )
+        for i in range(100)
+    ]
+    summary_100_low_min = runner.evaluate_transcripts(real_100, required_min_tasks=50)
+    assert summary_100_low_min.evidence_tier == "diagnostic"
+    assert "below the mandatory 100-task release floor" in summary_100_low_min.caveat.lower()
+
+
+def test_unit_dev_run_cannot_accidentally_become_release_eligible() -> None:
+    """A dev run with n_total > 0 and non-mock provider cannot be release-eligible."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner()
+    # 5 tasks that all pass with a real provider
+    passing_5 = [
+        BenchmarkTranscript(
+            task_id=f"task_{i}",
+            category="Arithmetic",
+            name=f"task_{i}",
+            natural_language_spec="spec",
+            is_schema_validation_fixture=False,
+            model="qwen2.5-coder:7b",
+            provider="openrouter",
+            final_outcome={"passed": True, "turns_taken": 1, "silicon_verified": True},
+        )
+        for i in range(5)
+    ]
+    summary = runner.evaluate_transcripts(passing_5)
+    assert summary.full_verified_pass_rate == 1.0
+    assert summary.evidence_tier == "diagnostic"
+    assert summary.performance_claim_valid is False
+    assert summary.actual_real_transcripts == 5
+    assert summary.live_provenance is True
+
+
+def test_unit_live_provenance_strictly_distinguishes_mock_vs_real() -> None:
+    """live_provenance is False for mock inference/fixtures, and True only for real inference."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner()
+    mock_transcripts = [
+        BenchmarkTranscript(
+            task_id="mock_01",
+            category="FSM",
+            name="mock_01",
+            natural_language_spec="spec",
+            is_schema_validation_fixture=True,
+            model="mock",
+            provider="mock",
+            final_outcome={"passed": True, "silicon_verified": True},
+        ),
+        BenchmarkTranscript(
+            task_id="mock_02",
+            category="FSM",
+            name="mock_02",
+            natural_language_spec="spec",
+            is_schema_validation_fixture=False,
+            model="mock",
+            provider="mock",
+            final_outcome={"passed": False, "silicon_verified": False},
+        ),
+    ]
+    summary_mock = runner.evaluate_transcripts(mock_transcripts)
+    assert summary_mock.live_provenance is False
+    assert summary_mock.actual_real_transcripts == 0
+    assert summary_mock.evidence_tier == "diagnostic"
+    assert summary_mock.performance_claim_valid is False
+    assert "zero live model inferences" in summary_mock.caveat.lower()
+
+    # Real non-mock inference
+    real_transcript = BenchmarkTranscript(
+        task_id="real_01",
+        category="FSM",
+        name="real_01",
+        natural_language_spec="spec",
+        is_schema_validation_fixture=False,
+        model="qwen2.5-coder:7b",
+        provider="ollama",
+        final_outcome={"passed": False, "silicon_verified": False},
+    )
+    summary_real = runner.evaluate_transcripts([real_transcript])
+    assert summary_real.live_provenance is True
+    assert summary_real.actual_real_transcripts == 1
+
+
+def test_unit_actual_real_transcripts_is_not_simply_task_count() -> None:
+    """actual_real_transcripts counts only real non-mock transcripts, not task spec count or fixture rows."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner()
+    mixed = [
+        BenchmarkTranscript(
+            task_id="fix_01", category="FSM", name="f1", natural_language_spec="s",
+            is_schema_validation_fixture=True, model="mock", provider="mock",
+            final_outcome={"passed": True, "silicon_verified": True},
+        ),
+        BenchmarkTranscript(
+            task_id="fix_02", category="FSM", name="f2", natural_language_spec="s",
+            is_schema_validation_fixture=True, model="mock", provider="mock",
+            final_outcome={"passed": True, "silicon_verified": True},
+        ),
+        BenchmarkTranscript(
+            task_id="mock_run_01", category="FSM", name="m1", natural_language_spec="s",
+            is_schema_validation_fixture=False, model="mock", provider="mock",
+            final_outcome={"passed": True, "silicon_verified": True},
+        ),
+        BenchmarkTranscript(
+            task_id="real_run_01", category="FSM", name="r1", natural_language_spec="s",
+            is_schema_validation_fixture=False, model="real-model", provider="openrouter",
+            final_outcome={"passed": True, "silicon_verified": True},
+        ),
+    ]
+    summary = runner.evaluate_transcripts(mixed)
+    assert summary.transcript_count == 4
+    assert summary.fixture_count == 2
+    assert summary.actual_real_transcripts == 1  # only real_run_01 is real non-mock
+    assert summary.live_provenance is True
+
+
+def test_unit_persisted_summary_contains_required_fields_and_caveat(tmp_path: Path) -> None:
+    """summary.json must contain required_min_tasks, actual_real_transcripts, evidence_tier, caveat, live_provenance."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner()
+    transcripts = [
+        BenchmarkTranscript(
+            task_id="task_01", category="FSM", name="t1", natural_language_spec="s",
+            is_schema_validation_fixture=False, model="qwen", provider="ollama",
+            final_outcome={"passed": False, "silicon_verified": False},
+        )
+    ]
+    summary = runner.evaluate_transcripts(transcripts, required_min_tasks=20, diagnostic=True)
+    summary_path, md_path, html_path = runner.write_report(summary, tmp_path)
+
+    data = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert "required_min_tasks" in data
+    assert data["required_min_tasks"] == 20
+    assert "actual_real_transcripts" in data
+    assert data["actual_real_transcripts"] == 1
+    assert "evidence_tier" in data
+    assert data["evidence_tier"] == "diagnostic"
+    assert "live_provenance" in data
+    assert data["live_provenance"] is True
+    assert "caveat" in data
+    assert len(data["caveat"]) > 0
+    assert "diagnostic mode" in data["caveat"].lower()
+
+    # Check markdown and html output
+    md_text = md_path.read_text(encoding="utf-8")
+    assert "Evidence tier: **diagnostic**" in md_text
+    assert "Live provenance: **True**" in md_text
+    assert "Caveat:" in md_text
+
+    html_text = html_path.read_text(encoding="utf-8")
+    assert "Evidence tier: <b>diagnostic</b>" in html_text
+    assert "Live provenance: <b>True</b>" in html_text
+
+
+def test_unit_release_mode_cannot_silently_lower_100_task_minimum() -> None:
+    """Release qualification strictly requires at least 100 real tasks; lowering min-tasks forces diagnostic tier."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner()
+    # 99 real tasks (one short of 100)
+    real_99 = [
+        BenchmarkTranscript(
+            task_id=f"t_{i}", category="FSM", name=f"t_{i}", natural_language_spec="s",
+            is_schema_validation_fixture=False, model="qwen", provider="ollama",
+            final_outcome={"passed": True, "silicon_verified": True},
+        )
+        for i in range(99)
+    ]
+    # Even if someone attempts to pass required_min_tasks=99, tier MUST be diagnostic
+    summary_99 = runner.evaluate_transcripts(real_99, required_min_tasks=99)
+    assert summary_99.evidence_tier == "diagnostic"
+    assert summary_99.performance_claim_valid is False
+
+    # 100 real tasks with release threshold meets release-eligible
+    real_100 = [
+        BenchmarkTranscript(
+            task_id=f"t_{i}", category="FSM", name=f"t_{i}", natural_language_spec="s",
+            is_schema_validation_fixture=False, model="qwen", provider="ollama",
+            final_outcome={"passed": True, "silicon_verified": True},
+        )
+        for i in range(100)
+    ]
+    summary_100 = runner.evaluate_transcripts(real_100, required_min_tasks=100, diagnostic=False)
+    assert summary_100.evidence_tier == "release-eligible"
+    assert summary_100.performance_claim_valid is True
+    assert "Release-eligible evaluation" in summary_100.caveat
+
+
+def test_unit_diagnostic_flag_changes_evidence_tier_rather_than_bypassing() -> None:
+    """Passing diagnostic=True on a 100+ task run forces evidence_tier='diagnostic'."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTranscript
+
+    runner = BenchmarkRunner()
+    real_100 = [
+        BenchmarkTranscript(
+            task_id=f"t_{i}", category="FSM", name=f"t_{i}", natural_language_spec="s",
+            is_schema_validation_fixture=False, model="qwen", provider="ollama",
+            final_outcome={"passed": True, "silicon_verified": True},
+        )
+        for i in range(100)
+    ]
+    summary_diag = runner.evaluate_transcripts(real_100, required_min_tasks=100, diagnostic=True)
+    assert summary_diag.evidence_tier == "diagnostic"
+    assert summary_diag.performance_claim_valid is False
+    assert "explicitly executed in diagnostic mode" in summary_diag.caveat.lower()

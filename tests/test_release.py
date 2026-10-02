@@ -38,3 +38,54 @@ def test_release_approval_rejects_stale_summary_hash(tmp_path: Path) -> None:
     summary.write_text("{\"real_transcript_count\": 101}\n", encoding="utf-8")
     with pytest.raises(ValueError, match="does not match"):
         load_release_approval(approval, sha256_file(summary))
+
+
+def test_export_bundle_rejects_diagnostic_tier(tmp_path: Path, monkeypatch) -> None:
+    import runpy
+    source = tmp_path / "report"
+    source.mkdir()
+    summary = source / "benchmark_summary.json"
+    summary.write_text(json.dumps({
+        "evidence_tier": "diagnostic",
+        "actual_real_transcripts": 20,
+        "functional_pass_rate": 0.85,
+        "full_verified_pass_rate": 0.50,
+        "caveat": "Diagnostic evidence only",
+    }), encoding="utf-8")
+    approval = tmp_path / "approval.json"
+    approval.write_text("{}", encoding="utf-8")
+
+    export_script = Path(__file__).resolve().parents[1] / "scripts" / "export_verified_bundle.py"
+    monkeypatch.setattr("sys.argv", [
+        "export_verified_bundle.py",
+        "--source", str(source),
+        "--approval", str(approval),
+    ])
+    with pytest.raises(SystemExit, match="RELEASE_BLOCKED: evidence tier is 'diagnostic'"):
+        runpy.run_path(str(export_script), run_name="__main__")
+
+
+def test_export_bundle_rejects_lowering_min_tasks_below_100(tmp_path: Path, monkeypatch) -> None:
+    import runpy
+    source = tmp_path / "report"
+    source.mkdir()
+    summary = source / "benchmark_summary.json"
+    summary.write_text(json.dumps({
+        "evidence_tier": "release-eligible",
+        "actual_real_transcripts": 50,
+        "functional_pass_rate": 0.85,
+        "full_verified_pass_rate": 0.50,
+    }), encoding="utf-8")
+    approval = tmp_path / "approval.json"
+    approval.write_text("{}", encoding="utf-8")
+
+    export_script = Path(__file__).resolve().parents[1] / "scripts" / "export_verified_bundle.py"
+    monkeypatch.setattr("sys.argv", [
+        "export_verified_bundle.py",
+        "--source", str(source),
+        "--approval", str(approval),
+        "--min-tasks", "50",
+    ])
+    with pytest.raises(SystemExit, match="release threshold cannot be lowered below 100"):
+        runpy.run_path(str(export_script), run_name="__main__")
+

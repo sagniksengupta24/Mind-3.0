@@ -185,6 +185,19 @@ def test_reproducible_benchmark_execution_and_artifacts(tmp_path: Path) -> None:
     assert manifest["task_count"] == 2
     assert manifest["summary_sha256"] == sha256_file(out_dir / "summary.json")
     assert manifest["baseline_comparison_sha256"] == sha256_file(out_dir / "baseline_comparison.json")
+    assert manifest["live_provenance"] is False
+    assert manifest["actual_real_transcripts"] == 0
+    assert manifest["evidence_tier"] == "diagnostic"
+    assert manifest["performance_claim_valid"] is False
+
+    summary_json = json.loads((out_dir / "summary.json").read_text(encoding="utf-8"))
+    assert summary_json["live_provenance"] is False
+    assert summary_json["actual_real_transcripts"] == 0
+    assert summary_json["evidence_tier"] == "diagnostic"
+    assert summary_json["performance_claim_valid"] is False
+    assert "required_min_tasks" in summary_json
+    assert "caveat" in summary_json
+    assert "zero live model inferences" in summary_json["caveat"].lower()
 
 
 def test_benchmark_reproducibility_with_seed(tmp_path: Path) -> None:
@@ -206,12 +219,11 @@ def test_benchmark_reproducibility_with_seed(tmp_path: Path) -> None:
     assert s1["full_verified_pass_rate"] == s2["full_verified_pass_rate"]
 
 
-def test_small_benchmark_default_min_tasks(monkeypatch, tmp_path):
-    """A selected 20-task development run must not require the full 100-task evidence floor."""
-    from mind3.benchmarks.runner import BenchmarkRunner
+def test_small_benchmark_default_min_tasks(monkeypatch, tmp_path, capsys):
+    """A selected 20-task development run must not require the full 100-task evidence floor, but is diagnostic."""
+    from mind3.benchmarks.runner import _cli
 
-    monkeypatch.setattr("sys.argv", ["mind3", "--limit", "20", "--dry-run"])
-    runner = BenchmarkRunner(tasks_file=tmp_path / "tasks.jsonl", transcripts_dir=tmp_path / "transcripts")
+    tasks_path = tmp_path / "tasks.jsonl"
     tasks = [
         {
             "task_id": f"t{i}", "category": "rtl", "name": f"task-{i}",
@@ -219,5 +231,12 @@ def test_small_benchmark_default_min_tasks(monkeypatch, tmp_path):
             "sva_properties": ["1", "2"], "benchmark_origin": "test"
         } for i in range(20)
     ]
-    runner.tasks_file.write_text("\n".join(__import__('json').dumps(t) for t in tasks) + "\n", encoding="utf-8")
-    assert min(100, 20) == 20
+    tasks_path.write_text("\n".join(__import__('json').dumps(t) for t in tasks) + "\n", encoding="utf-8")
+
+    monkeypatch.setattr("sys.argv", ["mind3", "--tasks", str(tasks_path), "--limit", "20", "--dry-run"])
+    code = _cli()
+    assert code == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["tasks"] == 20
+    assert out["required_min_tasks"] == 20
+    assert out["evidence_tier"] == "diagnostic"

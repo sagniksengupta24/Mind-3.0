@@ -4206,3 +4206,285 @@ def test_benchmark_transcript_environment_records_parser_mode() -> None:
             transcript = runner.extract_transcript_tuple(task, driver, False)
             assert transcript.environment["parser_mode"] == mode
             driver.close()
+
+
+# ── Stage 4 CDC / Gate 6 semantic tests ────────────────────────────────────
+# All tool interactions below use deterministic fakes (synthetic unit behavior),
+# never real CDC execution. Real-tool evidence lives in the negative controls.
+
+
+def _stage4_ports(*extra: str) -> list:
+    from mind3.core.contracts import PortDefinition, PortDirection
+    base = [
+        PortDefinition(name="clk", direction=PortDirection.INPUT, width=1),
+        PortDefinition(name="rst_n", direction=PortDirection.INPUT, width=1),
+        PortDefinition(name="out", direction=PortDirection.OUTPUT, width=1),
+    ]
+    for name in extra:
+        base.append(PortDefinition(name=name, direction=PortDirection.INPUT, width=1))
+    return base
+
+
+def _stage4_contract(async_inputs=None, synchronous=True, with_reset=True, with_clock=True):
+    from mind3.core.contracts import ClockContract, InterfaceContract, ResetContract
+    return InterfaceContract(
+        module_name="cdc_mod",
+        functional_spec="Stage 4 CDC test design",
+        ports=_stage4_ports("irq", "data_b"),
+        clock=ClockContract(name="clk") if with_clock else None,
+        reset=ResetContract(name="rst_n", polarity="active_low", synchronous=synchronous) if with_reset else None,
+        async_inputs=async_inputs,
+    )
+
+
+class _Stage4Runner:
+    """Deterministic fake EDA runner recording whether the CDC tool was invoked."""
+
+    def __init__(self, stdout="", stderr="", returncode=0):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = returncode
+        self.commands: list[list[str]] = []
+
+    def run(self, command: list[str], timeout_sec: int = 30):
+        import subprocess
+        self.commands.append(command)
+        return subprocess.CompletedProcess(
+            args=command, returncode=self.returncode, stdout=self.stdout, stderr=self.stderr
+        )
+
+
+class _Stage4RefusingRunner(_Stage4Runner):
+    def run(self, command: list[str], timeout_sec: int = 30):
+        raise AssertionError(f"CDC tool must not execute for a contract-declared no-CDC design: {command}")
+
+
+def _stage4_gate(contract, runner, require_cdc=True):
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        src = ws / "cdc_mod.sv"
+        src.write_text("module cdc_mod(input clk, input rst_n, input irq, input data_b, output out); assign out = irq & data_b; endmodule\n")
+        verifier = SiliconSignoffVerifier(top_module="cdc_mod", contract=contract, require_cdc=require_cdc)
+        return verifier, verifier._run_gate6_cdc_analysis(runner, [src], ws)
+
+
+def test_cdc_single_clock_no_async_explicit_contract_skipped() -> None:
+    """One clock + sync reset + explicitly empty async_inputs -> SKIPPED by declaration."""
+    contract = _stage4_contract(async_inputs=[], synchronous=True)
+    verifier, res = _stage4_gate(contract, _Stage4RefusingRunner())
+    assert res["gate"] == "Gate 6: Yosys CDC Static Analysis"
+    assert res["passed"] is True
+    assert res["skipped"] is True
+    assert res["simulated"] is False
+    assert res["cdc_skip_reason"] == "contract_declares_no_cdc"
+    assert "contract explicitly declares" in res["details"]
+    assert "clock count" in res["details"]
+    assert res["error_category"] is None
+    assert res["cdc_violations"] == []
+
+
+def test_cdc_single_clock_async_reset_requires_analysis() -> None:
+    """One clock + asynchronous reset -> CDC runs (tool invoked), clean output passes."""
+    contract = _stage4_contract(async_inputs=[], synchronous=False)
+    runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
+    verifier, res = _stage4_gate(contract, runner)
+    assert len(runner.commands) == 1
+    assert "cdc -verbose" in " ".join(runner.commands[0])
+    assert res["passed"] is True
+    assert res.get("skipped", False) is False
+    assert res["error_category"] is None
+
+
+def test_cdc_single_clock_async_input_requires_analysis() -> None:
+    """One clock + declared async input -> CDC runs even though reset is synchronous."""
+    contract = _stage4_contract(async_inputs=["irq"], synchronous=True)
+    runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
+    _, res = _stage4_gate(contract, runner)
+    assert len(runner.commands) == 1
+    assert res["passed"] is True
+
+
+def test_cdc_clock_count_never_decides() -> None:
+    """The requirement decision ignores clock count; undeclared async state always requires CDC."""
+    from mind3.core.verifier import SiliconSignoffVerifier
+    with_clock = SiliconSignoffVerifier(top_module="t", contract=_stage4_contract(async_inputs=None, with_clock=True))
+    without_clock = SiliconSignoffVerifier(top_module="t", contract=_stage4_contract(async_inputs=None, with_clock=False))
+    assert with_clock._cdc_requirement() == (True, "async_inputs_undeclared")
+    assert without_clock._cdc_requirement() == (True, "async_inputs_undeclared")
+    # A two-clock port list with undeclared async state is likewise required.
+    two_clock = _stage4_contract(async_inputs=None)
+    runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
+    _, res = _stage4_gate(two_clock, runner)
+    assert len(runner.commands) == 1
+
+
+def test_cdc_missing_tool_yields_tooling_unavailable() -> None:
+    """Required CDC + absent 'cdc' command -> FAIL with CDC_TOOLING_UNAVAILABLE, never PASS."""
+    contract = _stage4_contract(async_inputs=None)
+    runner = _Stage4Runner(stdout="No such command or cell type: cdc\n", stderr="", returncode=0)
+    _, res = _stage4_gate(contract, runner)
+    assert res["passed"] is False
+    assert res["error_category"] == "CDC_TOOLING_UNAVAILABLE"
+    assert res.get("skipped", False) is False
+    assert "CDC command" in res["details"] or "cdc" in res["details"].lower()
+
+
+def test_cdc_violation_reports_evidence() -> None:
+    """Tool-reported crossing -> FAIL with CDC_VIOLATION and preserved tool evidence."""
+    contract = _stage4_contract(async_inputs=["data_b"])
+    runner = _Stage4Runner(stdout="[cdc] warning: unregistered crossing from clk_a to clk_b\n", returncode=0)
+    _, res = _stage4_gate(contract, runner)
+    assert res["passed"] is False
+    assert res["error_category"] == "CDC_VIOLATION"
+    assert len(res["cdc_violations"]) == 1
+    assert "clk_a" in res["cdc_violations"][0]
+
+
+def test_cdc_tool_error_yields_analysis_failed() -> None:
+    """Tool crash (nonzero exit, no violation markers) -> FAIL with CDC_ANALYSIS_FAILED."""
+    contract = _stage4_contract(async_inputs=None)
+    runner = _Stage4Runner(stdout="", stderr="ERROR: hierarchy check failed for top\n", returncode=1)
+    _, res = _stage4_gate(contract, runner)
+    assert res["passed"] is False
+    assert res["error_category"] == "CDC_ANALYSIS_FAILED"
+
+
+def test_cdc_explicit_opt_out_recorded_distinctly() -> None:
+    """require_cdc=False skips are recorded as explicit opt-outs, distinct from contract skips."""
+    contract = _stage4_contract(async_inputs=None)
+    runner = _Stage4Runner(stdout="", stderr="yosys: command not found\n", returncode=127)
+    _, res = _stage4_gate(contract, runner, require_cdc=False)
+    assert res["passed"] is True
+    assert res["skipped"] is True
+    assert res["cdc_skip_reason"] == "explicit_opt_out"
+    assert "opted out" in res["details"]
+    assert res["cdc_skip_reason"] != "contract_declares_no_cdc"
+
+
+def test_cdc_pass_requires_actual_execution() -> None:
+    """PASS occurs only when the tool actually ran and reported clean."""
+    contract = _stage4_contract(async_inputs=["irq"])
+    runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
+    _, res = _stage4_gate(contract, runner)
+    assert len(runner.commands) == 1
+    assert res["passed"] is True
+    assert res["error_category"] is None
+    assert res["cdc_violations"] == []
+
+
+def test_cdc_gate_always_has_explicit_state_in_orchestration() -> None:
+    """Through verify(), a failing Gate 6 is recorded with explicit FAIL status (never NOT_RUN/PASS)."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class _FailGate6Runner:
+        def run(self, command: list[str], timeout_sec: int = 30):
+            import subprocess
+            cmd = " ".join(command)
+            if "cdc -verbose" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="[cdc] warning: crossing clk to out\n", stderr="")
+            if "verilator" in cmd and "--build" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="branch coverage 98.2%\ntoggle coverage 94.5%", stderr="")
+            if "sta" in cmd or "opensta" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="OpenSTA 2.6.0\nwns 0.25\n", stderr="")
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "cdc_mod.sv").write_text("module cdc_mod(input clk, input rst_n, input irq, input data_b, output out); assign out = irq & data_b; endmodule\n")
+        (ws / "cdc_mod.sby").write_text("[options]\nmode bmc\n")
+        (ws / "cdc_mod_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+        contract = _stage4_contract(async_inputs=["out"])
+        verifier = SiliconSignoffVerifier(
+            top_module="cdc_mod", contract=contract, liberty_path="dummy.lib",
+            allow_mock_fallback=False, require_cdc=True,
+        )
+        res = verifier.verify(ws, _FailGate6Runner())  # type: ignore
+        assert res.passed is False
+        assert res.silicon_verified is False
+        gate6 = next(g for g in res.gate_reports if g["gate"] == "Gate 6: Yosys CDC Static Analysis")
+        assert gate6["status"] == "FAIL"
+        assert gate6["error_category"] == "CDC_VIOLATION"
+        assert gate6["passed"] is False
+
+
+def test_cdc_contract_skip_keeps_signoff_neutral() -> None:
+    """A contract-declared no-CDC skip does not invalidate silicon_verified; tool absence does."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class _SkipGate6Runner:
+        def run(self, command: list[str], timeout_sec: int = 30):
+            import subprocess
+            cmd = " ".join(command)
+            if "cdc -verbose" in cmd:
+                raise AssertionError("CDC tool must not run for contract-declared no-CDC design")
+            if "verilator" in cmd and "--build" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="branch coverage 98.2%\ntoggle coverage 94.5%", stderr="")
+            if "sta" in cmd or "opensta" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="OpenSTA 2.6.0\nwns 0.25\n", stderr="")
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "cdc_mod.sv").write_text("module cdc_mod(input clk, input rst_n, input irq, input data_b, output out); assign out = irq & data_b; endmodule\n")
+        (ws / "cdc_mod.sby").write_text("[options]\nmode bmc\n")
+        (ws / "cdc_mod_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+        contract = _stage4_contract(async_inputs=[], synchronous=True)
+        verifier = SiliconSignoffVerifier(
+            top_module="cdc_mod", contract=contract, liberty_path="dummy.lib",
+            allow_mock_fallback=False, require_cdc=True,
+        )
+        res = verifier.verify(ws, _SkipGate6Runner())  # type: ignore
+        gate6 = next(g for g in res.gate_reports if g["gate"] == "Gate 6: Yosys CDC Static Analysis")
+        assert gate6["skipped"] is True
+        assert gate6["cdc_skip_reason"] == "contract_declares_no_cdc"
+        assert res.passed is True
+        assert res.silicon_verified is True
+
+
+def test_cdc_result_survives_serialization() -> None:
+    """Gate 6 records round-trip through JSON with categories and reasons intact."""
+    import json
+    contract = _stage4_contract(async_inputs=None)
+    _, missing = _stage4_gate(contract, _Stage4Runner(stdout="No such command: cdc\n", returncode=0))
+    _, violation = _stage4_gate(
+        _stage4_contract(async_inputs=["data_b"]),
+        _Stage4Runner(stdout="[cdc] warning: crossing a to b\n", returncode=0),
+    )
+    _, skipped = _stage4_gate(_stage4_contract(async_inputs=[]), _Stage4RefusingRunner())
+    for res in (missing, violation, skipped):
+        parsed = json.loads(json.dumps(res))
+        assert parsed["error_category"] == res["error_category"]
+        assert parsed.get("cdc_skip_reason") == res.get("cdc_skip_reason")
+        assert parsed["cdc_violations"] == res["cdc_violations"]
+        assert parsed["passed"] == res["passed"]
+
+
+def test_cdc_categories_stay_distinct_in_taxonomy() -> None:
+    """Classifier preserves fine-grained CDC categories instead of collapsing them."""
+    from mind3.core.failure_taxonomy import FailureCategory, classify_failure
+    assert classify_failure(error_category="CDC_VIOLATION").canonical_category == FailureCategory.CDC_FAILURE
+    tooling = classify_failure(error_category="CDC_TOOLING_UNAVAILABLE")
+    assert tooling.fine_grained_category == "CDC_TOOLING_UNAVAILABLE"
+    assert tooling.canonical_category != FailureCategory.CDC_FAILURE
+    failed = classify_failure(error_category="CDC_ANALYSIS_FAILED")
+    assert failed.fine_grained_category == "CDC_ANALYSIS_FAILED"
+    assert failed.canonical_category != FailureCategory.CDC_FAILURE
+
+
+def test_cdc_async_input_must_be_declared_port() -> None:
+    """Contract consistency rejects async inputs that are not declared input ports."""
+    from mind3.core.contracts import validate_contract_consistency
+    bad = _stage4_contract(async_inputs=["ghost_signal"])
+    violations = validate_contract_consistency(bad)
+    assert any("ghost_signal" in v["message"] for v in violations)
+    good = _stage4_contract(async_inputs=["irq"])
+    assert validate_contract_consistency(good) == []

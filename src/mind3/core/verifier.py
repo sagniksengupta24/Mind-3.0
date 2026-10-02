@@ -1117,6 +1117,15 @@ class SiliconSignoffVerifier(BaseVerifier):
             _OPTIONAL_GATE_NAMES.add("Gate 6: Yosys CDC Static Analysis")
         if not self.require_lec:
             _OPTIONAL_GATE_NAMES.add("Gate 1b: Logic Equivalence Checking (LEC)")
+        # A contract-declared no-CDC skip is vacuous by explicit declaration, so it
+        # does not invalidate signoff. Tool absence (CDC_TOOLING_UNAVAILABLE) and
+        # analysis failures never reach this path: they fail closed above.
+        if any(
+            g.get("gate") == "Gate 6: Yosys CDC Static Analysis"
+            and g.get("cdc_skip_reason") == "contract_declares_no_cdc"
+            for g in gate_reports
+        ):
+            _OPTIONAL_GATE_NAMES.add("Gate 6: Yosys CDC Static Analysis")
 
         is_simulated = any(g.get("simulated", False) for g in gate_reports)
         is_skipped = any(
@@ -2367,8 +2376,55 @@ class SiliconSignoffVerifier(BaseVerifier):
             "simulated": False,
         }
 
+    def _cdc_requirement(self) -> tuple[bool, str]:
+        """Decide from explicit contract state whether CDC analysis is required.
+
+        Returns (required, reason_code) where reason_code is one of:
+        "explicit_opt_out", "no_contract", "async_inputs_undeclared",
+        "async_reset", "async_inputs_declared", or "contract_declares_no_cdc".
+
+        Clock count deliberately plays no role: one clock never skips CDC, and
+        multiple clocks are left for the tool to analyze. Only an explicit
+        contract declaration (async_inputs == [] with no async reset) waives
+        the requirement; an undeclared (None) async-input state requires it.
+        """
+        if not self.require_cdc:
+            return False, "explicit_opt_out"
+        contract = self.contract
+        if contract is None:
+            return True, "no_contract"
+        async_inputs = getattr(contract, "async_inputs", None)
+        if async_inputs is None:
+            return True, "async_inputs_undeclared"
+        reset = getattr(contract, "reset", None)
+        if reset is not None and not bool(getattr(reset, "synchronous", True)):
+            return True, "async_reset"
+        if len(async_inputs) > 0:
+            return True, "async_inputs_declared"
+        return False, "contract_declares_no_cdc"
+
     def _run_gate6_cdc_analysis(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
         """Execute Yosys CDC static analysis to detect unregistered clock-domain crossings."""
+        if self.require_cdc:
+            required, reason = self._cdc_requirement()
+            if not required:
+                return {
+                    "gate": "Gate 6: Yosys CDC Static Analysis",
+                    "passed": True,
+                    "exit_code": 0,
+                    "stdout": "CDC analysis skipped: contract explicitly declares no CDC crossings requiring analysis.",
+                    "stderr": "",
+                    "details": (
+                        "CDC gate skipped: the contract explicitly declares no asynchronous "
+                        "inputs and no asynchronous reset, so no crossings require analysis. "
+                        "This skip is by contract declaration, not by clock count."
+                    ),
+                    "error_category": None,
+                    "cdc_violations": [],
+                    "cdc_skip_reason": "contract_declares_no_cdc",
+                    "skipped": True,
+                    "simulated": False,
+                }
         src_args = [str(s.relative_to(ws)) for s in sources]
         yosys_cdc_script = (
             f"read_verilog -sv {' '.join(src_args)}; "
@@ -2403,6 +2459,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "details": "CDC gate bypassed: missing Yosys binary and caller opted out.",
                     "error_category": None,
                     "cdc_violations": [],
+                    "cdc_skip_reason": "explicit_opt_out",
                     "skipped": True,
                     "simulated": False,
                 }
@@ -2447,6 +2504,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "details": "CDC gate bypassed: Yosys lacks CDC command and caller opted out.",
                     "error_category": None,
                     "cdc_violations": [],
+                    "cdc_skip_reason": "explicit_opt_out",
                     "skipped": True,
                     "simulated": False,
                 }

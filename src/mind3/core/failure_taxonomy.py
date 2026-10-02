@@ -83,6 +83,11 @@ _FINE_GRAINED_MAP: dict[str, FailureCategory] = {
     # CDC violations
     "CDC_VIOLATION": FailureCategory.CDC_FAILURE,
     "UNSYNCHRONIZED_CROSSING": FailureCategory.CDC_FAILURE,
+    # CDC tooling/analysis failures: canonical bucket is environmental, but the
+    # fine-grained category is preserved exactly and must never be relabeled
+    # as CDC_VIOLATION (no crossing was proven).
+    "CDC_TOOLING_UNAVAILABLE": FailureCategory.ENVIRONMENT_FAILURE,
+    "CDC_ANALYSIS_FAILED": FailureCategory.ENVIRONMENT_FAILURE,
     # Coverage deficits
     "COVERAGE_DEFICIT": FailureCategory.COVERAGE_FAILURE,
     "LOW_BRANCH_COVERAGE": FailureCategory.COVERAGE_FAILURE,

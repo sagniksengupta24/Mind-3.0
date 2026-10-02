@@ -158,6 +158,18 @@ class InterfaceContract(BaseModel):
         default_factory=TimingConstraint,
         description="Physical timing and clock constraints",
     )
+    async_inputs: list[str] | None = Field(
+        default=None,
+        description=(
+            "Asynchronous input signals sampled by clocked logic (external interrupts, "
+            "asynchronous enables, asynchronous status/control inputs). None means the "
+            "contract does not declare async-input state, so CDC analysis is required. "
+            "An explicitly empty list declares that the design has no asynchronous "
+            "inputs. Gate 6 may only be skipped for 'no crossings' when this is an "
+            "explicit empty list and the reset is absent or synchronous; clock count "
+            "alone never justifies a skip."
+        ),
+    )
 
     def to_header_template(self) -> str:
         """Render empty module header with ports and parameters."""
@@ -424,6 +436,20 @@ def validate_contract_consistency(contract: InterfaceContract) -> list[dict[str,
                 "message": f"Contract reset '{contract.reset.name}' must be an input port.",
             })
 
+    if contract.async_inputs is not None:
+        for async_name in contract.async_inputs:
+            port = ports.get(async_name)
+            if port is None:
+                violations.append({
+                    "category": "SPECIFICATION_ERROR",
+                    "message": f"Contract async input '{async_name}' is not present in the port list.",
+                })
+            elif port.direction != PortDirection.INPUT:
+                violations.append({
+                    "category": "SPECIFICATION_ERROR",
+                    "message": f"Contract async input '{async_name}' must be an input port.",
+                })
+
     declared = set(ports) | set(contract.parameters)
     for prop in [*contract.formal_properties, *contract.sva_properties]:
         prop_clock = getattr(prop, "clock", None)
@@ -587,7 +613,8 @@ class ContractSynthesizer:
             "Mandatory guidelines:\n"
             "1. Pinout: Explicitly define every clock, reset, data, and handshake port with proper bit-widths.\n"
             "2. Formal Invariants: Author 2 to 5 SystemVerilog Assertions (SVA) using typed bounded-property templates (a deterministic subset of SVA). Do NOT emit arbitrary SVA sequences, cover/assume statements, or unsupported temporal syntax.\n"
-            "3. Timing: Define target clock period in nanoseconds.\n\n"
+            "3. Timing: Define target clock period in nanoseconds.\n"
+            "4. CDC inputs: List every asynchronous input signal (external interrupts, asynchronous enables, asynchronous status/control inputs sampled by clocked logic) in async_inputs. Use an explicitly empty list ONLY when the design has no asynchronous inputs; use null when async-input state is unknown. Declare the reset synchronous flag honestly: an asynchronous reset still requires CDC analysis even with a single clock.\n\n"
             "Preferred formal_properties templates:\n"
             '{"name":"req_implies_gnt","kind":"same_cycle_implication","clock":"clk","reset":"rst_n:active_low","antecedent":"req","consequent":"gnt"}\n'
             '{"name":"req_implies_gnt_next","kind":"next_cycle_implication","clock":"clk","reset":"rst_n:active_low","antecedent":"req","consequent":"gnt"}\n'
@@ -610,7 +637,8 @@ class ContractSynthesizer:
             '  "sva_properties": [\n' 
             '    {"name":"p_req_gnt","property_expr":"assert property (@(posedge clk) req |-> gnt);","clock":"clk","reset":"rst_n","description":"Request implies grant"}\n' 
             '  ],\n' 
-            '  "timing": {"clock_name": "clk", "period_ns": 10.0}\n' 
+            '  "timing": {"clock_name": "clk", "period_ns": 10.0},\n'
+            '  "async_inputs": []\n'
         "}\n"
         'Port direction must be one of: "input", "output", "inout".'
         )

@@ -1303,7 +1303,7 @@ class PhaseDriver:
                 )
             elif v_result.error_category == "FORMAL_INVARIANT_BREACH":
                 repair_feedback = (
-                    "GATE 2 SIGN-OFF FAILURE: Formal SVA invariant breached in SymbiYosys BMC.\n"
+                    "GATE 2 SIGN-OFF FAILURE: Formal invariant (typed bounded-property template) breached in SymbiYosys BMC.\n"
                     f"Counterexample Trace: {v_result.failure_reason}\n"
                     "Fix Invariant: Correct sequential transition condition to prevent illegal state activation."
                 )

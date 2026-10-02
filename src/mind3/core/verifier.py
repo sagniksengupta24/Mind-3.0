@@ -1505,7 +1505,7 @@ class SiliconSignoffVerifier(BaseVerifier):
         }
 
     def _run_gate2_formal_sby(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
-        """Execute SymbiYosys Bounded Model Checking formal verification with SVA binding."""
+        """Execute SymbiYosys Bounded Model Checking formal verification using typed bounded-property templates (a supported subset of SVA)."""
         sby_files = list(ws.glob("*.sby"))
         if not sby_files and self.contract is not None:
             from .contracts import VerificationHarnessGenerator, UnsupportedFormalPropertyError
@@ -1561,7 +1561,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "stderr": "Missing formal verification harness (.sby).",
                     "details": (
                         "No .sby formal harness or formal contract found. "
-                        "Generate a SymbiYosys (.sby) formal verification harness or specify an InterfaceContract with SVA properties."
+                        "Generate a SymbiYosys (.sby) formal verification harness or specify an InterfaceContract with typed bounded-property templates (a supported subset of SVA)."
                     ),
                     "error_category": "MISSING_VERIFICATION_ARTIFACT",
                     "skipped": False,

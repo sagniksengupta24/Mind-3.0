@@ -69,10 +69,11 @@ class SVAProperty(BaseModel):
         Note: Yosys (without Verific frontend) only supports simple boolean assertions
         in procedural blocks (always/always_comb), not full SVA property/sequence syntax.
         This method returns a comment for backward compatibility; actual assertion
-        generation is done by VerificationHarnessGenerator.build_sva_bind_module().
+        generation is done by VerificationHarnessGenerator.build_sva_bind_module() using
+        typed bounded-property templates (a supported subset of SVA).
         """
         return (
-            f"  // SVA Property: {self.name} (Yosys-compatible generation in build_sva_bind_module)\n"
+            f"  // SVA Property: {self.name} (Yosys-compatible generation in build_sva_bind_module using typed bounded templates)\n"
             f"  // Original expression: {self.property_expr}\n"
         )
 
@@ -585,7 +586,7 @@ class ContractSynthesizer:
             "You MUST output ONLY a valid JSON object strictly adhering to the InterfaceContract schema.\n"
             "Mandatory guidelines:\n"
             "1. Pinout: Explicitly define every clock, reset, data, and handshake port with proper bit-widths.\n"
-            "2. Formal Invariants: Author 2 to 5 SystemVerilog Assertions (SVA) using the bounded deterministic templates below. Do NOT emit arbitrary SVA sequences, cover/assume statements, or unsupported temporal syntax.\n"
+            "2. Formal Invariants: Author 2 to 5 SystemVerilog Assertions (SVA) using typed bounded-property templates (a deterministic subset of SVA). Do NOT emit arbitrary SVA sequences, cover/assume statements, or unsupported temporal syntax.\n"
             "3. Timing: Define target clock period in nanoseconds.\n\n"
             "Preferred formal_properties templates:\n"
             '{"name":"req_implies_gnt","kind":"same_cycle_implication","clock":"clk","reset":"rst_n:active_low","antecedent":"req","consequent":"gnt"}\n'

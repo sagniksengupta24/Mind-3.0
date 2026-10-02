@@ -22,12 +22,16 @@ Mind 3.0 is an evidence-backed, fail-closed SystemVerilog IP generation and veri
 
 ### Six validation gates
 - **Gate 1 — Elaboration & Syntax (Yosys)**: Full hierarchy elaboration, strict `$dlatch` / latch detection, and combinational loop detection.
-- **Gate 1b — LEC (Yosys)**: Logic equivalence checking for synthesis transformations.
-- **Gate 2 — Formal Verification (SymbiYosys + SMT)**: Bounded Model Checking (BMC) with deterministic typed formal-property templates.
+- **Gate 1b — LEC (Yosys)**: Logic equivalence checking for synthesis transformations (opt-in).
 - **Gate 3 — Simulation & Coverage (Verilator)**: Cycle-accurate C++ testbench execution with statement, toggle, and branch coverage measurement.
+- **Gate 2 — Formal Verification (SymbiYosys + SMT)**: Bounded Model Checking (BMC) with deterministic typed formal-property templates.
 - **Gate 4 — Static Timing Analysis (OpenSTA)**: Setup/hold slack validation against target technology Liberty (.lib) files.
 - **Gate 5 — Physical Signoff (OpenROAD)**: Opt-in macro placement and routing checks.
 - **Gate 6 — Clock Domain Crossing (Yosys CDC)**: Formal structural analysis of asynchronous clock crossings; missing CDC tooling fails closed.
+
+> [!NOTE]
+> **Execution Order & Reporting**:
+> Actual execution proceeds sequentially: Gate 1 → Gate 1b → Gate 3 → Gate 2 → Gate 4 → Gate 5 → Gate 6. Verification fails closed on the first violation. Consequently, if an earlier gate (such as Gate 3) fails, Gate 2 is not executed and is not recorded in the result reports.
 
 ### 12-Category Failure Taxonomy
 Deterministic mapping from raw tool stderr/stdout and structured evidence into canonical machine-readable categories:

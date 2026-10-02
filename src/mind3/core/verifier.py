@@ -808,12 +808,15 @@ class SiliconSignoffVerifier(BaseVerifier):
 
     Gate 1: Yosys Elaboration & Latch Trap Detector
     Gate 1b: Logic Equivalence Checking (LEC) (opt-in via require_lec=True)
-    Gate 2: SymbiYosys Formal Property Verification (BMC)
     Gate 3: Verilator Coverage Signoff (Branch & Toggle)
+    Gate 2: SymbiYosys Formal Property Verification (BMC)
     Gate 4: OpenSTA Multi-Corner Timing Signoff (setup + hold)
     Gate 5: OpenROAD Place-and-Route (opt-in; require_pnr=True to enable)
     Gate 6: Yosys CDC Static Analysis (clock-domain crossing detection)
     DFT:    Scan-chain advisory audit (always runs; never blocks signoff)
+
+    Execution proceeds sequentially and fails closed on the first failing gate.
+    Note: Gate 2 is not executed or recorded when an earlier gate (such as Gate 3) fails.
     """
 
     def __init__(

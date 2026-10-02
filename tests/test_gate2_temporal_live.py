@@ -38,7 +38,6 @@ from mind3.core.formal_templates import (
 from mind3.core.verifier import SiliconSignoffVerifier, parse_sby_cover
 from mind3.sandbox.remote_eda import LocalBwrapRunner
 
-pytestmark = pytest.mark.eda
 
 
 def _live_gate2(tmpdir: str, module: str, dut: str, contract: InterfaceContract) -> dict:
@@ -61,6 +60,8 @@ def _free_running_ports() -> list:
 
 # ── R5A: same-cycle implication, broken RTL must FAIL live ────────────────
 
+@pytest.mark.eda
+@pytest.mark.eda_tools("yosys", "sby", "z3")
 def test_temporal_same_cycle_broken_caught_live() -> None:
     """`req |-> gnt` is false (gated by en); live SBY must report FAIL with evidence."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -88,6 +89,8 @@ def test_temporal_same_cycle_broken_caught_live() -> None:
 
 # ── R5B (mandatory): next-cycle implication, broken RTL must FAIL live ───
 
+@pytest.mark.eda
+@pytest.mark.eda_tools("yosys", "sby", "z3")
 def test_temporal_next_cycle_broken_caught_live() -> None:
     """`req |=> gnt` against same-cycle `gnt = req`: only a timing mismatch can fail.
 
@@ -124,6 +127,8 @@ def test_temporal_next_cycle_broken_caught_live() -> None:
 
 # ── R5C: next-cycle implication, correct RTL must PASS exercised ──────────
 
+@pytest.mark.eda
+@pytest.mark.eda_tools("yosys", "sby", "z3")
 def test_temporal_next_cycle_correct_passes_exercised_live() -> None:
     """Flopped `gnt <= req` satisfies `req |=> gnt`; PASS must be exercised, not vacuous."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -165,6 +170,8 @@ def test_temporal_next_cycle_correct_passes_exercised_live() -> None:
 
 # ── R5D: $past (supported) — broken sequential design must FAIL live ──────
 
+@pytest.mark.eda
+@pytest.mark.eda_tools("yosys", "sby", "z3")
 def test_temporal_past_broken_caught_live() -> None:
     """`$past(q, 1) == 0` against constant-1 `q` must FAIL live."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -198,6 +205,8 @@ def test_temporal_past_broken_caught_live() -> None:
 
 # ── R5E: $stable (supported) — toggling signal must FAIL live ─────────────
 
+@pytest.mark.eda
+@pytest.mark.eda_tools("yosys", "sby", "z3")
 def test_temporal_stable_broken_caught_live() -> None:
     """`$stable(q)` against a toggling `q` must FAIL live."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -229,6 +238,8 @@ def test_temporal_stable_broken_caught_live() -> None:
 
 # ── R7/R8: vacuous antecedent must NOT become an ordinary PASS ────────────
 
+@pytest.mark.eda
+@pytest.mark.eda_tools("yosys", "sby", "z3")
 def test_temporal_vacuous_antecedent_reported_live() -> None:
     """`dead |-> out` with `dead` tied 0 passes BMC but is VACUOUS, never PASS."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -265,6 +276,8 @@ def test_temporal_vacuous_antecedent_reported_live() -> None:
 
 # ── R10: counterexample evidence is really captured ───────────────────────
 
+@pytest.mark.eda
+@pytest.mark.eda_tools("yosys", "sby", "z3")
 def test_temporal_counterexample_evidence_captured_live() -> None:
     """A caught violation preserves the VCD witness file, step, depth, and solver output."""
     with tempfile.TemporaryDirectory() as tmpdir:

@@ -106,7 +106,7 @@ The following features require the full Linux OSS CAD Suite environment and are 
 
 - **OpenSTA / Gate 4 Timing**: Requires `sta` / `opensta` binary and target Liberty (.lib) libraries.
 - **OpenROAD / Gate 5 Physical**: Requires `openroad` binary and SkyWater 130nm / equivalent PDK flow.
-- **Yosys CDC / Gate 6**: Requires Yosys compiled with the CDC plugin (included in OSS CAD Suite Linux distribution; omitted in macOS Homebrew build).
+- **Yosys CDC / Gate 6**: Requires a Yosys build exposing the `cdc` command. Executed Stage 5 evidence shows it absent from both the macOS Homebrew build and the pinned OSS CAD Suite `2026-09-29` linux-arm64 build (`yosys -p "help cdc"` → `No such command or cell type: cdc` in both); other builds untested. Gate 6 fails closed as `CDC_TOOLING_UNAVAILABLE` when absent.
 - **Bubblewrap Sandbox**: Requires Linux kernel user namespace support (`bwrap`).
 
 For a fully provisioned environment, build and run via Docker:

@@ -35,16 +35,19 @@ def main() -> int:
     ap.add_argument("--destination", type=Path, required=True)
     ap.add_argument("--expected-sha256", default=os.getenv("OSS_CAD_SUITE_SHA256"))
     ap.add_argument("--keep-archive", action="store_true")
+    ap.add_argument("--arch", choices=("x64", "arm64"), default="x64",
+                    help="Linux asset architecture (default x64 preserves CI behavior; arm64 for Apple-Silicon-hosted Linux containers)")
     args = ap.parse_args()
 
     destination = args.destination.resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
     release = fetch_json(API.format(tag=args.tag))
     assets = release.get("assets", [])
-    matches = [a for a in assets if str(a.get("name", "")).startswith("oss-cad-suite-linux-x64-") and str(a.get("name", "")).endswith(".tgz")]
+    prefix = f"oss-cad-suite-linux-{args.arch}-"
+    matches = [a for a in assets if str(a.get("name", "")).startswith(prefix) and str(a.get("name", "")).endswith(".tgz")]
     if len(matches) != 1:
         names = [a.get("name") for a in matches]
-        raise SystemExit(f"Expected exactly one Linux-x64 OSS CAD Suite archive for tag {args.tag}; found {names}")
+        raise SystemExit(f"Expected exactly one Linux-{args.arch} OSS CAD Suite archive for tag {args.tag}; found {names}")
 
     asset = matches[0]
     name = str(asset["name"])

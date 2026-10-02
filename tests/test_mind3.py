@@ -3384,6 +3384,12 @@ def test_air_gapped_emits_cryptographic_attestation() -> None:
 def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
     """Verify BubblewrapSandbox unshares network namespace and blocks outbound connections.
 
+    A passing run records EGRESS_BLOCK_VERIFIED: the host baseline proves the
+    endpoint is reachable, and the identical attempt inside the sandbox fails,
+    so only sandbox enforcement explains the block. Test B (host loopback) is
+    self-baselining: the host listener provably accepts connections, which the
+    unshared network namespace cannot reach.
+
     NOTE: A skipped run is NOT a verified pass and must not be reported as one
     in any downstream summary. Real verification requires a Linux kernel host
     with bwrap installed.
@@ -3418,12 +3424,31 @@ def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
     t = threading.Thread(target=accept_thread, daemon=True)
     t.start()
 
+    # Host baseline: the external attempt below proves sandbox enforcement only
+    # if the same connection succeeds OUTSIDE the sandbox. If the host itself
+    # cannot reach the endpoint, a sandbox failure would be indistinguishable
+    # from generic network unavailability, so the test must skip (not pass).
+    try:
+        baseline = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        baseline.settimeout(4.0)
+        baseline.connect(("1.1.1.1", 80))
+        baseline.close()
+        host_can_reach_external = True
+    except OSError:
+        host_can_reach_external = False
+
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             ws = Path(tmpdir)
             sandbox = BubblewrapSandbox(workspace=ws, bwrap_binary=bwrap_path)
 
             # Test A: Attempt outbound connection to external public IP (e.g. 1.1.1.1:80)
+            if not host_can_reach_external:
+                pytest.skip(
+                    "host cannot reach 1.1.1.1:80 outside the sandbox, so a "
+                    "sandbox-side failure cannot be attributed to enforcement. "
+                    "Note: this skip is not a verified pass."
+                )
             cmd_external = [
                 "python3",
                 "-c",

@@ -11,7 +11,7 @@ Mind 3.0 is an evidence-backed, fail-closed SystemVerilog IP generation and veri
 
 ### Deterministic execution and evidence pipeline
 - **10-Phase Pipeline**: `INTAKE` → `ROUTE` → `SNAPSHOT` → `MODEL_CALL` → `PARSE` → `POLICY_CHECK` → `EXECUTE` → `OBSERVE` → `VERIFY` → `REPAIR_OR_FINISH` → `TRACE`.
-- **Audit Trails**: Every execution produces a cryptographically verifiable transcript, preserved RTL, structured verification evidence, tool versions, and artifact hashes.
+- **Audit Trails**: Every execution produces a hash-chained internal trace record (deterministic SHA-256 chain, tamper-evident but not a PKI/hardware attestation), preserved RTL, structured verification evidence, tool versions, and artifact hashes.
 - **Fail-Closed Gate Philosophy**:
   ```text
   REAL TOOL    → REAL RESULT
@@ -86,7 +86,7 @@ Any missing, altered, or unapproved component immediately blocks release.
 
 The following capabilities have been genuinely executed and verified on the local host environment:
 
-- **Full Pytest Suite**: **199 passed, 13 skipped** (environment skips for bwrap sandbox and OpenSTA on macOS). Zero regressions.
+- **Full Pytest Suite**: **297 passed, 5 skipped** on the macOS host (environment skips: OpenROAD binary missing, `bwrap` Linux-only, SkyWater PDK-gated canaries). Zero failures. Inside the `mind3-test` Docker container (no EDA stack): 199 passed, 13 skipped.
 - **Security & Anti-Tamper Tests**: Verified rejection of tampered evidence dictionaries, forged approval hashes, replayed stale hashes, missing release components, and mock results masquerading as verified (`tests/test_integrity_and_adversarial.py`).
 - **Reproducibility Test Suite**: Verified deterministic run hashing, manifest verification, and baseline metrics computation (`tests/test_benchmark_reproducibility.py`).
 - **EDA Toolchain Smoke Test**: Live probe via `./bin/mind3 smoke-test` verifying local binaries:
@@ -94,9 +94,9 @@ The following capabilities have been genuinely executed and verified on the loca
   - Verilator `5.052` (syntax & lint smoke verified)
   - SymbiYosys `0.69` with Z3 SMT solver (BMC formal pass verified)
 - **Negative-Control Execution**: Ran live against host EDA tools (`./bin/mind3 negative-controls`). 14 negative controls caught at the exact expected failure gates; 2 cleanly skipped with explicit environment provenance.
-- **Held-Out 120-Task Benchmark Run**: Ran `./bin/mind3 benchmark --suite heldout --seed 42` executing all 120 tasks across all 3 baselines (360 total executions), generating `results/summary.json`, `results/report.html`, `results/failures.json`, `results/benchmark_manifest.json`, and `results/baseline_comparison.json`.
+- **Held-Out Diagnostic Benchmark Runs (Stage 6)**: Live `ollama / qwen2.5-coder:7b` runs with the strict parser (seed 42): 20/20 real development transcripts (`artifacts/stage6_dev20/`) and a 42/120 partial heldout run (`artifacts/stage6_heldout/`), both 0 full-verified. Both are **diagnostic, not release-eligible** (release requires ≥100 real heldout tasks). Earlier `results/summary.json` figures describe an exploratory run, not live-inference evidence under the current runner, and are superseded by the Stage 6 diagnostic result.
 - **Packaging**: Wheel cleanly built via `pip wheel --no-deps --no-build-isolation -w dist .` yielding `dist/mind3-3.1.0-py3-none-any.whl`.
-- **Docker Test Container**: Built `mind3-test` and executed verification test suite inside container (`docker run --rm mind3-test pytest`).
+- **Docker Test Container**: `mind3-test` image re-verified this stage (`docker run --rm mind3-test pytest -q`): 199 passed, 13 skipped (EDA-gated tests skip without a Linux EDA stack).
 
 ---
 
@@ -118,25 +118,18 @@ docker build -f Dockerfile.eda -t mind3-eda .
 
 ## 4. Benchmark Results
 
-Measured empirical results from the real held-out benchmark run (`benchmarks/heldout/tasks.jsonl`, SHA-256: `bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24`):
+Stage 6 diagnostic evidence (`ollama / qwen2.5-coder:7b`, strict parser, seed 42) — **diagnostic, NOT release-eligible**:
 
-| Metric | Baseline A (Direct 1-shot) | Baseline B (Naive repair) | Mind 3.0 (Contract-guided) |
-|---|---|---|---|
-| **Tasks Attempted** | 120 | 120 | 120 |
-| **Tasks Completed** | 120 | 120 | 120 |
-| **Compile Pass Rate** | 0.0% | 100.0% | 0.0% |
-| **Simulation Pass Rate** | 0.0% | 0.0% | 0.0% |
-| **Formal Pass Rate** | 0.0% | 0.0% | 0.0% |
-| **Timing Pass Rate** | 0.0% | 0.0% | 0.0% |
-| **Full Verified Pass Rate** | **0.0%** | **0.0%** | **0.0%** |
-| **95% Confidence Interval (Wilson)** | [0.0%, 3.1%] | [0.0%, 3.1%] | [0.0%, 3.1%] |
-| **Repair Success Rate** | N/A | 0.0% (0/120) | 0.0% |
-| **Mean Repair Attempts** | 0.0 | 5.0 (exhausted) | 0.0 |
-| **Mean Runtime / Task** | 0.005s | 0.027s | 0.032s |
-| **Mean Cost / Task** | $0.003 | $0.013 | $0.007 |
-| **Primary Failure Category** | `RTL_SEMANTIC_ERROR` (120) | `REPAIR_FAILURE` (120) | `FORMAL_FAILURE` (120) |
+| Metric | Development-20 (20 real transcripts) | Heldout partial (42/120 real transcripts) |
+|---|---|---|
+| **Initial pass** | 0/20 (0.0%, Wilson CI [0.0%, 16.1%]) | 0/42 (0.0%, Wilson CI [0.0%, 8.4%]) |
+| **Functional pass** | 0/20 | 0/42 |
+| **Full verified pass** | **0/20** | **0/42** |
+| **Repair success** | 0/20 | 0/42 |
+| **Failure split** | 19 `RESPONSE_PARSE_FAILURE`, 1 `SPECIFICATION_ERROR` | 41 `RESPONSE_PARSE_FAILURE`, 1 `SPECIFICATION_ERROR` |
+| **Evidence tier** | `diagnostic` | `diagnostic` |
 
-*Note: In accordance with Mind 3.0 fail-closed policy, unverified outputs are never marked as passed. No metrics are fabricated.*
+Release eligibility requires ≥100 real heldout tasks plus the Stage 2b thresholds; it is not established. Do not read the 20/42 diagnostic figures as a final accuracy claim. The strict parser rejects this model's typical formatting (prose-wrapped modules), which dominates the failure split; see `docs/parser_modes.md` and `KNOWN_LIMITATIONS.md`.
 
 ---
 
@@ -149,7 +142,7 @@ To maintain strict scientific integrity, the following claims are **not** made:
 - **Unconstrained Asynchronous CDC Closure**: Asynchronous crossings without explicit SDC constraints or synchronization templates are not guaranteed.
 - **Frontier LLM Live Pass Rate**: Live API inference across paid proprietary models (e.g., Claude 3.5 Sonnet, GPT-4o) on the full 120-task suite without mock provider mediation remains to be executed in an automated evaluation harness with live API keys.
 
-The current workflow pins the OSS CAD Suite release tag `2026-09-29`. urlOSS CAD Suite releaseshttps://github.com/YosysHQ/oss-cad-suite-build/releases/tag/2026-09-29
+The current workflow pins the OSS CAD Suite release tag `2026-09-29` (see https://github.com/YosysHQ/oss-cad-suite-build/releases/tag/2026-09-29).
 
 ## Benchmark usage
 
@@ -212,7 +205,7 @@ python scripts/export_verified_bundle.py --approval human_approval.json
 
 ## Security boundary
 
-Mind 3.0 requires Bubblewrap for local execution and does not silently downgrade to an unsandboxed executor. SSH-based remote EDA uses configured host-key pins rather than disabling host-key checks. Required EDA failures are explicit and fail closed.
+Mind 3.0 requires sandboxed local execution (Bubblewrap on Linux; Seatbelt `sandbox-exec` on macOS) and does not silently downgrade to an unsandboxed executor. SSH-based remote EDA uses configured host-key pins rather than disabling host-key checks. Required EDA failures are explicit and fail closed.
 
 ## Project structure
 

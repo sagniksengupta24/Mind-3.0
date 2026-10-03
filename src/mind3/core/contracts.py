@@ -689,11 +689,6 @@ class RTLGenerator:
         return {"system": system_msg, "user": user_msg}
 
 
-UnsupportedFormalPropertyError = UnsupportedFormalTemplate
-
-
-
-
 class VerificationFailureEvidence(BaseModel):
     """Structured, bounded evidence passed to an independent RTL repair agent."""
 

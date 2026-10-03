@@ -18,6 +18,7 @@ from typing import Any, Literal
 import httpx
 
 from ..sandbox.bwrap import BubblewrapSandbox
+from ..sandbox.macos import MacOSSandbox
 from ..sandbox.platform import get_local_sandbox
 from ..skills import SkillMatch, SkillRegistry, SkillRouter
 from .contracts import (
@@ -30,6 +31,7 @@ from .contracts import (
     VerificationHarnessGenerator,
     VerificationRepairer,
 )
+from .formal_templates import UnsupportedFormalTemplate
 from .types import (
     AgentAction,
     PhaseEnum,
@@ -637,7 +639,7 @@ class PhaseDriver:
         verifier: BaseVerifier,
         max_repairs: int = 3,
         ollama_url: str = "http://127.0.0.1:11434",
-        sandbox: BubblewrapSandbox | None = None,
+        sandbox: BubblewrapSandbox | MacOSSandbox | None = None,
         transcript_path: Path | None = None,
         skills_dir: Path | str | None = None,
         model: str = "qwen2.5-coder:7b",
@@ -1438,6 +1440,10 @@ class PhaseDriver:
                 },
             )
 
+        # Unreachable with the default repair budget, but required by the
+        # declared ``-> bool`` contract when the repair loop never executes.
+        return False
+
     def run_silicon_pipeline(
         self,
         task_prompt: str,
@@ -1551,7 +1557,7 @@ class PhaseDriver:
         # Verification artifacts are derived only from the immutable contract.
         try:
             sva_bind_content = VerificationHarnessGenerator.build_sva_bind_module(contract)
-        except UnsupportedFormalPropertyError as exc:
+        except (UnsupportedFormalPropertyError, UnsupportedFormalTemplate) as exc:
             sva_bind_content = (
                 f"// Formal property construct unsupported by toolchain\n"
                 f"// unsupported: {exc}\n"
@@ -1630,10 +1636,6 @@ class PhaseDriver:
                     "diagnostic": evidence.model_dump(mode="json"),
                 },
             )
-        except Exception as exc:
-            self._emit_trace(PhaseEnum.EXECUTE, {"error": f"RTL design synthesis failed: {exc}"})
-            self._restore_snapshot()
-            return False
 
         if isinstance(self.verifier, SiliconSignoffVerifier):
             signoff_verifier = self.verifier
@@ -1815,8 +1817,8 @@ class PhaseDriver:
                 tool=str(last_report.get("compile_tool") or diagnostic.get("tool") or ("sby" if stage_key == "formal" else "verilator" if stage_key == "simulation" else "")),
                 error=str(last_report.get("details") or v_result.failure_reason or "verification failed"),
                 file=str(file_name) if file_name else None,
-                line=int(line) if isinstance(line, int) or (isinstance(line, str) and str(line).isdigit()) else None,
-                column=int(column) if isinstance(column, int) or (isinstance(column, str) and str(column).isdigit()) else None,
+                line=int(line) if isinstance(line, int) else (int(line) if isinstance(line, str) and line.isdigit() else None),
+                column=int(column) if isinstance(column, int) else (int(column) if isinstance(column, str) and column.isdigit() else None),
                 source_context=str(source_context or ""),
                 stdout_tail=(v_result.stdout or "")[-4000:],
                 stderr_tail=(v_result.stderr or "")[-4000:],
@@ -1828,7 +1830,7 @@ class PhaseDriver:
                 contract=contract.model_dump(mode="json"),
                 attempt=repair_count + 1,
                 failing_test=str(last_report.get("failing_test")) if last_report.get("failing_test") else None,
-                cycle=int(last_report.get("cycle")) if isinstance(last_report.get("cycle"), int) else None,
+                cycle=int(cycle_v) if isinstance((cycle_v := last_report.get("cycle")), int) else None,
                 expected_behavior=str(last_report.get("expected_behavior")) if last_report.get("expected_behavior") else None,
                 observed_behavior=str(last_report.get("observed_behavior")) if last_report.get("observed_behavior") else None,
                 relevant_signals={k: v for k, v in last_report.get("relevant_signals", {}).items() if isinstance(k, str)} if isinstance(last_report.get("relevant_signals"), dict) else {},

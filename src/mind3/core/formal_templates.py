@@ -128,16 +128,16 @@ class FormalPropertySpec(BaseModel):
                 raise ValueError(f"Invalid reset descriptor: {self.reset}")
 
         required_by_kind: dict[FormalTemplateKind, list[str]] = {
-            FormalTemplateKind.BOOLEAN: ("expression",),
-            FormalTemplateKind.SAME_CYCLE_IMPLICATION: ("antecedent", "consequent"),
-            FormalTemplateKind.NEXT_CYCLE_IMPLICATION: ("antecedent", "consequent"),
-            FormalTemplateKind.RESET_ASSERTION: ("consequent",),
-            FormalTemplateKind.ONEHOT: ("signal",),
-            FormalTemplateKind.ONEHOT0: ("signal",),
-            FormalTemplateKind.ONEHOT_OR_EQUALS: ("signal", "value"),
-            FormalTemplateKind.PAST_EQUALS: ("signal", "value"),
-            FormalTemplateKind.PAST_STABLE: ("signal",),
-            FormalTemplateKind.PAST_EXPRESSION: ("expression",),
+            FormalTemplateKind.BOOLEAN: ["expression"],
+            FormalTemplateKind.SAME_CYCLE_IMPLICATION: ["antecedent", "consequent"],
+            FormalTemplateKind.NEXT_CYCLE_IMPLICATION: ["antecedent", "consequent"],
+            FormalTemplateKind.RESET_ASSERTION: ["consequent"],
+            FormalTemplateKind.ONEHOT: ["signal"],
+            FormalTemplateKind.ONEHOT0: ["signal"],
+            FormalTemplateKind.ONEHOT_OR_EQUALS: ["signal", "value"],
+            FormalTemplateKind.PAST_EQUALS: ["signal", "value"],
+            FormalTemplateKind.PAST_STABLE: ["signal"],
+            FormalTemplateKind.PAST_EXPRESSION: ["expression"],
         }
         for field_name in required_by_kind[self.kind]:
             if not getattr(self, field_name):
@@ -254,16 +254,18 @@ def classify_legacy_property(
             description="Classified deterministically from the bounded legacy SVA subset.",
         )
 
-    if re.fullmatch(r"\$onehot\s*\(\s*([^()]+)\s*\)", expr, re.I):
+    onehot_match = re.fullmatch(r"\$onehot\s*\(\s*([^()]+)\s*\)", expr, re.I)
+    if onehot_match:
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.ONEHOT, clock=clock, reset=reset,
-            signal=re.fullmatch(r"\$onehot\s*\(\s*([^()]+)\s*\)", expr, re.I).group(1).strip(),
+            signal=onehot_match.group(1).strip(),
         )
 
-    if re.fullmatch(r"\$onehot0\s*\(\s*([^()]+)\s*\)", expr, re.I):
+    onehot0_match = re.fullmatch(r"\$onehot0\s*\(\s*([^()]+)\s*\)", expr, re.I)
+    if onehot0_match:
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.ONEHOT0, clock=clock, reset=reset,
-            signal=re.fullmatch(r"\$onehot0\s*\(\s*([^()]+)\s*\)", expr, re.I).group(1).strip(),
+            signal=onehot0_match.group(1).strip(),
         )
 
     onehot_or = re.fullmatch(r"\$onehot\s*\(\s*([^()]+)\s*\)\s*\|\|\s*([^=]+)==\s*(.+)", expr, re.I)
@@ -288,8 +290,9 @@ def classify_legacy_property(
             expression=expr,
         )
 
-    if re.fullmatch(r"\$stable\s*\(\s*([A-Za-z_]\w*)\s*\)", expr, re.I):
-        signal = re.fullmatch(r"\$stable\s*\(\s*([A-Za-z_]\w*)\s*\)", expr, re.I).group(1)
+    stable_match = re.fullmatch(r"\$stable\s*\(\s*([A-Za-z_]\w*)\s*\)", expr, re.I)
+    if stable_match:
+        signal = stable_match.group(1)
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.PAST_STABLE, clock=clock, reset=reset, signal=signal,
         )

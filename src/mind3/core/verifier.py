@@ -5,6 +5,7 @@ Verification subsystem for Mind 3.0 supporting RTL (iverilog/vvp) and Software (
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import shutil
 from abc import ABC, abstractmethod
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from ..sandbox.bwrap import BubblewrapSandbox
+from ..sandbox.macos import MacOSSandbox
 from .types import VerificationDomain, VerificationResult
 from .contracts import validate_rtl_against_contract
 
@@ -37,7 +39,7 @@ class BaseVerifier(ABC):
     def verify(
         self,
         workspace: Path,
-        sandbox: BubblewrapSandbox,
+        sandbox: BubblewrapSandbox | MacOSSandbox,
     ) -> VerificationResult:
         """Execute ground-truth verification inside the Bubblewrap sandbox.
 
@@ -69,7 +71,7 @@ class RTLVerifier(BaseVerifier):
     def verify(
         self,
         workspace: Path,
-        sandbox: BubblewrapSandbox,
+        sandbox: BubblewrapSandbox | MacOSSandbox,
     ) -> VerificationResult:
         """Compile RTL sources with iverilog and execute simulation via vvp."""
         resolved_ws = workspace.resolve()
@@ -191,7 +193,7 @@ class SoftwareVerifier(BaseVerifier):
     def verify(
         self,
         workspace: Path,
-        sandbox: BubblewrapSandbox,
+        sandbox: BubblewrapSandbox | MacOSSandbox,
     ) -> VerificationResult:
         """Run software test suite inside Bubblewrap sandbox."""
         if self.runner == "pytest":
@@ -237,7 +239,7 @@ class IndustryReportVerifier(BaseVerifier):
     def verify(
         self,
         workspace: Path,
-        sandbox: BubblewrapSandbox,
+        sandbox: BubblewrapSandbox | MacOSSandbox,
     ) -> VerificationResult:
         resolved_ws = workspace.resolve()
         errors: list[str] = []
@@ -402,8 +404,9 @@ def parse_opensta_mcmm(output: str) -> dict[str, Any]:
         line_clean = line.strip()
         corner_match = re.search(r"^Corner:\s*(\S+)", line_clean, re.IGNORECASE)
         if corner_match:
-            current_corner = corner_match.group(1)
-            corners[current_corner] = {
+            corner_name = corner_match.group(1)
+            current_corner = corner_name
+            corners[corner_name] = {
                 "setup_wns": None,
                 "setup_tns": None,
                 "hold_wns": None,
@@ -977,7 +980,7 @@ class SiliconSignoffVerifier(BaseVerifier):
     def verify(
         self,
         workspace: Path,
-        sandbox: BubblewrapSandbox,
+        sandbox: BubblewrapSandbox | MacOSSandbox | None,
     ) -> VerificationResult:
         """Run the hierarchical silicon signoff gates sequentially. Fails closed on first violation."""
         resolved_ws = workspace.resolve()
@@ -1370,6 +1373,7 @@ class SiliconSignoffVerifier(BaseVerifier):
             )
 
         cmd = ["yosys", "-p", yosys_cmd]
+        assert runner is not None, "Gate 1 requires an EDA runner past the compile stage."
         proc = runner.run(cmd, timeout_sec=45)
 
         combined_output = f"{proc.stdout}\n{proc.stderr}"
@@ -1731,6 +1735,7 @@ class SiliconSignoffVerifier(BaseVerifier):
         generated_harness = False
         if not sby_files and self.contract is not None:
             from .contracts import VerificationHarnessGenerator, UnsupportedFormalPropertyError
+            from .formal_templates import UnsupportedFormalTemplate
             structured_props = list(getattr(self.contract, "formal_properties", []) or [])
             legacy_props = list(getattr(self.contract, "sva_properties", []) or [])
             if not structured_props and not legacy_props:
@@ -1753,7 +1758,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     sby_content = VerificationHarnessGenerator.build_sby_config(
                         self.contract, depth=25, include_sva_file=True
                     )
-                except UnsupportedFormalPropertyError as exc:
+                except (UnsupportedFormalPropertyError, UnsupportedFormalTemplate) as exc:
                     return {
                         "gate": "Gate 2: SymbiYosys Formal Property Verification",
                         "passed": False,
@@ -2974,7 +2979,7 @@ class TapeoutReadinessVerifier(BaseVerifier):
     def verify(
         self,
         workspace: Path,
-        sandbox: BubblewrapSandbox,
+        sandbox: BubblewrapSandbox | MacOSSandbox,
     ) -> VerificationResult:
         """Validate presence and non-emptiness (and optionally content) of required tapeout evidence receipts."""
         resolved_ws = workspace.resolve()
@@ -3078,7 +3083,7 @@ class CommercialSignoffVerifier(BaseVerifier):
     def verify(
         self,
         workspace: Path,
-        sandbox: BubblewrapSandbox,
+        sandbox: BubblewrapSandbox | MacOSSandbox,
     ) -> VerificationResult:
         from mind3.sandbox.eda_commercial import (
             parse_calibre_drc_summary,

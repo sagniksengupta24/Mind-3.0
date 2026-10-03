@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .platform import get_local_sandbox
+from .bwrap import BubblewrapSandbox
 
 
 class EDARunner(ABC):

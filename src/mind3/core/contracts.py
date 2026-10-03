@@ -689,11 +689,6 @@ class RTLGenerator:
         return {"system": system_msg, "user": user_msg}
 
 
-UnsupportedFormalPropertyError = UnsupportedFormalTemplate
-
-
-
-
 class VerificationFailureEvidence(BaseModel):
     """Structured, bounded evidence passed to an independent RTL repair agent."""
 
@@ -772,9 +767,6 @@ class VerificationHarnessGenerator:
             for p in contract.ports
             if p.direction == PortDirection.INPUT
         )
-
-    # Architectural unification (Rule A1)
-    build_sva_checker_module = build_sva_bind_module
 
     @staticmethod
     def _get_clock_name(contract: InterfaceContract) -> str:

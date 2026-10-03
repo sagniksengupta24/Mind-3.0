@@ -450,7 +450,7 @@ class BenchmarkRunner:
         functional = [t for t in real if _functional_passed(t)]
         verified = [t for t in real if bool(t.final_outcome.get("passed")) and bool(t.final_outcome.get("silicon_verified"))]
         repaired = [t for t in real if bool(t.final_outcome.get("passed")) and not _initial_passed(t)]
-        turns = [int(t.final_outcome.get("turns_taken")) for t in real if isinstance(t.final_outcome.get("turns_taken"), int)]
+        turns = [int(v) for t in real if isinstance((v := t.final_outcome.get("turns_taken")), int)]
         failure_categories = Counter(t.gate_failure_category or str(t.final_outcome.get("error_category") or "NONE") for t in real)
         tool_versions: dict[str, str] = {}
         for t in real:

@@ -18,6 +18,12 @@ library (sky130_fd_sc_hd__tt_025C_1v80) {
     index_1 ("0.01, 0.5");
     index_2 ("0.001, 0.1");
   }
+  lu_table_template(constraint_template_2x2) {
+    variable_1 : related_pin_transition;
+    variable_2 : constrained_pin_transition;
+    index_1 ("0.01, 0.5");
+    index_2 ("0.01, 0.5");
+  }
 
   cell (sky130_fd_sc_hd__inv_1) {
     area : 1.38;
@@ -158,20 +164,20 @@ library (sky130_fd_sc_hd__tt_025C_1v80) {
       timing() {
         related_pin : "clk";
         timing_type : setup_rising;
-        rise_constraint(delay_template_2x2) {
+        rise_constraint(constraint_template_2x2) {
           values ("0.10, 0.12", "0.11, 0.14");
         }
-        fall_constraint(delay_template_2x2) {
+        fall_constraint(constraint_template_2x2) {
           values ("0.08, 0.10", "0.09, 0.12");
         }
       }
       timing() {
         related_pin : "clk";
         timing_type : hold_rising;
-        rise_constraint(delay_template_2x2) {
+        rise_constraint(constraint_template_2x2) {
           values ("0.01, 0.02", "0.01, 0.02");
         }
-        fall_constraint(delay_template_2x2) {
+        fall_constraint(constraint_template_2x2) {
           values ("0.01, 0.02", "0.01, 0.02");
         }
       }

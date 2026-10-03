@@ -1,0 +1,10 @@
+EVIDENCE CLOSURE BASELINE
+branch: macos-eda-hardening
+HEAD: e988370b0f4078741f8ff5c7bdfc23321b8132cb (chore(release): prepare honest public beta packaging)
+git status: clean except ?? artifacts/stage6_heldout/run_workspaces/ (untracked scratch)
+OS: Darwin 26.6.1, arch arm64, Python 3.14.7
+Docker: 29.8.0 context desktop-linux; Linux runtime VERIFIED via 'docker run --rm ubuntu:22.04 uname -sm' -> Linux aarch64
+Other runtimes: podman/lima/colima absent
+CI: .github/workflows/ci.yml, eda_live.yml, eda_version_drift_canary.yml
+Host tools: yosys 0.69+post, sby 0.69, z3 5.1.0, verilator 5.052, sta 3.1.0, sandbox-exec present; opensta/openroad/bwrap absent
+Benchmark config: ollama/qwen2.5-coder:7b, strict parser, seed 42, heldout sha bae56a8d..dd2c24; Stage 6 diagnostic 20/42

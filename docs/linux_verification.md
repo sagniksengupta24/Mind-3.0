@@ -49,6 +49,22 @@ so Linux OpenSTA/OpenROAD execution remains `[PENDING-HUMAN]` (CI). The
 - Any claim of the form "verified on Linux" beyond the container results
   captured in-session.
 
+### GitHub-hosted runner Bubblewrap namespace limitation
+
+Bubblewrap is installed on the `ubuntu-24.04` hosted runner (via apt),
+but the hosted kernel forbids namespace creation (`bwrap: No permissions
+to create a new namespace`). Presence of the binary therefore does not
+imply sandbox capability. The egress security test
+(`test_bubblewrap_sandbox_network_isolation_outbound_blocked`, marked
+`eda`/`eda_tools("sandbox")`) first runs
+`probe_bubblewrap_namespace_capability()`: on an incapable runner it
+records an explicit environment skip ("namespace capability unavailable
+... not a verified sandbox pass"), which is environment-unavailable, not
+sandbox-pass and not sandbox-failure. A real sandbox failure (payload
+connects unexpectedly) still fails loudly. Actual sandbox verification
+requires a namespace-capable Linux environment; no such self-hosted
+runner is currently configured.
+
 ## Claims that stay as-is
 
 - The README statement attributing the Yosys `cdc` command to the OSS CAD

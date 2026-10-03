@@ -75,6 +75,14 @@ jobs:
           fi
       - name: Unit suite (live environment, non-EDA tests)
         run: pytest -q -m 'not eda'
+      - name: Probe Bubblewrap namespace capability
+        # GitHub-hosted kernels may forbid unshare(): bwrap is installed yet
+        # cannot create namespaces. Report honestly; this step never fails. A
+        # False result means the sandbox security test below records an
+        # explicit environment skip, never a sandbox verdict. Real sandbox
+        # verification requires a namespace-capable Linux host.
+        run: |
+          python -c "from mind3.sandbox.bwrap import probe_bubblewrap_namespace_capability as probe; capable, reason = probe(); print(f'bwrap_namespace_capable={capable} reason={reason}')"
       - name: Live EDA integration tests
         run: pytest -q -m eda
       - name: Negative controls

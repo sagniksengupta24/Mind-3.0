@@ -182,4 +182,72 @@ class BubblewrapSandbox:
             )
 
 
-__all__ = ["BubblewrapSandbox"]
+def probe_bubblewrap_namespace_capability(
+    bwrap_binary: str | Path | None = None,
+    timeout_sec: int = 20,
+) -> tuple[bool, str]:
+    """Probe whether this host kernel permits Bubblewrap namespace creation.
+
+    Executes a trivial, side-effect-free payload under the same
+    ``--unshare-all`` namespace flags used by :meth:`BubblewrapSandbox.run`.
+    The probe never touches the network, so its outcome says nothing about
+    egress enforcement; it only answers whether the sandbox can start here.
+
+    Returns:
+        A ``(capable, reason)`` pair. ``capable`` is True only when bwrap
+        created the namespaces and the payload exited 0. Any other outcome
+        (missing binary, timeout, OS error, nonzero exit such as the host
+        kernel forbidding namespace creation) yields False with a reason
+        string. Callers must treat False as environment-unavailable, never
+        as a sandbox verdict.
+    """
+    resolved: str | None = None
+    if bwrap_binary is not None:
+        resolved = shutil.which(str(bwrap_binary))
+    else:
+        resolved = shutil.which("bwrap")
+    if not resolved:
+        return (False, "bwrap binary not found on PATH")
+    probe_cmd: list[str] = [
+        resolved,
+        "--unshare-all",
+        "--die-with-parent",
+        "--new-session",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--ro-bind",
+        "/bin",
+        "/bin",
+        "--",
+        "/bin/true",
+    ]
+    try:
+        completed = subprocess.run(
+            probe_cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout_sec,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        return (False, f"bwrap namespace probe timed out after {timeout_sec}s: {exc}")
+    except OSError as exc:
+        return (False, f"bwrap namespace probe could not execute: {exc}")
+    if completed.returncode == 0:
+        return (True, "bwrap created namespaces and executed the probe payload")
+    stderr_lines = (completed.stderr or "").strip().splitlines()
+    detail = stderr_lines[-1] if stderr_lines else f"exit code {completed.returncode}"
+    return (
+        False,
+        f"bwrap namespace creation unavailable (exit {completed.returncode}): {detail}",
+    )
+
+
+__all__ = ["BubblewrapSandbox", "probe_bubblewrap_namespace_capability"]

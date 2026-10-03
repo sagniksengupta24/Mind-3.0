@@ -3381,6 +3381,8 @@ def test_air_gapped_emits_cryptographic_attestation() -> None:
         assert rec.event.payload["air_gapped_attestation"] == rec.event.payload["loopback_attestation"]
 
 
+@pytest.mark.eda
+@pytest.mark.eda_tools("sandbox")
 def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
     """Verify BubblewrapSandbox unshares network namespace and blocks outbound connections.
 
@@ -3397,7 +3399,7 @@ def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
     import shutil
     import socket
     import threading
-    from mind3.sandbox.bwrap import BubblewrapSandbox
+    from mind3.sandbox.bwrap import BubblewrapSandbox, probe_bubblewrap_namespace_capability
 
     # 1. Fresh check for bwrap binary on host PATH
     bwrap_path = shutil.which("bwrap")
@@ -3406,6 +3408,18 @@ def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
         pytest.skip(
             "requires Linux host with bwrap installed (bwrap binary not found on PATH). "
             "Note: this skip is not a verified pass."
+        )
+
+    # 1b. Namespace capability probe: a present binary does not imply the
+    # host kernel permits namespace creation (e.g. GitHub-hosted runners
+    # forbid unshare()). An incapable host is environment-unavailable and
+    # must never be reported as a sandbox verdict.
+    capable, capability_reason = probe_bubblewrap_namespace_capability(bwrap_binary=bwrap_path)
+    if not capable:
+        pytest.skip(
+            "SKIPPED — Bubblewrap namespace capability unavailable on this runner "
+            f"({capability_reason}); not a verified sandbox pass. Real sandbox "
+            "verification requires a namespace-capable Linux host."
         )
 
     # 2. Host-side server to verify isolation from host loopback network

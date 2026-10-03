@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
-WORKSPACE_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
+WORKSPACE_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
 ARTIFACTS_DIR = WORKSPACE_ROOT / "artifacts/step1"
 RESULTS_JSON = ARTIFACTS_DIR / "results.json"
 LEDGER_FILE = ARTIFACTS_DIR / "trace_ledger.jsonl"

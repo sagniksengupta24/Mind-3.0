@@ -22,9 +22,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-MIND3_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
-SCRATCH_DIR = Path("/home/mind/Desktop/AI/benchmark_scratch")
-EDA_PATH = "/home/mind/oss-cad-suite/bin:/home/mind/.local/bin:/home/mind/openroad-env/bin"
+MIND3_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
+SCRATCH_DIR = Path(os.environ.get("MIND3_BENCHMARK_ROOT", MIND3_ROOT.parent / "benchmark_scratch")).resolve()
+EDA_PATH = os.environ.get("MIND3_EDA_BIN_PATH", os.environ.get("PATH", ""))
 os.environ["PATH"] = f"{EDA_PATH}:{os.environ.get('PATH', '')}"
 
 sys.path.insert(0, str(MIND3_ROOT / "src"))
@@ -40,7 +40,7 @@ from run_benchmarks import (
     sanitize_extracted_verilog,
 )
 
-RESULTS_BASE = Path("/home/mind/Desktop/AI/artifacts/P6")
+RESULTS_BASE = Path(os.environ.get("MIND3_ARTIFACTS_DIR", MIND3_ROOT / "artifacts")) / "P6"
 RUN_30_DIR = RESULTS_BASE / "run_30_results"
 WORKSPACES_DIR = RUN_30_DIR / "workspaces"
 GRADES_DIR = RUN_30_DIR / "grades"

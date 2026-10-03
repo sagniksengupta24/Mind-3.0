@@ -1,0 +1,78 @@
+{
+  "src/mind3/core/contracts.py": {
+    "bytes": 60578,
+    "sha256": "e0146e7db06cf7c59a39eb4d14f6331bfe61011cfe82d10add889498591f2596"
+  },
+  "src/mind3/core/verifier.py": {
+    "bytes": 121530,
+    "sha256": "16479815d5186cbc22a2fdad925407314e06a3cf32f05d1dd6d7a8da84013de0"
+  },
+  "src/mind3/core/driver.py": {
+    "bytes": 76603,
+    "sha256": "952bf813989b7f9841b10d0bbea718b207119851e99906ce69f9c12974c08a72"
+  },
+  "src/mind3/benchmarks/runner.py": {
+    "bytes": 35915,
+    "sha256": "7a1532f64dd3de3ce81b1daad95a8b634f4ccb8ec9802f81bde24c118548aa65"
+  },
+  "src/mind3/benchmarks/baselines.py": {
+    "bytes": 21837,
+    "sha256": "89fcf90b4b4bf14ec28ca4785284d3cb394a8be0e08b0f27daeacfcef4c02384"
+  },
+  "src/mind3/benchmarks/reproducibility.py": {
+    "bytes": 19590,
+    "sha256": "e54bc1e33602a8c38eb5a52a70e51fc31c20eb48f3259d98cf9dd436f65d22a8"
+  },
+  "scripts/failure_forensics.py": {
+    "bytes": 3681,
+    "sha256": "3f28f6bfceb2c766cdebe7addd8f9df44721fc8c85630bd27e1613a2009d96f4"
+  },
+  "benchmarks/development-20/tasks.jsonl": {
+    "bytes": 25483,
+    "sha256": "539e79afaf6fa445a95ad82c2337ff70f60d60d4e912f114dd9a3cf402f59c8c"
+  },
+  "benchmarks/development-20/manifest.json": {
+    "bytes": 1085,
+    "sha256": "05a1db3c2d69221741c766299c9018d76507e4a00577231bb24fb1645bc6178f"
+  },
+  "tests/test_rtl_pipeline_contract.py": {
+    "bytes": 4745,
+    "sha256": "0babeb76a6845ac5c91c9923ee21299667fe09426aa7a29bc8f75a4b7ef6e546"
+  },
+  "artifacts/forensics/phase1_report.md": {
+    "bytes": 1914,
+    "sha256": "fef3134406792c030e321ff24617c523f462e1f8d422ee8083629a46fcc3fa44"
+  },
+  "artifacts/forensics/phase1_evidence_inventory.json": {
+    "bytes": 2580,
+    "sha256": "d898132739c22e0d5302f000f683ea4f3b69778b57ab1eee8781374c86e01b9b"
+  },
+  "artifacts/forensics/development20_contract_audit.json": {
+    "bytes": 582,
+    "sha256": "b4ff03d5c43ff83d11f1b13bfa2530bb6ee43eaadc5f96bbe83e2f130ac8887d"
+  },
+  "artifacts/forensics/live_benchmark_environment.json": {
+    "bytes": 248,
+    "sha256": "13da0bd654ac7feeefc90a5d8a7d93331c6a1454301b0c1327a67be07907b63a"
+  },
+  "artifacts/forensics/p6_failure_distribution.json": {
+    "bytes": 7454,
+    "sha256": "976c8004a5f1c3cb2de36112d78ef7e0ade24db3dea0032c296fd141614e9c12"
+  },
+  "docs/RTL_PIPELINE_CHANGELOG.md": {
+    "bytes": 1571,
+    "sha256": "405a5c62366df0d2050b19250d418efe3fdaead5cb51f9eeb40a8b65b95b742e"
+  },
+  "artifacts/benchmark_dev20_live_attempt/command.stdout": {
+    "bytes": 208,
+    "sha256": "03c28a9d9310d03ac72b2debe56adc6a9db05d862837a5555f67dbbf1f389ae2"
+  },
+  "artifacts/benchmark_dev20_live_attempt/command.stderr": {
+    "bytes": 100,
+    "sha256": "ffa178f8b35852c103453f4cbd44f61ee6f3b1fb51908c7311c33ade1bb3d96a"
+  },
+  "artifacts/benchmark_dev20_live_attempt/exit_code": {
+    "bytes": 2,
+    "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  }
+}

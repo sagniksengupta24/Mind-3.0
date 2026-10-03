@@ -68,3 +68,6 @@ jobs:
           echo "Running version-drift canary for profile: $EDA_PROFILE"
           echo "Target Pinned Versions: Yosys=$TARGET_YOSYS_VERSION, SBY=$TARGET_SBY_VERSION, Verilator=$TARGET_VERILATOR_VERSION, OpenSTA=$TARGET_STA_VERSION, OpenROAD=$TARGET_OPENROAD_VERSION"
           pytest -v ${{ matrix.eda-profile.test_target }}
+
+# NOTE: This workflow exercises parser fixtures and version metadata only.
+# Live toolchain execution is performed by .github/workflows/eda_live.yml.

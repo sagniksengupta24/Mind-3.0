@@ -1,6 +1,7 @@
 """P3 Gate 1 verification tests: source filtering and synthesis file list invariants."""
 
 import tempfile
+import pytest
 from pathlib import Path
 from mind3.core.verifier import SiliconSignoffVerifier
 from mind3.sandbox.remote_eda import LocalBwrapRunner
@@ -34,6 +35,7 @@ def test_gate1_source_filtering():
         assert "top_formal_top.sv" not in source_names
         assert "top_tb.sv" not in source_names
 
+@pytest.mark.eda
 def test_gate1_live_sv_synthesis():
     """Execute live Yosys elaboration on legitimate SystemVerilog (.sv)."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -47,7 +49,10 @@ def test_gate1_live_sv_synthesis():
             "endmodule\n"
         )
         verifier = SiliconSignoffVerifier(top_module="adder", allow_mock_fallback=False)
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate1_yosys(runner, [ws / "adder.sv"], ws)
         assert res["passed"] is True, f"Gate 1 failed: {res.get('stderr')}"
         assert (ws / "adder_netlist.v").exists()
+
+pytestmark = pytest.mark.eda
+

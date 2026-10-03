@@ -1,10 +1,11 @@
 """Live verification canary for Gate 4 (OpenSTA) and Gate 5 (OpenROAD) using real SkyWater 130nm PDK.
 
 Executes within the unprivileged Bubblewrap sandbox on Linux with zero mock fallbacks.
-Skips gracefully if PDK artifacts or EDA tools are absent from host environment.
+Skips gracefully if PDK artifacts or EDA tools are absent from host environment. Set `MIND3_SKY130_ROOT` to a SkyWater 130nm PDK root.
 """
 
 from pathlib import Path
+import os
 import shutil
 import tempfile
 import pytest
@@ -13,9 +14,10 @@ from mind3.core.verifier import SiliconSignoffVerifier
 from mind3.sandbox.bwrap import BubblewrapSandbox
 from mind3.sandbox.remote_eda import LocalBwrapRunner
 
-PDK_LIB = Path("/home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib")
-PDK_TLEF = Path("/home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd__nom.tlef")
-PDK_LEF = Path("/home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.lef")
+SKY130_ROOT = Path(os.getenv("MIND3_SKY130_ROOT", "")).expanduser().resolve() if os.getenv("MIND3_SKY130_ROOT") else None
+PDK_LIB = SKY130_ROOT / "libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib" if SKY130_ROOT else Path("__missing_sky130_lib__")
+PDK_TLEF = SKY130_ROOT / "libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd__nom.tlef" if SKY130_ROOT else Path("__missing_sky130_tlef__")
+PDK_LEF = SKY130_ROOT / "libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.lef" if SKY130_ROOT else Path("__missing_sky130_lef__")
 
 PDK_PRESENT = PDK_LIB.exists() and PDK_TLEF.exists() and PDK_LEF.exists()
 BWRAP_PRESENT = shutil.which("bwrap") is not None

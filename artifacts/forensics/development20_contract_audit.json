@@ -1,0 +1,16 @@
+{
+  "suite": "benchmarks/heldout/tasks.jsonl",
+  "task_count": 120,
+  "contracts_built": 120,
+  "harness_generation_errors": 0,
+  "specification_errors": [
+    {
+      "task_id": "arbiter_02",
+      "messages": [
+        "Formal property contract_property_1 references clock clk, but that clock is not an input port in the immutable contract.",
+        "Formal property contract_property_2 references clock clk, but that clock is not an input port in the immutable contract."
+      ]
+    }
+  ],
+  "note": "Static contract/harness validation only; not a benchmark success metric."
+}

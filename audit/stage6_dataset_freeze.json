@@ -1,0 +1,49 @@
+{
+  "frozen_at": "2026-10-02T22:10:39Z",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "parser_mode": "strict",
+  "seed": 42,
+  "records": [
+    {
+      "path": "benchmarks/tasks.jsonl",
+      "sha256": "9d137519b913a519d7e45c7f940378a27292e71ca88c728c4a8ad2cecf58e7c4",
+      "task_count": 50
+    },
+    {
+      "path": "benchmarks/development-20/tasks.jsonl",
+      "sha256": "539e79afaf6fa445a95ad82c2337ff70f60d60d4e912f114dd9a3cf402f59c8c",
+      "task_count": 20
+    },
+    {
+      "path": "benchmarks/development-20/manifest.json",
+      "sha256": "05a1db3c2d69221741c766299c9018d76507e4a00577231bb24fb1645bc6178f",
+      "task_count": null
+    },
+    {
+      "path": "benchmarks/heldout/tasks.jsonl",
+      "sha256": "bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24",
+      "task_count": 120
+    },
+    {
+      "path": "benchmarks/heldout/manifest.json",
+      "sha256": "7422697b710f936be52e56df6ba16d737aa08882fce5f8ac11ce3490824b2355",
+      "task_count": null
+    },
+    {
+      "path": "src/mind3/benchmarks/runner.py",
+      "sha256": "c8e271926fdaae15294413ea74426f8a3e7338df054ea4064b4c6442cf228946",
+      "task_count": null
+    },
+    {
+      "path": "src/mind3/core/driver.py",
+      "sha256": "a438e9ef8a1976fa2301071b9ac83f226c40e64d7a37fd18c3a1ae5885bcb3d5",
+      "task_count": null
+    },
+    {
+      "path": "src/mind3/core/verifier.py",
+      "sha256": "eee547decdb50f238b4c84af3977d745dc42790a756373a9295068a65d45e547",
+      "task_count": null
+    }
+  ]
+}

@@ -1,0 +1,490 @@
+[
+  {
+    "case": "latch_inference",
+    "expected_category": "LATCH_INFERRED",
+    "observed_category": "LATCH_INFERRED",
+    "canonical_category": "RTL_SEMANTIC_ERROR",
+    "expected_gate": "Gate 1: Yosys Elaboration & Latch Trap Detector",
+    "passed": false,
+    "matched": true,
+    "details": "Unintended latch inferred in AST without synopsys keep_latch override.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "\n /----------------------------------------------------------------------------\\\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |\n |  Distributed under an ISC-like license, type \"license\" to see terms        |\n \\----------------------------------------------------------------------------/\n Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)\n\n-- Running command `read_verilog -sv latch_inference.sv; hierarchy -check -top latch_inference; proc; check; write_json latch_inference_ast.json; write_verilog -noattr latch_inference_netlist.v' --\n\n1. Executing Verilog-2005 frontend: latch_inference.sv\nParsing SystemVerilog input from `latch_inference.sv' to AST representation.\nGenerating RTLIL representation for module `\\latch_inference'.\nSuccessfully finished Verilog frontend.\n\n2. Executing HIERARCHY pass (managing design hierarchy).\n\n2.1. Analyzing design hierarchy..\nTop module:  \\latch_inference\n\n2.2. Analyzing design hierarchy..\nTop module:  \\latch_inference\nRemoved 0 unused modules.\n\n3. Executing PROC pass (convert processes to netlists).\n\n3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).\nCleaned up 0 empty switches.\n\n3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).\nMarked 1 switch rules as full_case in process $proc$latch_inference.sv:6$1 in module latch_inference.\nRemoved a total of 0 dead cases.\n\n3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).\nRemoved 0 redundant assignments.\nPromoted 1 assignment to connection.\n\n3.4. Executing PROC_INIT pass (extract init attributes).\n\n3.5. Executing PROC_ARST pass (detect async resets in processes).\n\n3.6. Executing PROC_ROM pass (convert switches to ROMs).\nConverted 0 switches.\n<suppressed ~1 debug messages>\n\n3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).\nCreating decoders for process `\\latch_inference.$proc$latch_inference.sv:6$1'.\n     1/1: $1\\y[0:0]\n\n3.8. Executing PROC_DLATCH pass (convert process syncs to latches).\n",
+        "stderr": "ERROR: Latch inferred for signal `\\latch_inference.\\y' from always_comb process `\\latch_inference.$proc$latch_inference.sv:6$1'.\n",
+        "details": "Unintended latch inferred in AST without synopsys keep_latch override.",
+        "error_category": "LATCH_INFERRED",
+        "diagnostic": {
+          "tool": "yosys",
+          "executable": "yosys",
+          "argv": [
+            "yosys",
+            "-p",
+            "read_verilog -sv latch_inference.sv; hierarchy -check -top latch_inference; proc; check; write_json latch_inference_ast.json; write_verilog -noattr latch_inference_netlist.v"
+          ],
+          "return_code": 1,
+          "stdout": "\n /----------------------------------------------------------------------------\\\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |\n |  Distributed under an ISC-like license, type \"license\" to see terms        |\n \\----------------------------------------------------------------------------/\n Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)\n\n-- Running command `read_verilog -sv latch_inference.sv; hierarchy -check -top latch_inference; proc; check; write_json latch_inference_ast.json; write_verilog -noattr latch_inference_netlist.v' --\n\n1. Executing Verilog-2005 frontend: latch_inference.sv\nParsing SystemVerilog input from `latch_inference.sv' to AST representation.\nGenerating RTLIL representation for module `\\latch_inference'.\nSuccessfully finished Verilog frontend.\n\n2. Executing HIERARCHY pass (managing design hierarchy).\n\n2.1. Analyzing design hierarchy..\nTop module:  \\latch_inference\n\n2.2. Analyzing design hierarchy..\nTop module:  \\latch_inference\nRemoved 0 unused modules.\n\n3. Executing PROC pass (convert processes to netlists).\n\n3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).\nCleaned up 0 empty switches.\n\n3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).\nMarked 1 switch rules as full_case in process $proc$latch_inference.sv:6$1 in module latch_inference.\nRemoved a total of 0 dead cases.\n\n3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).\nRemoved 0 redundant assignments.\nPromoted 1 assignment to connection.\n\n3.4. Executing PROC_INIT pass (extract init attributes).\n\n3.5. Executing PROC_ARST pass (detect async resets in processes).\n\n3.6. Executing PROC_ROM pass (convert switches to ROMs).\nConverted 0 switches.\n<suppressed ~1 debug messages>\n\n3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).\nCreating decoders for process `\\latch_inference.$proc$latch_inference.sv:6$1'.\n     1/1: $1\\y[0:0]\n\n3.8. Executing PROC_DLATCH pass (convert process syncs to latches).\n",
+          "stderr": "ERROR: Latch inferred for signal `\\latch_inference.\\y' from always_comb process `\\latch_inference.$proc$latch_inference.sv:6$1'.\n",
+          "execution_mode": "unsandboxed_local",
+          "match": "Latch inferred"
+        },
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "combinational_loop",
+    "expected_category": "COMBINATIONAL_LOOP",
+    "observed_category": "COMBINATIONAL_LOOP",
+    "canonical_category": "RTL_SEMANTIC_ERROR",
+    "expected_gate": "Gate 1: Yosys Elaboration & Latch Trap Detector",
+    "passed": false,
+    "matched": true,
+    "details": "Combinational loop detected during elaboration.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "\n /----------------------------------------------------------------------------\\\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |\n |  Distributed under an ISC-like license, type \"license\" to see terms        |\n \\----------------------------------------------------------------------------/\n Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)\n\n-- Running command `read_verilog -sv combinational_loop.sv; hierarchy -check -top combinational_loop; proc; check; write_json combinational_loop_ast.json; write_verilog -noattr combinational_loop_netlist.v' --\n\n1. Executing Verilog-2005 frontend: combinational_loop.sv\nParsing SystemVerilog input from `combinational_loop.sv' to AST representation.\nGenerating RTLIL representation for module `\\combinational_loop'.\nSuccessfully finished Verilog frontend.\n\n2. Executing HIERARCHY pass (managing design hierarchy).\n\n2.1. Analyzing design hierarchy..\nTop module:  \\combinational_loop\n\n2.2. Analyzing design hierarchy..\nTop module:  \\combinational_loop\nRemoved 0 unused modules.\n\n3. Executing PROC pass (convert processes to netlists).\n\n3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).\nCleaned up 0 empty switches.\n\n3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).\nRemoved a total of 0 dead cases.\n\n3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).\nRemoved 0 redundant assignments.\nPromoted 0 assignments to connections.\n\n3.4. Executing PROC_INIT pass (extract init attributes).\n\n3.5. Executing PROC_ARST pass (detect async resets in processes).\n\n3.6. Executing PROC_ROM pass (convert switches to ROMs).\nConverted 0 switches.\n\n3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).\n\n3.8. Executing PROC_DLATCH pass (convert process syncs to latches).\n\n3.9. Executing PROC_DFF pass (convert process syncs to FFs).\n\n3.10. Executing PROC_MEMWR pass (convert process memory writes to cells).\n\n3.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).\nCleaned up 0 empty switches.\n\n3.12. Executing OPT_EXPR pass (perform const folding).\nOptimizing module combinational_loop.\nCouldn't topologically sort cells, optimizing module combinational_loop may take a longer time.\n\n4. Executing CHECK pass (checking for obvious problems).\nChecking module combinational_loop...\nWarning: found logic loop in module combinational_loop:\n    cell $xor$combinational_loop.sv:7$2 ($xor) source: combinational_loop.sv:7.16-7.21\n      A[0] --> Y[0]\n    cell $not$combinational_loop.sv:6$1 ($not) source: combinational_loop.sv:6.16-6.18\n      A[0] --> Y[0]\nFound and reported 1 problems.\n\n5. Executing JSON backend.\n\n6. Executing Verilog backend.\n\n6.1. Executing BMUXMAP pass.\n\n6.2. Executing DEMUXMAP pass.\nDumping module `\\combinational_loop'.\n\nWarnings: 1 unique messages, 1 total\nEnd of script. Logfile hash: d8bdee1371, time: 0.00s, user: 0.00s, system: 0.00s, MEM: 13.91 MB peak\nYosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)\nTime spent: 23% 2x read_verilog (0 sec), 21% 2x write_json (0 sec), ...\n",
+        "stderr": "",
+        "details": "Combinational loop detected during elaboration.",
+        "error_category": "COMBINATIONAL_LOOP",
+        "diagnostic": {
+          "tool": "yosys",
+          "executable": "yosys",
+          "argv": [
+            "yosys",
+            "-p",
+            "read_verilog -sv combinational_loop.sv; hierarchy -check -top combinational_loop; proc; check; write_json combinational_loop_ast.json; write_verilog -noattr combinational_loop_netlist.v"
+          ],
+          "return_code": 0,
+          "stdout": "\n /----------------------------------------------------------------------------\\\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |\n |  Distributed under an ISC-like license, type \"license\" to see terms        |\n \\----------------------------------------------------------------------------/\n Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)\n\n-- Running command `read_verilog -sv combinational_loop.sv; hierarchy -check -top combinational_loop; proc; check; write_json combinational_loop_ast.json; write_verilog -noattr combinational_loop_netlist.v' --\n\n1. Executing Verilog-2005 frontend: combinational_loop.sv\nParsing SystemVerilog input from `combinational_loop.sv' to AST representation.\nGenerating RTLIL representation for module `\\combinational_loop'.\nSuccessfully finished Verilog frontend.\n\n2. Executing HIERARCHY pass (managing design hierarchy).\n\n2.1. Analyzing design hierarchy..\nTop module:  \\combinational_loop\n\n2.2. Analyzing design hierarchy..\nTop module:  \\combinational_loop\nRemoved 0 unused modules.\n\n3. Executing PROC pass (convert processes to netlists).\n\n3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).\nCleaned up 0 empty switches.\n\n3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).\nRemoved a total of 0 dead cases.\n\n3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).\nRemoved 0 redundant assignments.\nPromoted 0 assignments to connections.\n\n3.4. Executing PROC_INIT pass (extract init attributes).\n\n3.5. Executing PROC_ARST pass (detect async resets in processes).\n\n3.6. Executing PROC_ROM pass (convert switches to ROMs).\nConverted 0 switches.\n\n3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).\n\n3.8. Executing PROC_DLATCH pass (convert process syncs to latches).\n\n3.9. Executing PROC_DFF pass (convert process syncs to FFs).\n\n3.10. Executing PROC_MEMWR pass (convert process memory writes to cells).\n\n3.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).\nCleaned up 0 empty switches.\n\n3.12. Executing OPT_EXPR pass (perform const folding).\nOptimizing module combinational_loop.\nCouldn't topologically sort cells, optimizing module combinational_loop may take a longer time.\n\n4. Executing CHECK pass (checking for obvious problems).\nChecking module combinational_loop...\nWarning: found logic loop in module combinational_loop:\n    cell $xor$combinational_loop.sv:7$2 ($xor) source: combinational_loop.sv:7.16-7.21\n      A[0] --> Y[0]\n    cell $not$combinational_loop.sv:6$1 ($not) source: combinational_loop.sv:6.16-6.18\n      A[0] --> Y[0]\nFound and reported 1 problems.\n\n5. Executing JSON backend.\n\n6. Executing Verilog backend.\n\n6.1. Executing BMUXMAP pass.\n\n6.2. Executing DEMUXMAP pass.\nDumping module `\\combinational_loop'.\n\nWarnings: 1 unique messages, 1 total\nEnd of script. Logfile hash: d8bdee1371, time: 0.00s, user: 0.00s, system: 0.00s, MEM: 13.91 MB peak\nYosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)\nTime spent: 23% 2x read_verilog (0 sec), 21% 2x write_json (0 sec), ...\n",
+          "stderr": "",
+          "execution_mode": "unsandboxed_local"
+        },
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "incorrect_reset_behavior",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "observed_category": "FORMAL_INVARIANT_BREACH",
+    "canonical_category": "FORMAL_FAILURE",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "passed": false,
+    "matched": true,
+    "details": "Formal invariant violated at cycle step T=1. Assertion: incorrect_reset_behavior_formal_top._witness_.check_assert_incorrect_reset_behavior_formal_top_sv_17_5. Trace: incorrect_reset_behavior/engine_0/trace.vcd.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+        "passed": false,
+        "exit_code": 2,
+        "stdout": "SBY  5:05:06 [incorrect_reset_behavior] Removing directory '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_reset_behavior/incorrect_reset_behavior'.\nSBY  5:05:06 [incorrect_reset_behavior] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_reset_behavior/incorrect_reset_behavior.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_reset_behavior/incorrect_reset_behavior/src/incorrect_reset_behavior.sv'.\nSBY  5:05:06 [incorrect_reset_behavior] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_reset_behavior/incorrect_reset_behavior_formal_top.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_reset_behavior/incorrect_reset_behavior/src/incorrect_reset_behavior_formal_top.sv'.\nSBY  5:05:06 [incorrect_reset_behavior] engine_0: smtbmc z3\nSBY  5:05:06 [incorrect_reset_behavior] base: starting process \"cd incorrect_reset_behavior/src; yosys -ql ../model/design.log ../model/design.ys\"\nSBY  5:05:06 [incorrect_reset_behavior] base: finished (returncode=0)\nSBY  5:05:06 [incorrect_reset_behavior] prep: starting process \"cd incorrect_reset_behavior/model; yosys -ql design_prep.log design_prep.ys\"\nSBY  5:05:06 [incorrect_reset_behavior] prep: finished (returncode=0)\nSBY  5:05:06 [incorrect_reset_behavior] smt2: starting process \"cd incorrect_reset_behavior/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY  5:05:06 [incorrect_reset_behavior] smt2: finished (returncode=0)\nSBY  5:05:06 [incorrect_reset_behavior] engine_0: starting process \"cd incorrect_reset_behavior; yosys-smtbmc -s z3 --presat --noprogress -t 5  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Solver: z3\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  BMC failed!\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Assert failed in incorrect_reset_behavior_formal_top: incorrect_reset_behavior_formal_top.sv:17.13-17.32 (_witness_.check_assert_incorrect_reset_behavior_formal_top_sv_17_5)\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: ##   0:00:00  Status: failed\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: finished (returncode=1)\nSBY  5:05:07 [incorrect_reset_behavior] engine_0: Status returned by engine: FAIL\nSBY  5:05:07 [incorrect_reset_behavior] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:07 [incorrect_reset_behavior] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:07 [incorrect_reset_behavior] summary: engine_0 (smtbmc z3) returned FAIL\nSBY  5:05:07 [incorrect_reset_behavior] summary: counterexample trace: incorrect_reset_behavior/engine_0/trace.vcd\nSBY  5:05:07 [incorrect_reset_behavior] summary:   failed assertion incorrect_reset_behavior_formal_top._witness_.check_assert_incorrect_reset_behavior_formal_top_sv_17_5 at incorrect_reset_behavior_formal_top.sv:17.13-17.32 step 1\nSBY  5:05:07 [incorrect_reset_behavior] DONE (FAIL, rc=2)\n",
+        "stderr": "",
+        "details": "Formal invariant violated at cycle step T=1. Assertion: incorrect_reset_behavior_formal_top._witness_.check_assert_incorrect_reset_behavior_formal_top_sv_17_5. Trace: incorrect_reset_behavior/engine_0/trace.vcd.",
+        "error_category": "FORMAL_INVARIANT_BREACH",
+        "failing_property": "incorrect_reset_behavior_formal_top._witness_.check_assert_incorrect_reset_behavior_formal_top_sv_17_5",
+        "step": "1",
+        "trace_file": "incorrect_reset_behavior/engine_0/trace.vcd",
+        "property_source": null,
+        "counterexample_trace": "$version Generated by Yosys-SMTBMC $end\n$timescale 1ns $end\n$var integer 32 t smt_step $end\n$var event 1 ! smt_clock $end\n$scope module incorrect_reset_behavior_formal_top $end\n$var wire 1 n0 clk $end\n$var wire 8 n1 d $end\n$scope module dut $end\n$var wire 1 n2 clk $end\n$var wire 8 n3 d $end\n$var wire 8 n4 q $end\n$var wire 1 n5 rst_n $end\n$upscope $end\n$var wire 8 n6 q $end\n$var wire 1 n7 rst_n $end\n$upscope $end\n$enddefinitions $end\n#0\n1!\nb00000000000000000000000000000000 t\nb1 n0\nb1 n2\nb00000001 n1\nb00000001 n3\nb00000001 n4\nb0 n5\nb00000001 n6\nb0 n7\n#5\nb0 n0\nb0 n2\n#10\n1!\nb00000000000000000000000000000001 t\nb1 n0\nb1 n2\nb00000000 n1\nb00000000 n3\nb00000001 n4\nb0 n5\nb00000001 n6\nb0 n7\n#15\nb0 n0\nb0 n2\n#20\n1!\nb00000000000000000000000000000010 t\nb1 n0\nb1 n2",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "reset_deassertion_problem",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "observed_category": "FORMAL_INVARIANT_BREACH",
+    "canonical_category": "FORMAL_FAILURE",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "passed": false,
+    "matched": true,
+    "details": "Formal invariant violated at cycle step T=1. Assertion: reset_deassertion_problem_formal_top._witness_.check_assert_reset_deassertion_problem_formal_top_sv_18_10. Trace: reset_deassertion_problem/engine_0/trace.vcd.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+        "passed": false,
+        "exit_code": 2,
+        "stdout": "SBY  5:05:07 [reset_deassertion_problem] Removing directory '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/reset_deassertion_problem/reset_deassertion_problem'.\nSBY  5:05:07 [reset_deassertion_problem] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/reset_deassertion_problem/reset_deassertion_problem.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/reset_deassertion_problem/reset_deassertion_problem/src/reset_deassertion_problem.sv'.\nSBY  5:05:07 [reset_deassertion_problem] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/reset_deassertion_problem/reset_deassertion_problem_formal_top.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/reset_deassertion_problem/reset_deassertion_problem/src/reset_deassertion_problem_formal_top.sv'.\nSBY  5:05:07 [reset_deassertion_problem] engine_0: smtbmc z3\nSBY  5:05:07 [reset_deassertion_problem] base: starting process \"cd reset_deassertion_problem/src; yosys -ql ../model/design.log ../model/design.ys\"\nSBY  5:05:07 [reset_deassertion_problem] base: reset_deassertion_problem_formal_top.sv:18: Warning: Identifier `\\dut.sync_rst_n' is implicitly declared.\nSBY  5:05:07 [reset_deassertion_problem] base: Warning: Wire reset_deassertion_problem_formal_top.\\dut.sync_rst_n is used but has no driver.\nSBY  5:05:07 [reset_deassertion_problem] base: finished (returncode=0)\nSBY  5:05:07 [reset_deassertion_problem] prep: starting process \"cd reset_deassertion_problem/model; yosys -ql design_prep.log design_prep.ys\"\nSBY  5:05:07 [reset_deassertion_problem] prep: Warning: Wire reset_deassertion_problem_formal_top.\\dut.sync_rst_n is used but has no driver.\nSBY  5:05:07 [reset_deassertion_problem] prep: finished (returncode=0)\nSBY  5:05:07 [reset_deassertion_problem] smt2: starting process \"cd reset_deassertion_problem/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY  5:05:07 [reset_deassertion_problem] smt2: finished (returncode=0)\nSBY  5:05:07 [reset_deassertion_problem] engine_0: starting process \"cd reset_deassertion_problem; yosys-smtbmc -s z3 --presat --noprogress -t 5  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Solver: z3\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  BMC failed!\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Assert failed in reset_deassertion_problem_formal_top: reset_deassertion_problem_formal_top.sv:18.13-18.51 (_witness_.check_assert_reset_deassertion_problem_formal_top_sv_18_10)\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY  5:05:07 [reset_deassertion_problem] engine_0: ##   0:00:00  Status: failed\nSBY  5:05:07 [reset_deassertion_problem] engine_0: finished (returncode=1)\nSBY  5:05:07 [reset_deassertion_problem] engine_0: Status returned by engine: FAIL\nSBY  5:05:07 [reset_deassertion_problem] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:07 [reset_deassertion_problem] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:07 [reset_deassertion_problem] summary: engine_0 (smtbmc z3) returned FAIL\nSBY  5:05:07 [reset_deassertion_problem] summary: counterexample trace: reset_deassertion_problem/engine_0/trace.vcd\nSBY  5:05:07 [reset_deassertion_problem] summary:   failed assertion reset_deassertion_problem_formal_top._witness_.check_assert_reset_deassertion_problem_formal_top_sv_18_10 at reset_deassertion_problem_formal_top.sv:18.13-18.51 step 1\nSBY  5:05:07 [reset_deassertion_problem] DONE (FAIL, rc=2)\n",
+        "stderr": "",
+        "details": "Formal invariant violated at cycle step T=1. Assertion: reset_deassertion_problem_formal_top._witness_.check_assert_reset_deassertion_problem_formal_top_sv_18_10. Trace: reset_deassertion_problem/engine_0/trace.vcd.",
+        "error_category": "FORMAL_INVARIANT_BREACH",
+        "failing_property": "reset_deassertion_problem_formal_top._witness_.check_assert_reset_deassertion_problem_formal_top_sv_18_10",
+        "step": "1",
+        "trace_file": "reset_deassertion_problem/engine_0/trace.vcd",
+        "property_source": null,
+        "counterexample_trace": "$version Generated by Yosys-SMTBMC $end\n$timescale 1ns $end\n$var integer 32 t smt_step $end\n$var event 1 ! smt_clock $end\n$scope module reset_deassertion_problem_formal_top $end\n$scope module _witness_ $end\n$var wire 1 n0 anyinit_procdff_14 $end\n$upscope $end\n$var wire 1 n1 async_rst_n $end\n$var wire 1 n2 clk $end\n$var wire 1 n3 d $end\n$scope module dut $end\n$var wire 1 n4 sync_rst_n $end\n$upscope $end\n$upscope $end\n$enddefinitions $end\n#0\n1!\nb00000000000000000000000000000000 t\nb1 n2\nb0 n0\nb1 n1\nb0 n3\nb1 n4\n#5\nb0 n2\n#10\n1!\nb00000000000000000000000000000001 t\nb1 n2\nb1 n0\nb1 n1\nb0 n3\nb1 n4\n#15\nb0 n2\n#20\n1!\nb00000000000000000000000000000010 t\nb1 n2",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "cdc_violation",
+    "expected_category": "CDC_VIOLATION",
+    "observed_category": "CDC_TOOLING_UNAVAILABLE",
+    "canonical_category": "ENVIRONMENT_FAILURE",
+    "expected_gate": "Gate 6: Yosys CDC Static Analysis",
+    "passed": false,
+    "matched": true,
+    "details": "Yosys binary lacks 'cdc' command. Stock Homebrew/apt Yosys distributions do not bundle the CDC plugin; install a CDC-enabled distribution such as OSS CAD Suite (https://github.com/YosysHQ/oss-cad-suite-build) or configure require_cdc=False.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 6: Yosys CDC Static Analysis",
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "\n /----------------------------------------------------------------------------\\\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |\n |  Distributed under an ISC-like license, type \"license\" to see terms        |\n \\----------------------------------------------------------------------------/\n Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)\n\n-- Running command `read_verilog -sv cdc_violation.sv; hierarchy -check -top cdc_violation; proc; cdc -verbose' --\n\n1. Executing Verilog-2005 frontend: cdc_violation.sv\nParsing SystemVerilog input from `cdc_violation.sv' to AST representation.\nGenerating RTLIL representation for module `\\cdc_violation'.\nSuccessfully finished Verilog frontend.\n\n2. Executing HIERARCHY pass (managing design hierarchy).\n\n2.1. Analyzing design hierarchy..\nTop module:  \\cdc_violation\n\n2.2. Analyzing design hierarchy..\nTop module:  \\cdc_violation\nRemoved 0 unused modules.\n\n3. Executing PROC pass (convert processes to netlists).\n\n3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).\nCleaned up 0 empty switches.\n\n3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).\nMarked 1 switch rules as full_case in process $proc$cdc_violation.sv:18$3 in module cdc_violation.\nMarked 1 switch rules as full_case in process $proc$cdc_violation.sv:10$1 in module cdc_violation.\nRemoved a total of 0 dead cases.\n\n3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).\nRemoved 2 redundant assignments.\nPromoted 0 assignments to connections.\n\n3.4. Executing PROC_INIT pass (extract init attributes).\n\n3.5. Executing PROC_ARST pass (detect async resets in processes).\n\n3.6. Executing PROC_ROM pass (convert switches to ROMs).\nConverted 0 switches.\n<suppressed ~2 debug messages>\n\n3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).\nCreating decoders for process `\\cdc_violation.$proc$cdc_violation.sv:18$3'.\n     1/1: $0\\data_b[0:0]\nCreating decoders for process `\\cdc_violation.$proc$cdc_violation.sv:10$1'.\n     1/1: $0\\async_signal[0:0]\n\n3.8. Executing PROC_DLATCH pass (convert process syncs to latches).\n\n3.9. Executing PROC_DFF pass (convert process syncs to FFs).\nCreating register for signal `\\cdc_violation.\\data_b' using process `\\cdc_violation.$proc$cdc_violation.sv:18$3'.\n  created $dff cell `$procdff$11' with positive edge clock.\nCreating register for signal `\\cdc_violation.\\async_signal' using process `\\cdc_violation.$proc$cdc_violation.sv:10$1'.\n  created $dff cell `$procdff$12' with positive edge clock.\n\n3.10. Executing PROC_MEMWR pass (convert process memory writes to cells).\n\n3.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).\nFound and cleaned up 1 empty switch in `\\cdc_violation.$proc$cdc_violation.sv:18$3'.\nRemoving empty process `cdc_violation.$proc$cdc_violation.sv:18$3'.\nFound and cleaned up 1 empty switch in `\\cdc_violation.$proc$cdc_violation.sv:10$1'.\nRemoving empty process `cdc_violation.$proc$cdc_violation.sv:10$1'.\nCleaned up 2 empty switches.\n\n3.12. Executing OPT_EXPR pass (perform const folding).\nOptimizing module cdc_violation.\n<suppressed ~2 debug messages>\n",
+        "stderr": "ERROR: No such command: cdc (type 'help' for a command overview)\n",
+        "details": "Yosys binary lacks 'cdc' command. Stock Homebrew/apt Yosys distributions do not bundle the CDC plugin; install a CDC-enabled distribution such as OSS CAD Suite (https://github.com/YosysHQ/oss-cad-suite-build) or configure require_cdc=False.",
+        "error_category": "CDC_TOOLING_UNAVAILABLE",
+        "cdc_violations": [],
+        "skipped": false,
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "fifo_overflow",
+    "expected_category": "SIMULATION_FAILURE",
+    "observed_category": "SIMULATION_FAILURE",
+    "canonical_category": "SIMULATION_FAILURE",
+    "expected_gate": "Gate 3: Verilator Coverage Signoff",
+    "passed": false,
+    "matched": true,
+    "details": "Verilator simulation runtime failed with exit code 1: \nASSERTION FAILED: FIFO overflow corrupts unread data (expected 0xA0, got 0xA1)\n",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 3: Verilator Coverage Signoff",
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "ASSERTION FAILED: FIFO overflow corrupts unread data (expected 0xA0, got 0xA1)\n",
+        "details": "Verilator simulation runtime failed with exit code 1: \nASSERTION FAILED: FIFO overflow corrupts unread data (expected 0xA0, got 0xA1)\n",
+        "error_category": "SIMULATION_FAILURE",
+        "diagnostic": {
+          "tool": "verilator",
+          "executable": "obj_dir/Vfifo_overflow",
+          "argv": [
+            "obj_dir/Vfifo_overflow"
+          ],
+          "return_code": 1,
+          "stdout": "",
+          "stderr": "ASSERTION FAILED: FIFO overflow corrupts unread data (expected 0xA0, got 0xA1)\n",
+          "execution_mode": "unsandboxed_local",
+          "stage": "simulation",
+          "error": "\nASSERTION FAILED: FIFO overflow corrupts unread data (expected 0xA0, got 0xA1)\n",
+          "file": null,
+          "line": null,
+          "column": null,
+          "source_context": ""
+        },
+        "cycle": null,
+        "observed_behavior": null,
+        "expected_behavior": null,
+        "failing_test": "generated_verilator_testbench",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "fifo_underflow",
+    "expected_category": "SIMULATION_FAILURE",
+    "observed_category": "SIMULATION_FAILURE",
+    "canonical_category": "SIMULATION_FAILURE",
+    "expected_gate": "Gate 3: Verilator Coverage Signoff",
+    "passed": false,
+    "matched": true,
+    "details": "Verilator simulation runtime failed with exit code 1: \nASSERTION FAILED: FIFO underflow occurred! empty=0, count=7 (expected count=0)\n",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 3: Verilator Coverage Signoff",
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "ASSERTION FAILED: FIFO underflow occurred! empty=0, count=7 (expected count=0)\n",
+        "details": "Verilator simulation runtime failed with exit code 1: \nASSERTION FAILED: FIFO underflow occurred! empty=0, count=7 (expected count=0)\n",
+        "error_category": "SIMULATION_FAILURE",
+        "diagnostic": {
+          "tool": "verilator",
+          "executable": "obj_dir/Vfifo_underflow",
+          "argv": [
+            "obj_dir/Vfifo_underflow"
+          ],
+          "return_code": 1,
+          "stdout": "",
+          "stderr": "ASSERTION FAILED: FIFO underflow occurred! empty=0, count=7 (expected count=0)\n",
+          "execution_mode": "unsandboxed_local",
+          "stage": "simulation",
+          "error": "\nASSERTION FAILED: FIFO underflow occurred! empty=0, count=7 (expected count=0)\n",
+          "file": null,
+          "line": null,
+          "column": null,
+          "source_context": ""
+        },
+        "cycle": null,
+        "observed_behavior": null,
+        "expected_behavior": null,
+        "failing_test": "generated_verilator_testbench",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "off_by_one_counter",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "observed_category": "FORMAL_INVARIANT_BREACH",
+    "canonical_category": "FORMAL_FAILURE",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "passed": false,
+    "matched": true,
+    "details": "Formal invariant violated at cycle step T=1. Assertion: off_by_one_counter_formal_top._witness_.check_assert_off_by_one_counter_formal_top_sv_11_6. Trace: off_by_one_counter/engine_0/trace.vcd.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+        "passed": false,
+        "exit_code": 2,
+        "stdout": "SBY  5:05:16 [off_by_one_counter] Removing directory '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/off_by_one_counter/off_by_one_counter'.\nSBY  5:05:16 [off_by_one_counter] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/off_by_one_counter/off_by_one_counter.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/off_by_one_counter/off_by_one_counter/src/off_by_one_counter.sv'.\nSBY  5:05:16 [off_by_one_counter] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/off_by_one_counter/off_by_one_counter_formal_top.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/off_by_one_counter/off_by_one_counter/src/off_by_one_counter_formal_top.sv'.\nSBY  5:05:16 [off_by_one_counter] engine_0: smtbmc z3\nSBY  5:05:16 [off_by_one_counter] base: starting process \"cd off_by_one_counter/src; yosys -ql ../model/design.log ../model/design.ys\"\nSBY  5:05:16 [off_by_one_counter] base: finished (returncode=0)\nSBY  5:05:16 [off_by_one_counter] prep: starting process \"cd off_by_one_counter/model; yosys -ql design_prep.log design_prep.ys\"\nSBY  5:05:16 [off_by_one_counter] prep: finished (returncode=0)\nSBY  5:05:16 [off_by_one_counter] smt2: starting process \"cd off_by_one_counter/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY  5:05:16 [off_by_one_counter] smt2: finished (returncode=0)\nSBY  5:05:16 [off_by_one_counter] engine_0: starting process \"cd off_by_one_counter; yosys-smtbmc -s z3 --presat --noprogress -t 15  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Solver: z3\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  BMC failed!\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Assert failed in off_by_one_counter_formal_top: off_by_one_counter_formal_top.sv:11.13-11.33 (_witness_.check_assert_off_by_one_counter_formal_top_sv_11_6)\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY  5:05:16 [off_by_one_counter] engine_0: ##   0:00:00  Status: failed\nSBY  5:05:16 [off_by_one_counter] engine_0: finished (returncode=1)\nSBY  5:05:16 [off_by_one_counter] engine_0: Status returned by engine: FAIL\nSBY  5:05:16 [off_by_one_counter] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [off_by_one_counter] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [off_by_one_counter] summary: engine_0 (smtbmc z3) returned FAIL\nSBY  5:05:16 [off_by_one_counter] summary: counterexample trace: off_by_one_counter/engine_0/trace.vcd\nSBY  5:05:16 [off_by_one_counter] summary:   failed assertion off_by_one_counter_formal_top._witness_.check_assert_off_by_one_counter_formal_top_sv_11_6 at off_by_one_counter_formal_top.sv:11.13-11.33 step 1\nSBY  5:05:16 [off_by_one_counter] DONE (FAIL, rc=2)\n",
+        "stderr": "",
+        "details": "Formal invariant violated at cycle step T=1. Assertion: off_by_one_counter_formal_top._witness_.check_assert_off_by_one_counter_formal_top_sv_11_6. Trace: off_by_one_counter/engine_0/trace.vcd.",
+        "error_category": "FORMAL_INVARIANT_BREACH",
+        "failing_property": "off_by_one_counter_formal_top._witness_.check_assert_off_by_one_counter_formal_top_sv_11_6",
+        "step": "1",
+        "trace_file": "off_by_one_counter/engine_0/trace.vcd",
+        "property_source": null,
+        "counterexample_trace": "$version Generated by Yosys-SMTBMC $end\n$timescale 1ns $end\n$var integer 32 t smt_step $end\n$var event 1 ! smt_clock $end\n$scope module off_by_one_counter_formal_top $end\n$var wire 1 n0 clk $end\n$scope module dut $end\n$scope module _witness_ $end\n$var wire 4 n1 anyinit_procdff_17 $end\n$upscope $end\n$var wire 1 n2 clk $end\n$var wire 1 n3 rst_n $end\n$var wire 4 n4 val $end\n$upscope $end\n$var wire 1 n5 rst_n $end\n$var wire 4 n6 val $end\n$upscope $end\n$enddefinitions $end\n#0\n1!\nb00000000000000000000000000000000 t\nb1 n0\nb1 n2\nb1011 n1\nb1 n3\nb1011 n4\nb1 n5\nb1011 n6\n#5\nb0 n0\nb0 n2\n#10\n1!\nb00000000000000000000000000000001 t\nb1 n0\nb1 n2\nb1100 n1\nb0 n3\nb0000 n4\nb0 n5\nb0000 n6\n#15\nb0 n0\nb0 n2\n#20\n1!\nb00000000000000000000000000000010 t\nb1 n0\nb1 n2",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "incorrect_handshake",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "observed_category": "FORMAL_INVARIANT_BREACH",
+    "canonical_category": "FORMAL_FAILURE",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "passed": false,
+    "matched": true,
+    "details": "Formal invariant violated at cycle step T=1. Assertion: incorrect_handshake_formal_top._witness_.check_assert_incorrect_handshake_formal_top_sv_23_15. Trace: incorrect_handshake/engine_0/trace.vcd.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+        "passed": false,
+        "exit_code": 2,
+        "stdout": "SBY  5:05:16 [incorrect_handshake] Removing directory '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_handshake/incorrect_handshake'.\nSBY  5:05:16 [incorrect_handshake] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_handshake/incorrect_handshake.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_handshake/incorrect_handshake/src/incorrect_handshake.sv'.\nSBY  5:05:16 [incorrect_handshake] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_handshake/incorrect_handshake_formal_top.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_handshake/incorrect_handshake/src/incorrect_handshake_formal_top.sv'.\nSBY  5:05:16 [incorrect_handshake] engine_0: smtbmc z3\nSBY  5:05:16 [incorrect_handshake] base: starting process \"cd incorrect_handshake/src; yosys -ql ../model/design.log ../model/design.ys\"\nSBY  5:05:16 [incorrect_handshake] base: finished (returncode=0)\nSBY  5:05:16 [incorrect_handshake] prep: starting process \"cd incorrect_handshake/model; yosys -ql design_prep.log design_prep.ys\"\nSBY  5:05:16 [incorrect_handshake] prep: finished (returncode=0)\nSBY  5:05:16 [incorrect_handshake] smt2: starting process \"cd incorrect_handshake/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY  5:05:16 [incorrect_handshake] smt2: finished (returncode=0)\nSBY  5:05:16 [incorrect_handshake] engine_0: starting process \"cd incorrect_handshake; yosys-smtbmc -s z3 --presat --noprogress -t 5  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Solver: z3\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  BMC failed!\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Assert failed in incorrect_handshake_formal_top: incorrect_handshake_formal_top.sv:23.17-23.39 (_witness_.check_assert_incorrect_handshake_formal_top_sv_23_15)\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Assert failed in incorrect_handshake_formal_top: incorrect_handshake_formal_top.sv:24.17-24.45 (_witness_.check_assert_incorrect_handshake_formal_top_sv_24_17)\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY  5:05:16 [incorrect_handshake] engine_0: ##   0:00:00  Status: failed\nSBY  5:05:16 [incorrect_handshake] engine_0: finished (returncode=1)\nSBY  5:05:16 [incorrect_handshake] engine_0: Status returned by engine: FAIL\nSBY  5:05:16 [incorrect_handshake] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [incorrect_handshake] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [incorrect_handshake] summary: engine_0 (smtbmc z3) returned FAIL\nSBY  5:05:16 [incorrect_handshake] summary: counterexample trace: incorrect_handshake/engine_0/trace.vcd\nSBY  5:05:16 [incorrect_handshake] summary:   failed assertion incorrect_handshake_formal_top._witness_.check_assert_incorrect_handshake_formal_top_sv_23_15 at incorrect_handshake_formal_top.sv:23.17-23.39 step 1\nSBY  5:05:16 [incorrect_handshake] summary:   failed assertion incorrect_handshake_formal_top._witness_.check_assert_incorrect_handshake_formal_top_sv_24_17 at incorrect_handshake_formal_top.sv:24.17-24.45 step 1\nSBY  5:05:16 [incorrect_handshake] DONE (FAIL, rc=2)\n",
+        "stderr": "",
+        "details": "Formal invariant violated at cycle step T=1. Assertion: incorrect_handshake_formal_top._witness_.check_assert_incorrect_handshake_formal_top_sv_23_15. Trace: incorrect_handshake/engine_0/trace.vcd.",
+        "error_category": "FORMAL_INVARIANT_BREACH",
+        "failing_property": "incorrect_handshake_formal_top._witness_.check_assert_incorrect_handshake_formal_top_sv_23_15",
+        "step": "1",
+        "trace_file": "incorrect_handshake/engine_0/trace.vcd",
+        "property_source": null,
+        "counterexample_trace": "$version Generated by Yosys-SMTBMC $end\n$timescale 1ns $end\n$var integer 32 t smt_step $end\n$var event 1 ! smt_clock $end\n$scope module incorrect_handshake_formal_top $end\n$scope module _witness_ $end\n$var wire 1 n0 anyinit_procdff_27 $end\n$var wire 1 n1 anyinit_procdff_28 $end\n$var wire 1 n2 anyinit_procdff_29 $end\n$var wire 8 n3 anyinit_procdff_30 $end\n$upscope $end\n$var wire 1 n4 clk $end\n$var wire 8 n5 data $end\n$scope module dut $end\n$scope module _witness_ $end\n$var wire 1 n6 anyinit_procdff_35 $end\n$var wire 8 n7 anyinit_procdff_40 $end\n$upscope $end\n$var wire 1 n8 clk $end\n$var wire 8 n9 data $end\n$var wire 8 n10 next_data $end\n$var wire 1 n11 ready $end\n$var wire 1 n12 rst_n $end\n$var wire 1 n13 valid $end\n$upscope $end\n$var wire 8 n14 next_data $end\n$var wire 1 n15 ready $end\n$var wire 1 n16 rst_n $end\n$var wire 1 n17 valid $end\n$upscope $end\n$enddefinitions $end\n#0\n1!\nb00000000000000000000000000000000 t\nb1 n4\nb1 n8\nb1 n0\nb1 n1\nb0 n2\nb00000001 n3\nb00000000 n5\nb0 n6\nb00000000 n7\nb00000000 n9\nb01000000 n10\nb0 n11\nb1 n12\nb0 n13\nb01000000 n14\nb0 n15\nb1 n16\nb0 n17\n#5\nb0 n4\nb0 n8\n#10\n1!\nb00000000000000000000000000000001 t\nb1 n4\nb1 n8\nb1 n0\nb0 n1\nb0 n2\nb00000000 n3\nb01000000 n5\nb1 n6\nb01000000 n7\nb01000000 n9\nb00000000 n10\nb0 n11\nb1 n12\nb1 n13\nb00000000 n14\nb0 n15\nb1 n16\nb1 n17\n#15\nb0 n4\nb0 n8\n#20\n1!\nb00000000000000000000000000000010 t\nb1 n4\nb1 n8",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "incorrect_fsm_transition",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "observed_category": "FORMAL_INVARIANT_BREACH",
+    "canonical_category": "FORMAL_FAILURE",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "passed": false,
+    "matched": true,
+    "details": "Formal invariant violated at cycle step T=1. Assertion: incorrect_fsm_transition_formal_top._witness_.check_assert_incorrect_fsm_transition_formal_top_sv_20_10. Trace: incorrect_fsm_transition/engine_0/trace.vcd.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+        "passed": false,
+        "exit_code": 2,
+        "stdout": "SBY  5:05:16 [incorrect_fsm_transition] Removing directory '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_fsm_transition/incorrect_fsm_transition'.\nSBY  5:05:16 [incorrect_fsm_transition] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_fsm_transition/incorrect_fsm_transition.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_fsm_transition/incorrect_fsm_transition/src/incorrect_fsm_transition.sv'.\nSBY  5:05:16 [incorrect_fsm_transition] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_fsm_transition/incorrect_fsm_transition_formal_top.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/incorrect_fsm_transition/incorrect_fsm_transition/src/incorrect_fsm_transition_formal_top.sv'.\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: smtbmc z3\nSBY  5:05:16 [incorrect_fsm_transition] base: starting process \"cd incorrect_fsm_transition/src; yosys -ql ../model/design.log ../model/design.ys\"\nSBY  5:05:16 [incorrect_fsm_transition] base: finished (returncode=0)\nSBY  5:05:16 [incorrect_fsm_transition] prep: starting process \"cd incorrect_fsm_transition/model; yosys -ql design_prep.log design_prep.ys\"\nSBY  5:05:16 [incorrect_fsm_transition] prep: finished (returncode=0)\nSBY  5:05:16 [incorrect_fsm_transition] smt2: starting process \"cd incorrect_fsm_transition/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY  5:05:16 [incorrect_fsm_transition] smt2: finished (returncode=0)\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: starting process \"cd incorrect_fsm_transition; yosys-smtbmc -s z3 --presat --noprogress -t 5  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Solver: z3\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  BMC failed!\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Assert failed in incorrect_fsm_transition_formal_top: incorrect_fsm_transition_formal_top.sv:20.17-20.39 (_witness_.check_assert_incorrect_fsm_transition_formal_top_sv_20_10)\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: ##   0:00:00  Status: failed\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: finished (returncode=1)\nSBY  5:05:16 [incorrect_fsm_transition] engine_0: Status returned by engine: FAIL\nSBY  5:05:16 [incorrect_fsm_transition] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [incorrect_fsm_transition] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [incorrect_fsm_transition] summary: engine_0 (smtbmc z3) returned FAIL\nSBY  5:05:16 [incorrect_fsm_transition] summary: counterexample trace: incorrect_fsm_transition/engine_0/trace.vcd\nSBY  5:05:16 [incorrect_fsm_transition] summary:   failed assertion incorrect_fsm_transition_formal_top._witness_.check_assert_incorrect_fsm_transition_formal_top_sv_20_10 at incorrect_fsm_transition_formal_top.sv:20.17-20.39 step 1\nSBY  5:05:16 [incorrect_fsm_transition] DONE (FAIL, rc=2)\n",
+        "stderr": "",
+        "details": "Formal invariant violated at cycle step T=1. Assertion: incorrect_fsm_transition_formal_top._witness_.check_assert_incorrect_fsm_transition_formal_top_sv_20_10. Trace: incorrect_fsm_transition/engine_0/trace.vcd.",
+        "error_category": "FORMAL_INVARIANT_BREACH",
+        "failing_property": "incorrect_fsm_transition_formal_top._witness_.check_assert_incorrect_fsm_transition_formal_top_sv_20_10",
+        "step": "1",
+        "trace_file": "incorrect_fsm_transition/engine_0/trace.vcd",
+        "property_source": null,
+        "counterexample_trace": "$version Generated by Yosys-SMTBMC $end\n$timescale 1ns $end\n$var integer 32 t smt_step $end\n$var event 1 ! smt_clock $end\n$scope module incorrect_fsm_transition_formal_top $end\n$scope module _witness_ $end\n$var wire 1 n0 anyinit_procdff_26 $end\n$var wire 2 n1 anyinit_procdff_27 $end\n$upscope $end\n$var wire 1 n2 clk $end\n$scope module dut $end\n$scope module _witness_ $end\n$var wire 2 n3 anyinit_procdff_32 $end\n$upscope $end\n$var wire 1 n4 clk $end\n$var wire 1 n5 fast_trigger $end\n$var wire 1 n6 rst_n $end\n$var wire 1 n7 start $end\n$var wire 2 n8 state $end\n$upscope $end\n$var wire 1 n9 fast_trigger $end\n$var wire 1 n10 rst_n $end\n$var wire 1 n11 start $end\n$var wire 2 n12 state $end\n$upscope $end\n$enddefinitions $end\n#0\n1!\nb00000000000000000000000000000000 t\nb1 n2\nb1 n4\nb1 n0\nb00 n1\nb10 n3\nb0 n5\nb1 n6\nb0 n7\nb10 n8\nb0 n9\nb1 n10\nb0 n11\nb10 n12\n#5\nb0 n2\nb0 n4\n#10\n1!\nb00000000000000000000000000000001 t\nb1 n2\nb1 n4\nb1 n0\nb10 n1\nb00 n3\nb0 n5\nb0 n6\nb0 n7\nb00 n8\nb0 n9\nb0 n10\nb0 n11\nb00 n12\n#15\nb0 n2\nb0 n4\n#20\n1!\nb00000000000000000000000000000010 t\nb1 n2\nb1 n4",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "width_truncation",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "observed_category": "FORMAL_INVARIANT_BREACH",
+    "canonical_category": "FORMAL_FAILURE",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "passed": false,
+    "matched": true,
+    "details": "Formal invariant violated at cycle step T=1. Assertion: width_truncation_formal_top._witness_.check_assert_width_truncation_formal_top_sv_11_3. Trace: width_truncation/engine_0/trace.vcd.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+        "passed": false,
+        "exit_code": 2,
+        "stdout": "SBY  5:05:16 [width_truncation] Removing directory '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/width_truncation/width_truncation'.\nSBY  5:05:16 [width_truncation] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/width_truncation/width_truncation.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/width_truncation/width_truncation/src/width_truncation.sv'.\nSBY  5:05:16 [width_truncation] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/width_truncation/width_truncation_formal_top.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/width_truncation/width_truncation/src/width_truncation_formal_top.sv'.\nSBY  5:05:16 [width_truncation] engine_0: smtbmc z3\nSBY  5:05:16 [width_truncation] base: starting process \"cd width_truncation/src; yosys -ql ../model/design.log ../model/design.ys\"\nSBY  5:05:16 [width_truncation] base: finished (returncode=0)\nSBY  5:05:16 [width_truncation] prep: starting process \"cd width_truncation/model; yosys -ql design_prep.log design_prep.ys\"\nSBY  5:05:16 [width_truncation] prep: finished (returncode=0)\nSBY  5:05:16 [width_truncation] smt2: starting process \"cd width_truncation/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY  5:05:16 [width_truncation] smt2: finished (returncode=0)\nSBY  5:05:16 [width_truncation] engine_0: starting process \"cd width_truncation; yosys-smtbmc -s z3 --presat --noprogress -t 3  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Solver: z3\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  BMC failed!\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Assert failed in width_truncation_formal_top: width_truncation_formal_top.sv:11.9-11.42 (_witness_.check_assert_width_truncation_formal_top_sv_11_3)\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY  5:05:16 [width_truncation] engine_0: ##   0:00:00  Status: failed\nSBY  5:05:16 [width_truncation] engine_0: finished (returncode=1)\nSBY  5:05:16 [width_truncation] engine_0: Status returned by engine: FAIL\nSBY  5:05:16 [width_truncation] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [width_truncation] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [width_truncation] summary: engine_0 (smtbmc z3) returned FAIL\nSBY  5:05:16 [width_truncation] summary: counterexample trace: width_truncation/engine_0/trace.vcd\nSBY  5:05:16 [width_truncation] summary:   failed assertion width_truncation_formal_top._witness_.check_assert_width_truncation_formal_top_sv_11_3 at width_truncation_formal_top.sv:11.9-11.42 step 1\nSBY  5:05:16 [width_truncation] DONE (FAIL, rc=2)\n",
+        "stderr": "",
+        "details": "Formal invariant violated at cycle step T=1. Assertion: width_truncation_formal_top._witness_.check_assert_width_truncation_formal_top_sv_11_3. Trace: width_truncation/engine_0/trace.vcd.",
+        "error_category": "FORMAL_INVARIANT_BREACH",
+        "failing_property": "width_truncation_formal_top._witness_.check_assert_width_truncation_formal_top_sv_11_3",
+        "step": "1",
+        "trace_file": "width_truncation/engine_0/trace.vcd",
+        "property_source": null,
+        "counterexample_trace": "$version Generated by Yosys-SMTBMC $end\n$timescale 1ns $end\n$var integer 32 t smt_step $end\n$var event 1 ! smt_clock $end\n$scope module width_truncation_formal_top $end\n$var wire 1 n0 clk $end\n$scope module dut $end\n$var wire 16 n1 in_a $end\n$var wire 16 n2 in_b $end\n$var wire 8 n3 out_trunc $end\n$upscope $end\n$var wire 16 n4 in_a $end\n$var wire 16 n5 in_b $end\n$var wire 8 n6 out_trunc $end\n$upscope $end\n$enddefinitions $end\n#0\n1!\nb00000000000000000000000000000000 t\nb1 n0\nb0000001000000000 n1\nb0000000000000000 n2\nb00000000 n3\nb0000001000000000 n4\nb0000000000000000 n5\nb00000000 n6\n#5\nb0 n0\n#10\n1!\nb00000000000000000000000000000001 t\nb1 n0\nb0000000000000001 n1\nb0000000000000000 n2\nb00000001 n3\nb0000000000000001 n4\nb0000000000000000 n5\nb00000001 n6\n#15\nb0 n0\n#20\n1!\nb00000000000000000000000000000010 t\nb1 n0",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "signed_unsigned_error",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "observed_category": "FORMAL_INVARIANT_BREACH",
+    "canonical_category": "FORMAL_FAILURE",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "passed": false,
+    "matched": true,
+    "details": "Formal invariant violated at cycle step T=1. Assertion: signed_unsigned_error_formal_top._witness_.check_assert_signed_unsigned_error_formal_top_sv_16_7. Trace: signed_unsigned_error/engine_0/trace.vcd.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+        "passed": false,
+        "exit_code": 2,
+        "stdout": "SBY  5:05:16 [signed_unsigned_error] Removing directory '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/signed_unsigned_error/signed_unsigned_error'.\nSBY  5:05:16 [signed_unsigned_error] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/signed_unsigned_error/signed_unsigned_error.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/signed_unsigned_error/signed_unsigned_error/src/signed_unsigned_error.sv'.\nSBY  5:05:16 [signed_unsigned_error] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/signed_unsigned_error/signed_unsigned_error_formal_top.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/signed_unsigned_error/signed_unsigned_error/src/signed_unsigned_error_formal_top.sv'.\nSBY  5:05:16 [signed_unsigned_error] engine_0: smtbmc z3\nSBY  5:05:16 [signed_unsigned_error] base: starting process \"cd signed_unsigned_error/src; yosys -ql ../model/design.log ../model/design.ys\"\nSBY  5:05:16 [signed_unsigned_error] base: finished (returncode=0)\nSBY  5:05:16 [signed_unsigned_error] prep: starting process \"cd signed_unsigned_error/model; yosys -ql design_prep.log design_prep.ys\"\nSBY  5:05:16 [signed_unsigned_error] prep: finished (returncode=0)\nSBY  5:05:16 [signed_unsigned_error] smt2: starting process \"cd signed_unsigned_error/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY  5:05:16 [signed_unsigned_error] smt2: finished (returncode=0)\nSBY  5:05:16 [signed_unsigned_error] engine_0: starting process \"cd signed_unsigned_error; yosys-smtbmc -s z3 --presat --noprogress -t 5  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Solver: z3\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  BMC failed!\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Assert failed in signed_unsigned_error_formal_top: signed_unsigned_error_formal_top.sv:16.13-16.48 (_witness_.check_assert_signed_unsigned_error_formal_top_sv_16_7)\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY  5:05:16 [signed_unsigned_error] engine_0: ##   0:00:00  Status: failed\nSBY  5:05:16 [signed_unsigned_error] engine_0: finished (returncode=1)\nSBY  5:05:16 [signed_unsigned_error] engine_0: Status returned by engine: FAIL\nSBY  5:05:16 [signed_unsigned_error] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [signed_unsigned_error] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [signed_unsigned_error] summary: engine_0 (smtbmc z3) returned FAIL\nSBY  5:05:16 [signed_unsigned_error] summary: counterexample trace: signed_unsigned_error/engine_0/trace.vcd\nSBY  5:05:16 [signed_unsigned_error] summary:   failed assertion signed_unsigned_error_formal_top._witness_.check_assert_signed_unsigned_error_formal_top_sv_16_7 at signed_unsigned_error_formal_top.sv:16.13-16.48 step 1\nSBY  5:05:16 [signed_unsigned_error] DONE (FAIL, rc=2)\n",
+        "stderr": "",
+        "details": "Formal invariant violated at cycle step T=1. Assertion: signed_unsigned_error_formal_top._witness_.check_assert_signed_unsigned_error_formal_top_sv_16_7. Trace: signed_unsigned_error/engine_0/trace.vcd.",
+        "error_category": "FORMAL_INVARIANT_BREACH",
+        "failing_property": "signed_unsigned_error_formal_top._witness_.check_assert_signed_unsigned_error_formal_top_sv_16_7",
+        "step": "1",
+        "trace_file": "signed_unsigned_error/engine_0/trace.vcd",
+        "property_source": null,
+        "counterexample_trace": "$version Generated by Yosys-SMTBMC $end\n$timescale 1ns $end\n$var integer 32 t smt_step $end\n$var event 1 ! smt_clock $end\n$scope module signed_unsigned_error_formal_top $end\n$var wire 1 n0 clk $end\n$scope module dut $end\n$var wire 1 n1 is_below_threshold $end\n$var wire 8 n2 threshold_unsigned $end\n$var wire 8 n3 val_signed $end\n$upscope $end\n$var wire 1 n4 is_below_threshold $end\n$var wire 8 n5 threshold_unsigned $end\n$var wire 8 n6 val_signed $end\n$upscope $end\n$enddefinitions $end\n#0\n1!\nb00000000000000000000000000000000 t\nb1 n0\nb0 n1\nb00001010 n2\nb10001100 n3\nb0 n4\nb00001010 n5\nb10001100 n6\n#5\nb0 n0\n#10\n1!\nb00000000000000000000000000000001 t\nb1 n0\nb0 n1\nb00000000 n2\nb00000000 n3\nb0 n4\nb00000000 n5\nb00000000 n6\n#15\nb0 n0\n#20\n1!\nb00000000000000000000000000000010 t\nb1 n0",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "timing_violation",
+    "expected_category": "TIMING_SLACK_VIOLATION",
+    "observed_category": "SKIPPED_NO_PDK",
+    "matched": true,
+    "details": "Skipped because MIND3_NEGATIVE_CONTROL_LIBERTY was not set."
+  },
+  {
+    "case": "false_formal",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "observed_category": "FORMAL_INVARIANT_BREACH",
+    "canonical_category": "FORMAL_FAILURE",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "passed": false,
+    "matched": true,
+    "details": "Formal invariant violated at cycle step T=unknown.",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+        "passed": false,
+        "exit_code": 16,
+        "stdout": "SBY  5:05:16 [false_formal] Removing directory '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/false_formal/false_formal'.\nSBY  5:05:16 [false_formal] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/false_formal/false_formal.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/false_formal/false_formal/src/false_formal.sv'.\nSBY  5:05:16 [false_formal] Copy '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/false_formal/false_formal_formal_top.sv' to '/private/var/folders/nh/xk6zldkx09907_vfdtx5qd9m0000gn/T/mind3_neg_ctrl_3l1yt6f9/false_formal/false_formal/src/false_formal_formal_top.sv'.\nSBY  5:05:16 [false_formal] engine_0: smtbmc\nSBY  5:05:16 [false_formal] base: starting process \"cd false_formal/src; yosys -ql ../model/design.log ../model/design.ys\"\nSBY  5:05:16 [false_formal] base: false_formal_formal_top.sv:12: ERROR: System task `$finish' executed.\nSBY  5:05:16 [false_formal] base: finished (returncode=1)\nSBY  5:05:16 [false_formal] base: task failed. ERROR.\nSBY  5:05:16 [false_formal] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [false_formal] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY  5:05:16 [false_formal] summary: engine_0 (smtbmc) did not return a status\nSBY  5:05:16 [false_formal] summary: engine_0 did not produce any traces\nSBY  5:05:16 [false_formal] DONE (ERROR, rc=16)\n",
+        "stderr": "",
+        "details": "Formal invariant violated at cycle step T=unknown.",
+        "error_category": "FORMAL_INVARIANT_BREACH",
+        "failing_property": null,
+        "step": "unknown",
+        "trace_file": null,
+        "property_source": null,
+        "counterexample_trace": null,
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "sim_behavioral_failure",
+    "expected_category": "SIMULATION_FAILURE",
+    "observed_category": "SIMULATION_FAILURE",
+    "canonical_category": "SIMULATION_FAILURE",
+    "expected_gate": "Gate 3: Verilator Coverage Signoff",
+    "passed": false,
+    "matched": true,
+    "details": "Verilator simulation runtime failed with exit code 1: \nASSERTION FAILED: Behavioral mismatch! Expected 10 + 20 = 30, got sum=246\n",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 3: Verilator Coverage Signoff",
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "ASSERTION FAILED: Behavioral mismatch! Expected 10 + 20 = 30, got sum=246\n",
+        "details": "Verilator simulation runtime failed with exit code 1: \nASSERTION FAILED: Behavioral mismatch! Expected 10 + 20 = 30, got sum=246\n",
+        "error_category": "SIMULATION_FAILURE",
+        "diagnostic": {
+          "tool": "verilator",
+          "executable": "obj_dir/Vsim_behavioral_failure",
+          "argv": [
+            "obj_dir/Vsim_behavioral_failure"
+          ],
+          "return_code": 1,
+          "stdout": "",
+          "stderr": "ASSERTION FAILED: Behavioral mismatch! Expected 10 + 20 = 30, got sum=246\n",
+          "execution_mode": "unsandboxed_local",
+          "stage": "simulation",
+          "error": "\nASSERTION FAILED: Behavioral mismatch! Expected 10 + 20 = 30, got sum=246\n",
+          "file": null,
+          "line": null,
+          "column": null,
+          "source_context": ""
+        },
+        "cycle": null,
+        "observed_behavior": null,
+        "expected_behavior": null,
+        "failing_test": "generated_verilator_testbench",
+        "simulated": false
+      }
+    ]
+  },
+  {
+    "case": "coverage_deficit",
+    "expected_category": "COVERAGE_DEFICIT",
+    "observed_category": "COVERAGE_DEFICIT",
+    "canonical_category": "COVERAGE_FAILURE",
+    "expected_gate": "Gate 3: Verilator Coverage Signoff",
+    "passed": false,
+    "matched": true,
+    "details": "Coverage deficit: branch=0.0% (min 95.0%), toggle=0.0% (min 90.0%).",
+    "simulated": false,
+    "gate_reports": [
+      {
+        "gate": "Gate 3: Verilator Coverage Signoff",
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "c++  -I.  -MMD -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -DVM_VPI=0 -faligned-new -fbracket-depth=4096 -fcf-protection=none -Xclang -fno-pch-timestamp -Qunused-arguments -Wno-bool-operation -Wno-c++11-narrowing -Wno-constant-logical-operand -Wno-int-in-bool-context -Wno-non-pod-varargs -Wno-parentheses-equality -Wno-shadow -Wno-sign-compare -Wno-tautological-bitwise-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unnecessary-virtual-specifier -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-vla-cxx-extension      -Os  -c -o coverage_deficit_tb.o ../coverage_deficit_tb.cpp\nc++ -Os  -I.  -MMD -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -DVM_VPI=0 -faligned-new -fbracket-depth=4096 -fcf-protection=none -Xclang -fno-pch-timestamp -Qunused-arguments -Wno-bool-operation -Wno-c++11-narrowing -Wno-constant-logical-operand -Wno-int-in-bool-context -Wno-non-pod-varargs -Wno-parentheses-equality -Wno-shadow -Wno-sign-compare -Wno-tautological-bitwise-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unnecessary-virtual-specifier -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-vla-cxx-extension      -c -o verilated.o /opt/homebrew/Cellar/verilator/5.052/share/verilator/include/verilated.cpp\nc++ -Os  -I.  -MMD -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -DVM_VPI=0 -faligned-new -fbracket-depth=4096 -fcf-protection=none -Xclang -fno-pch-timestamp -Qunused-arguments -Wno-bool-operation -Wno-c++11-narrowing -Wno-constant-logical-operand -Wno-int-in-bool-context -Wno-non-pod-varargs -Wno-parentheses-equality -Wno-shadow -Wno-sign-compare -Wno-tautological-bitwise-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unnecessary-virtual-specifier -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-vla-cxx-extension      -c -o verilated_cov.o /opt/homebrew/Cellar/verilator/5.052/share/verilator/include/verilated_cov.cpp\nc++ -Os  -I.  -MMD -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -DVM_VPI=0 -faligned-new -fbracket-depth=4096 -fcf-protection=none -Xclang -fno-pch-timestamp -Qunused-arguments -Wno-bool-operation -Wno-c++11-narrowing -Wno-constant-logical-operand -Wno-int-in-bool-context -Wno-non-pod-varargs -Wno-parentheses-equality -Wno-shadow -Wno-sign-compare -Wno-tautological-bitwise-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unnecessary-virtual-specifier -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-vla-cxx-extension      -c -o verilated_covergroup.o /opt/homebrew/Cellar/verilator/5.052/share/verilator/include/verilated_covergroup.cpp\nc++ -Os  -I.  -MMD -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -DVM_VPI=0 -faligned-new -fbracket-depth=4096 -fcf-protection=none -Xclang -fno-pch-timestamp -Qunused-arguments -Wno-bool-operation -Wno-c++11-narrowing -Wno-constant-logical-operand -Wno-int-in-bool-context -Wno-non-pod-varargs -Wno-parentheses-equality -Wno-shadow -Wno-sign-compare -Wno-tautological-bitwise-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unnecessary-virtual-specifier -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-vla-cxx-extension      -c -o verilated_threads.o /opt/homebrew/Cellar/verilator/5.052/share/verilator/include/verilated_threads.cpp\npython3 /opt/homebrew/Cellar/verilator/5.052/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vcoverage_deficit.cpp Vcoverage_deficit___024root__0.cpp Vcoverage_deficit___024root__Slow.cpp Vcoverage_deficit___024root__0__Slow.cpp Vcoverage_deficit__Syms__Slow.cpp > Vcoverage_deficit__ALL.cpp\nc++ -Os  -I.  -MMD -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include -I/opt/homebrew/Cellar/verilator/5.052/share/verilator/include/vltstd -DVERILATOR=1 -DVM_COVERAGE=1 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -DVM_TRACE_SAIF=0 -DVM_VPI=0 -faligned-new -fbracket-depth=4096 -fcf-protection=none -Xclang -fno-pch-timestamp -Qunused-arguments -Wno-bool-operation -Wno-c++11-narrowing -Wno-constant-logical-operand -Wno-int-in-bool-context -Wno-non-pod-varargs -Wno-parentheses-equality -Wno-shadow -Wno-sign-compare -Wno-tautological-bitwise-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unnecessary-virtual-specifier -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-vla-cxx-extension      -c -o Vcoverage_deficit__ALL.o Vcoverage_deficit__ALL.cpp\nc++  -Wl,-U,__Z15vl_time_stamp64v,-U,__Z13sc_time_stampv,-U,_vlog_startup_routines   coverage_deficit_tb.o verilated.o verilated_cov.o verilated_covergroup.o verilated_threads.o Vcoverage_deficit__ALL.a    -pthread -lpthread   -o Vcoverage_deficit\nrm Vcoverage_deficit__ALL.verilator_deplist.tmp\n- V e r i l a t i o n   R e p o r t: Verilator 5.052 2026-09-05 rev vUNKNOWN-built20260905\n- Verilator: Built from 0.031 MB sources in 2 modules, into 0.045 MB in 5 C++ files needing 0.000 MB\n- Verilator: Walltime 3.686 s (elab=0.000, cvt=0.004, bld=3.679); cpu 0.006 s on 1 threads; allocated 9.812 MB\n",
+        "stderr": "",
+        "details": "Coverage deficit: branch=0.0% (min 95.0%), toggle=0.0% (min 90.0%).",
+        "error_category": "COVERAGE_DEFICIT",
+        "metrics": {
+          "branch": 0.0,
+          "toggle": 0.0
+        },
+        "simulated": false
+      }
+    ]
+  }
+]

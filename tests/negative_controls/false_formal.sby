@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 8
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal -sv false_formal.sv false_formal_formal_top.sv
+prep -top false_formal_formal_top
+
+[files]
+false_formal.sv
+false_formal_formal_top.sv

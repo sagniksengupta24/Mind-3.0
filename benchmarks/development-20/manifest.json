@@ -1,0 +1,50 @@
+{
+  "suite": "development-20",
+  "task_count": 20,
+  "task_ids": [
+    "counter_04",
+    "arbiter_02",
+    "fifo_01",
+    "fsm_heldout_04",
+    "uart_01",
+    "reg_if_01",
+    "apb_01",
+    "fifo_04",
+    "spi_02",
+    "axi_04",
+    "dma_04",
+    "cdc_04",
+    "reset_02",
+    "adapters_03",
+    "fifo_03",
+    "arbiter_03",
+    "axi_05",
+    "cdc_05",
+    "reset_04",
+    "adapters_09"
+  ],
+  "categories": {
+    "APB peripherals": 1,
+    "AXI interfaces": 2,
+    "CDC-sensitive blocks": 2,
+    "DMA blocks": 1,
+    "FIFOs": 3,
+    "FSMs": 1,
+    "SPI": 1,
+    "UART": 1,
+    "arbiters": 2,
+    "counters": 1,
+    "protocol adapters": 2,
+    "register interfaces": 1,
+    "reset-heavy designs": 2
+  },
+  "difficulty": {
+    "easy": 2,
+    "medium": 6,
+    "hard": 6,
+    "adversarial": 6
+  },
+  "adversarial_count": 6,
+  "tasks_sha256": "539e79afaf6fa445a95ad82c2337ff70f60d60d4e912f114dd9a3cf402f59c8c",
+  "selection_policy": "Fixed stratified subset: all 2 easy tasks, plus representative medium/hard/adversarial coverage across every held-out category; task order is immutable."
+}

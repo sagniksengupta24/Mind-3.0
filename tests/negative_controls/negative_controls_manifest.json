@@ -1,0 +1,146 @@
+[
+  {
+    "id": "latch_inference",
+    "source": "latch_inference.sv",
+    "mode": "gate1",
+    "expected_compile": "FAIL",
+    "expected_gate": "Gate 1: Yosys Elaboration & Latch Trap Detector",
+    "expected_category": "LATCH_INFERRED",
+    "description": "Incomplete combinational assignment infers a transparent latch"
+  },
+  {
+    "id": "combinational_loop",
+    "source": "combinational_loop.sv",
+    "mode": "gate1",
+    "expected_compile": "FAIL",
+    "expected_gate": "Gate 1: Yosys Elaboration & Latch Trap Detector",
+    "expected_category": "COMBINATIONAL_LOOP",
+    "description": "Cross-coupled combinational logic creates a zero-delay feedback loop"
+  },
+  {
+    "id": "incorrect_reset_behavior",
+    "source": "incorrect_reset_behavior.sv",
+    "mode": "gate2",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "description": "Flop retains uninitialized state during reset rather than driving reset value"
+  },
+  {
+    "id": "reset_deassertion_problem",
+    "source": "reset_deassertion_problem.sv",
+    "mode": "gate2",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "description": "Asynchronous reset deassertion without synchronizer violates recovery timing"
+  },
+  {
+    "id": "cdc_violation",
+    "source": "cdc_violation.sv",
+    "mode": "gate6",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 6: Yosys CDC Static Analysis",
+    "expected_category": "CDC_VIOLATION",
+    "description": "Unsynchronized signal crosses between independent clock domains"
+  },
+  {
+    "id": "fifo_overflow",
+    "source": "fifo_overflow.sv",
+    "mode": "gate3",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 3: Verilator Coverage Signoff",
+    "expected_category": "SIMULATION_FAILURE",
+    "description": "Unguarded write into full FIFO corrupts unread queue entries"
+  },
+  {
+    "id": "fifo_underflow",
+    "source": "fifo_underflow.sv",
+    "mode": "gate3",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 3: Verilator Coverage Signoff",
+    "expected_category": "SIMULATION_FAILURE",
+    "description": "Unguarded read from empty FIFO underflows counter and returns invalid data"
+  },
+  {
+    "id": "off_by_one_counter",
+    "source": "off_by_one_counter.sv",
+    "mode": "gate2",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "description": "Modulo-10 counter checks value==10 instead of 9, reaching out-of-range state"
+  },
+  {
+    "id": "incorrect_handshake",
+    "source": "incorrect_handshake.sv",
+    "mode": "gate2",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "description": "Ready/valid transmitter mutates data payload while valid is asserted and stalled"
+  },
+  {
+    "id": "incorrect_fsm_transition",
+    "source": "incorrect_fsm_transition.sv",
+    "mode": "gate2",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "description": "State machine executes illegal transition directly from IDLE to ACTIVE"
+  },
+  {
+    "id": "width_truncation",
+    "source": "width_truncation.sv",
+    "mode": "gate2",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "description": "16-bit operation assigned directly to 8-bit output causing bit-width truncation and invariant breach"
+  },
+  {
+    "id": "signed_unsigned_error",
+    "source": "signed_unsigned_error.sv",
+    "mode": "gate2",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "description": "Mixing signed and unsigned operands coerces negative value to high positive value"
+  },
+  {
+    "id": "timing_violation",
+    "source": "timing_violation.sv",
+    "mode": "gate4",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+    "expected_category": "TIMING_SLACK_VIOLATION",
+    "description": "Combinational delay exceeds clock period causing negative setup slack"
+  },
+  {
+    "id": "false_formal",
+    "source": "false_formal.sv",
+    "mode": "gate2",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 2: SymbiYosys Formal Property Verification",
+    "expected_category": "FORMAL_INVARIANT_BREACH",
+    "description": "Deliberately false formal property asserted on alternating toggle register"
+  },
+  {
+    "id": "sim_behavioral_failure",
+    "source": "sim_behavioral_failure.sv",
+    "mode": "gate3",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 3: Verilator Coverage Signoff",
+    "expected_category": "SIMULATION_FAILURE",
+    "description": "Elaborates clean but subtracts instead of adds, detected by simulation assert"
+  },
+  {
+    "id": "coverage_deficit",
+    "source": "coverage_deficit.sv",
+    "mode": "gate3",
+    "expected_compile": "PASS",
+    "expected_gate": "Gate 3: Verilator Coverage Signoff",
+    "expected_category": "COVERAGE_DEFICIT",
+    "description": "Testbench exercises only a fraction of module branches and toggles"
+  }
+]

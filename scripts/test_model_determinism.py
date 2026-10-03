@@ -8,11 +8,12 @@ from __future__ import annotations
 import datetime
 import hashlib
 import json
+import os
 import time
 from pathlib import Path
 import httpx
 
-WORKSPACE_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
+WORKSPACE_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
 AUDIT_DIR = WORKSPACE_ROOT / "artifacts/audit"
 TASKS_DIR = WORKSPACE_ROOT / "benchmarks/mind_baseline/tasks"
 

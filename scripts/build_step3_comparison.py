@@ -13,9 +13,10 @@ from __future__ import annotations
 import datetime
 import hashlib
 import json
+import os
 from pathlib import Path
 
-WORKSPACE_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
+WORKSPACE_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
 STEP1_RESULTS = WORKSPACE_ROOT / "artifacts/step1/results.json"
 STEP3_ARTIFACTS = WORKSPACE_ROOT / "artifacts/step3"
 LEDGER_FILE = WORKSPACE_ROOT / "artifacts/step1/trace_ledger.jsonl"

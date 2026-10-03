@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 5
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -formal -sv incorrect_fsm_transition.sv incorrect_fsm_transition_formal_top.sv
+prep -top incorrect_fsm_transition_formal_top
+
+[files]
+incorrect_fsm_transition.sv
+incorrect_fsm_transition_formal_top.sv

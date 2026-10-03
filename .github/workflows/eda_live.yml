@@ -1,0 +1,97 @@
+name: Live EDA Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths:
+      - 'src/mind3/**'
+      - 'tests/test_gate2_mandatory.py'
+      - 'tests/test_gate2_temporal_live.py'
+      - 'tests/test_p3_gate1.py'
+      - 'tests/test_p5_coverage.py'
+      - 'tests/test_linux_toolchain.py'
+      - 'tests/test_macos_sandbox.py'
+      - 'tests/negative_controls/**'
+      - 'scripts/run_negative_controls.py'
+      - 'scripts/collect_stage5_evidence.py'
+      - 'tools/install_oss_cad_suite.py'
+      - 'Dockerfile.eda'
+      - '.github/workflows/eda_live.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live-eda:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install host sandbox prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bubblewrap ca-certificates
+      - name: Install Python package
+        run: python -m pip install '.[dev]'
+      - name: Install pinned OSS CAD Suite
+        run: |
+          sudo python tools/install_oss_cad_suite.py --tag 2026-09-29 --destination /opt/oss-cad-suite
+          echo "/opt/oss-cad-suite/bin" >> "$GITHUB_PATH"
+          echo "MIND3_EDA_READONLY_PATHS=/opt/oss-cad-suite" >> "$GITHUB_ENV"
+      - name: Verify toolchain provenance
+        run: |
+          printf 'Python: '; python3 --version
+          printf 'Yosys: '; yosys -V
+          printf 'SBY: '; sby --version || true
+          printf 'Z3: '; z3 --version || true
+          printf 'Verilator: '; verilator --version
+          printf 'OpenSTA: '; sta -version || opensta -version || true
+          printf 'OpenROAD: '; openroad -version || true
+          # NOTE: the OSS CAD Suite ships a `bwrap` shim that always refuses
+          # (nested-sandbox guard), so probe the real apt-installed binary by
+          # absolute path; a bare `bwrap` resolves to the shim first on PATH.
+          printf 'Bubblewrap: '; /usr/bin/bwrap --version || bwrap --version || true
+      - name: OSS CAD Suite Yosys CDC check
+        # Gate 6 requires the real `cdc` command. This step always executes
+        # `yosys -p "help cdc"` and records the outcome in cdc_help.log
+        # (uploaded as evidence); availability is proven by execution, never
+        # inferred from packaging claims. (Both the success text and the
+        # "No such command" failure contain the word "cdc", so the check
+        # asserts on the absence of failure markers.) A missing command does
+        # NOT fail the workflow: Gate 6 then fails closed as
+        # CDC_TOOLING_UNAVAILABLE and the negative control records a matched
+        # skip. CDC verification itself stays pending until a cdc-capable
+        # Yosys build is available.
+        run: |
+          yosys -p "help cdc" | tee cdc_help.log
+          if grep -qi "no such command\|unknown command" cdc_help.log; then
+            echo "CDC_STATUS=TOOLING_UNAVAILABLE (Gate 6 fails closed; CDC verification pending)" | tee cdc_status.log
+          else
+            echo "CDC_STATUS=TOOLING_AVAILABLE" | tee cdc_status.log
+          fi
+      - name: Unit suite (live environment, non-EDA tests)
+        run: pytest -q -m 'not eda'
+      - name: Live EDA integration tests
+        run: pytest -q -m eda
+      - name: Negative controls
+        env:
+          MIND3_NEGATIVE_CONTROL_LIBERTY: ${{ github.workspace }}/src/mind3/pdata/sky130/sky130_fd_sc_hd__tt_025C_1v80.lib
+        run: python scripts/run_negative_controls.py --require-live
+      - name: Collect environment evidence
+        # Runs real probes and behavioral evidence tests; missing tools are
+        # recorded as unknown/skipped, never as passes.
+        run: python scripts/collect_stage5_evidence.py --output artifacts/stage5_environment_report.json
+      - name: Upload Stage 5 evidence artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage5-evidence
+          path: |
+            artifacts/stage5_environment_report.json
+            artifacts/negative_controls_report.json
+            cdc_help.log
+            cdc_status.log

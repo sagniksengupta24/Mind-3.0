@@ -1,126 +1,118 @@
 # Mind 3.0 Benchmark Suite & Evaluation Architecture
 
-## Live Execution Status
+## Current evidence status
 
-> **Truth-in-Reporting Status**:
-> All 50 benchmark tasks in `benchmarks/transcripts/` are uniform schema-validation fixtures (`is_schema_validation_fixture: true`, labeled `"schema-validation fixture, not real generation output"`).
-> No real benchmark runs have been executed through the sanctioned sandboxed `PhaseDriver` pipeline, and no unsanctioned sandbox-bypass runs are included in the benchmark dataset.
+The checked-in `benchmarks/transcripts/` directory contains 50 **schema-validation fixtures**. They exercise transcript parsing, persistence, task-set validation, and report generation. They are intentionally excluded from performance metrics.
 
-### Environmental Reality & Execution Prerequisites
+The historical transcripts in `results/transcripts/` contain 120 records from earlier exploratory runs under `gemini-1.5-pro`. None of these transcripts (0/120) achieved `full_verified_pass`, and they do not constitute release-eligible performance evidence.
 
-Under Global Rule 1 (Zero Fabrication), no fabricated metrics (pass@1, pass@k, or repair turns to converge) are reported in this document. Live multi-turn silicon generation across the 50-task benchmark set requires resolving the following environmental prerequisite:
+At the time of this repository update:
 
-1. **Host Sandboxing Invariant (`bwrap`)**:
-   Mind 3.0 strictly forbids unsandboxed execution, requiring Linux Bubblewrap (`bwrap`) via `BubblewrapSandbox`. The current host OS is macOS (`Darwin`), where `bwrap` is neither present nor buildable (`libcap: Linux is required for this software`). `PhaseDriver` correctly fails closed with `RuntimeError: bwrap binary not found on PATH. Mind 3.0 forbids unsandboxed execution`. Executing the real benchmark suite requires running on a Linux CI host with `bubblewrap` installed.
-2. **Model Gateway**:
-   `OPENROUTER_API_KEY` is verified and reachable (HTTP 200).
-3. **Automated Pipeline Verification**:
-   All 50 benchmark task definitions, harness generators, formal SVA binds, transcript schemas, and dataset persistence pipelines are fully implemented and verified via automated unit and integration tests.
+- real model-generated benchmark transcripts meeting release standards: **0**;
+- live EDA execution on the development host: **not available**;
+- benchmark performance claims: **not established**.
 
----
+This is deliberate. The evaluator refuses to count mock-provider or schema-fixture rows as model performance.
 
-## Benchmark Task-Set (`benchmarks/tasks.jsonl`)
+## Benchmark specifications vs. Evidence records
 
-The benchmark task-set comprises 50 structured RTL module specifications inspired by conventions from published hardware generation benchmarks (e.g., VerilogEval, RTLLM) but curated specifically for Mind 3.0's 4-gate verification oracle.
+Task files define problem specifications, not evidence:
 
-Each task specification includes:
-- `task_id`: Unique identifier (e.g. `fsm_01` to `fsm_15`, `arith_01` to `arith_15`, `bus_01` to `bus_10`, `mem_01` to `mem_10`).
-- `category`: Architectural domain.
-- `name`: Human-readable module name.
-- `natural_language_spec`: Engineering requirements specification.
-- `expected_ports`: Full pinout with port name, direction (`input`, `output`, `inout`), bit-width, and description.
-- `sva_properties`: 2 to 5 formal SystemVerilog Assertions (SVA) verifying safety, liveness, and interface protocols.
-- `benchmark_origin`: Explicit attribution ("inspired by, not identical to").
+- `benchmarks/tasks.jsonl` contains 50 task specifications spanning FSM, arithmetic, bus/protocol, and memory-controller examples.
+- `benchmarks/development-20/tasks.jsonl` contains 20 development tasks for local diagnostic iteration.
+- `benchmarks/heldout/tasks.jsonl` contains 120 heldout task specifications.
 
-### Category Distribution
+A task specification file is hashed at evaluation time, and the SHA-256 is stored in the report so a result can be tied to an exact task set. A task specification file only becomes benchmark evidence when evaluated by live non-mock model inferences recorded in transcripts.
 
-| Category | Task Count | Description & Invariants Verified |
-| :--- | :---: | :--- |
-| **FSM** | 15 | Sequence detectors, traffic controllers, arbiters, handshake controllers, parity checkers, vending machines. Tests state encoding, illegal transition lockouts, reset behavior. |
-| **Arithmetic** | 15 | Adders (Kogge-Stone, ripple, carry-lookahead), multipliers (Booth, array), dividers, ALUs, saturating arithmetic, cordic, CRC. Tests bit-growth, overflow, zero-division, bit-level correctness. |
-| **Bus Protocol** | 10 | APB slave, AXI4-Lite read/write channels, Wishbone, SPI controller, I2C master/slave, valid/ready pipelining. Tests handshake invariants, backpressure, deadlocks. |
-| **Memory Controller**| 10 | Sync/async FIFOs, dual-port RAM, circular buffers, direct-mapped cache controller, burst controllers. Tests full/empty flag integrity, pointer wrap, hazard handling. |
-| **Total** | **50** | Fully validated by `tests/test_benchmarks.py`. |
+## Evidence tiers & provenance honesty
 
----
+Every benchmark summary (`benchmark_summary.json` and `results/summary.json`) explicitly records five honesty fields:
 
-## Transcript Dataset Architecture (`benchmarks/transcripts/`)
+1. `live_provenance` (boolean): `True` **only** when the benchmark evaluated real, non-mock model inference (`actual_real_transcripts > 0`). It is strictly `False` for mock providers, dry runs, or schema fixtures.
+2. `actual_real_transcripts` (integer): the actual number of real non-mock model-generated transcripts in the run. This is never simply copied from the task specification count.
+3. `required_min_tasks` (integer): the threshold configured for the run.
+4. `evidence_tier` (string):
+   - `"diagnostic"`: Assigned to development runs (such as 20-task runs), runs with fewer than 100 real tasks, runs using mock providers or schema fixtures, or runs explicitly flagged with `--diagnostic`. Diagnostic runs cannot be presented as release evidence.
+   - `"release-eligible"`: Assigned **only** when `live_provenance == True`, `actual_real_transcripts >= 100`, `required_min_tasks >= 100`, and the run was not flagged as diagnostic.
+5. `caveat` (string): a plain-language explanation derived from the run state stating why the result is diagnostic or release-eligible.
 
-The persistence pipeline captures every generation run as a 5-tuple:
-`($\text{contract}, \text{generated\_rtl}, \text{gate\_failure\_category}, \text{repair\_attempts}, \text{final\_outcome}$)`
+The 100-task release floor cannot be silently lowered. If a smaller task set or `--min-tasks < 100` is used, the run receives the `"diagnostic"` evidence tier.
 
-### Tuple Schema Structure
+## Live benchmark flow
 
-Each transcript is stored as `benchmarks/transcripts/{task_id}.json`:
+`python -m mind3.benchmarks.runner` executes each task in an isolated workspace and requires the same fail-closed sandboxed verification path used by the product. A live transcript records:
 
-```json
-{
-  "task_id": "fsm_01",
-  "category": "FSM",
-  "name": "seq_detector_1011",
-  "natural_language_spec": "...",
-  "is_schema_validation_fixture": true,
-  "label": "schema-validation fixture, not real generation output",
-  "model": "mock-fixture-generator",
-  "provider": "mock",
-  "max_repairs": 10,
-  "contract": {
-    "module_name": "fsm_01",
-    "ports": [...],
-    "sva_properties": [...],
-    "timing": {...}
-  },
-  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule fsm_01 ...",
-  "gate_failure_category": "FORMAL_INVARIANT_BREACH",
-  "repair_attempts": [
-    {
-      "turn": 1,
-      "guidance": "GATE 2 SIGN-OFF FAILURE: Formal SVA invariant breached in SymbiYosys BMC.",
-      "repaired_rtl": "...",
-      "passed": true,
-      "error_category": null,
-      "failure_reason": null,
-      "gate_reports": [...]
-    }
-  ],
-  "final_outcome": {
-    "passed": true,
-    "status": "SILICON_VERIFIED",
-    "turns_taken": 2,
-    "silicon_verified": true,
-    "gate_reports": [...]
-  },
-  "timestamp": 1790037074.025
-}
+1. the architect contract;
+2. generated RTL;
+3. the initial gate failure category, if any;
+4. structured repair turns and their evidence;
+5. final outcome and gate reports;
+6. tool versions, duration, and artifact hashes.
+
+The benchmark runner uses `allow_mock_fallback=False` and does not accept simulated passes as benchmark evidence.
+
+## Metrics
+
+The evaluator reports:
+
+- **Pass@1:** successful verified outcome without a repair turn;
+- **functional pass:** Gate 3 succeeds in the configured live chain;
+- **full verified pass:** the final outcome is both passed and marked `silicon_verified`;
+- **repair success:** final success occurred after at least one repair turn;
+- mean and p50 turns taken;
+- failure-category counts;
+- 95% Wilson confidence intervals.
+
+These are descriptive measurements, not guarantees about unseen designs.
+
+## Release thresholds
+
+| Level | Functional | Full verified | Evidence |
+|---|---:|---:|---|
+| Experimental | report only | report only | exact model/tool versions + reproducible transcripts |
+| Useful specialist tool | ≥70% | ≥40% | 100+ held-out tasks, negative controls, cost and latency |
+| Strong specialist tool | ≥80% | ≥60% | independent repeat and human review |
+| 9/10 evidence threshold | ≥85% | ≥70% | multiple benchmark families and real-user validation |
+
+## Negative controls
+
+The negative-control corpus is separate from performance benchmarks. A live run must demonstrate that intentionally broken designs are rejected with the expected category rather than being treated as success:
+
+`LATCH_INFERRED`, `COMBINATIONAL_LOOP`, `FORMAL_INVARIANT_BREACH`, `COVERAGE_DEFICIT`, `TIMING_SLACK_VIOLATION`, `CDC_VIOLATION`.
+
+Run:
+
+```bash
+python scripts/run_negative_controls.py --require-live
 ```
 
-### Truth-in-Labeling Guarantee
+Timing uses the bundled small SkyWater Liberty fixture by default and accepts an override through `MIND3_NEGATIVE_CONTROL_LIBERTY`. All checks still require the corresponding live binaries and a Bubblewrap-enabled Linux host.
 
-All 50 pre-generated files currently residing in `benchmarks/transcripts/` are strictly labeled:
-- `"is_schema_validation_fixture": true`
-- `"label": "schema-validation fixture, not real generation output"`
-- Synthesizable code includes header: `// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]`
+## Report outputs
 
-Automated test `test_benchmark_transcripts_fixtures_integrity_and_labeling` validates that no fixture claims to be real generation output.
+`BenchmarkRunner.write_report()` emits three artifacts:
 
----
+- `benchmark_summary.json` — machine-readable evidence;
+- `benchmark_report.md` — review-friendly text report;
+- `benchmark_report.html` — self-contained report suitable for a browser or CI artifact viewer.
 
-## Instructions for Running Real Benchmarks
+No report should be presented as a product-performance claim unless the real task count, benchmark hash, model, provider, and live tool versions are present.
 
-When deploying Mind 3.0 to a Linux compute host with Bubblewrap and a production LLM endpoint:
+## Human-approved export
 
-1. **Configure Environment Variables**:
-   ```bash
-   export OPENROUTER_API_KEY="sk-or-v1-..." # Or run local Ollama with GPU acceleration
-   ```
+Release evidence is exported only after the benchmark summary satisfies the release thresholds and a human approval JSON matches the exact SHA-256 of `benchmark_summary.json`. This prevents stale approval files from being applied to new evidence. The command is:
 
-2. **Execute Benchmark Runner**:
-   ```bash
-   python -m mind3.benchmarks.runner --max-repairs 10 --model "anthropic/claude-3.5-sonnet" --provider "openrouter"
-   ```
+```bash
+python scripts/export_verified_bundle.py --approval human_approval.json
+```
 
-3. **Metrics Calculation**:
-   Once real transcripts are populated, metrics will be computed directly via:
-   $$\text{pass@1} = \frac{N_{\text{passed on turn 0}}}{N_{\text{total tasks}}}$$
-   $$\bar{T}_{\text{converge}} = \frac{1}{N_{\text{converged}}} \sum_{i \in \text{converged}} \text{turns\_taken}_i$$
-   and documented in this file with full hash-chained cryptographic attestations.
+The checked-in fixture report intentionally fails the release threshold because it contains zero real benchmark tasks.
+
+## Stage 6 measured evidence (2026-10-02)
+
+Model `qwen2.5-coder:7b` via provider `ollama`, strict parser, seed 42:
+
+- Development-20 (`artifacts/stage6_dev20/`, task-set `539e79af…59c8c`): 20/20 real transcripts, 0 initial / 0 functional / 0 full-verified / 0 repair (95% Wilson CI [0.0, 0.1611]). Failures: 19 `RESPONSE_PARSE_FAILURE`, 1 `SPECIFICATION_ERROR` (`arbiter_02` contract consistency). Tier: diagnostic.
+- Heldout partial (`artifacts/stage6_heldout/`, task-set `bae56a8d…dd2c24`): 42/120 real transcripts before interruption, 0 initial / 0 functional / 0 full-verified / 0 repair (95% Wilson CI [0.0, 0.0838]). Failures: 41 `RESPONSE_PARSE_FAILURE`, 1 `SPECIFICATION_ERROR`. Tier: diagnostic. The `>=100`-task release run is `[PENDING-HUMAN]`.
+
+No release eligibility is claimed.

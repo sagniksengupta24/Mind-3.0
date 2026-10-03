@@ -24,12 +24,12 @@ To mitigate these risks, Mind 3.0 implements four structural security invariants
 
 | System Component | Execution Boundary | Network Egress | Sensitive Data Handled | Relevant Source Implementation |
 | :--- | :--- | :--- | :--- | :--- |
-| **`OpenRouterModelRegistry`** | Host Python Process | External WAN (`https://openrouter.ai`) | HTTP Bearer token, model metadata | [src/mind3/core/driver.py#L89-L135](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L89-L135) |
-| **Cloud LLM Dispatch (`openrouter`)** | Host Python Process | External WAN (`https://openrouter.ai`) | Specification, pinout, formal properties, repair feedback | [src/mind3/core/driver.py#L457-L516](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L457-L516) |
-| **Local LLM Dispatch (`ollama`)** | Host Python Process | Loopback only (`127.0.0.1:11434`) | Specification, RTL, repair prompts (local memory only) | [src/mind3/core/driver.py#L441-L456](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L441-L456) |
-| **Workspace File Mutations** | Host Python Process | None (Local disk) | Synthesized SystemVerilog, SVA harnesses, testbenches | [src/mind3/core/driver.py#L540-L580](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L540-L580) |
-| **EDA Verification & Tool Execution** | Bubblewrap Sandbox (`bwrap`) | Blocked via Linux `--unshare-all` | RTL source, liberty timing models, gate netlists | [src/mind3/sandbox/bwrap.py#L13-L125](file:///Users/sagniksengupta/Desktop/AI/src/mind3/sandbox/bwrap.py#L13-L125) |
-| **Telemetry & Audit Logging** | Host Python Process | None (Local `.mind/transcript.jsonl`) | Hash-chained records, session payloads, attestations | [src/mind3/core/driver.py#L323-L355](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L323-L355) |
+| **`OpenRouterModelRegistry`** | Host Python Process | External WAN (`https://openrouter.ai`) | HTTP Bearer token, model metadata | [src/mind3/core/driver.py#L89-L135](src/mind3/core/driver.py#L89-L135) |
+| **Cloud LLM Dispatch (`openrouter`)** | Host Python Process | External WAN (`https://openrouter.ai`) | Specification, pinout, formal properties, repair feedback | [src/mind3/core/driver.py#L457-L516](src/mind3/core/driver.py#L457-L516) |
+| **Local LLM Dispatch (`ollama`)** | Host Python Process | Loopback only (`127.0.0.1:11434`) | Specification, RTL, repair prompts (local memory only) | [src/mind3/core/driver.py#L441-L456](src/mind3/core/driver.py#L441-L456) |
+| **Workspace File Mutations** | Host Python Process | None (Local disk) | Synthesized SystemVerilog, SVA harnesses, testbenches | [src/mind3/core/driver.py#L540-L580](src/mind3/core/driver.py#L540-L580) |
+| **EDA Verification & Tool Execution** | Bubblewrap Sandbox (`bwrap`) | Blocked via Linux `--unshare-all` | RTL source, liberty timing models, gate netlists | [src/mind3/sandbox/bwrap.py#L13-L125](src/mind3/sandbox/bwrap.py#L13-L125) |
+| **Telemetry & Audit Logging** | Host Python Process | None (Local `.mind/transcript.jsonl`) | Hash-chained records, session payloads, attestations | [src/mind3/core/driver.py#L323-L355](src/mind3/core/driver.py#L323-L355) |
 
 ---
 
@@ -38,9 +38,9 @@ To mitigate these risks, Mind 3.0 implements four structural security invariants
 In cloud-provider mode, inference queries leave the local host and traverse public networks to OpenRouter's API endpoints.
 
 ### Code Paths
-- **Endpoint Configuration**: Configured in [PhaseDriver.__init__](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L254-L262). Validates that `api_key` is provided directly or retrieved via `OPENROUTER_API_KEY` from the environment. Sets `self.base_url` to `https://openrouter.ai/api/v1`.
-- **Dynamic Model Discovery**: [OpenRouterModelRegistry.fetch_models](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L102-L135) queries `https://openrouter.ai/api/v1/models` using an authenticated HTTP GET.
-- **Inference Dispatch**: [PhaseDriver._query_openrouter](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L457-L516) sends an HTTP POST to `https://openrouter.ai/api/v1/chat/completions`.
+- **Endpoint Configuration**: Configured in [PhaseDriver.__init__](src/mind3/core/driver.py#L254-L262). Validates that `api_key` is provided directly or retrieved via `OPENROUTER_API_KEY` from the environment. Sets `self.base_url` to `https://openrouter.ai/api/v1`.
+- **Dynamic Model Discovery**: [OpenRouterModelRegistry.fetch_models](src/mind3/core/driver.py#L102-L135) queries `https://openrouter.ai/api/v1/models` using an authenticated HTTP GET.
+- **Inference Dispatch**: [PhaseDriver._query_openrouter](src/mind3/core/driver.py#L457-L516) sends an HTTP POST to `https://openrouter.ai/api/v1/chat/completions`.
 
 ### Exact Data Crossing the External Boundary
 1. **HTTP Headers**:
@@ -74,7 +74,7 @@ During development and benchmarking sessions, real outbound network calls were e
 For high-assurance or proprietary silicon environments, Mind 3.0 provides strict loopback-only enforcement, aliased as `air_gapped=True`.
 
 ### Code Paths & Architectural Guarantees
-- **Static Construction Interlock**: In [PhaseDriver.__init__](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L248-L252):
+- **Static Construction Interlock**: In [PhaseDriver.__init__](src/mind3/core/driver.py#L248-L252):
   ```python
   if self.loopback_only and self.provider == "openrouter":
       raise ValueError(
@@ -82,7 +82,7 @@ For high-assurance or proprietary silicon environments, Mind 3.0 provides strict
           "Use local inference engine ('ollama') with localhost/loopback address."
       )
   ```
-- **Local Interface Enforcement**: In [PhaseDriver.__init__](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L266-L272):
+- **Local Interface Enforcement**: In [PhaseDriver.__init__](src/mind3/core/driver.py#L266-L272):
   ```python
   if self.loopback_only:
       base_lower = self.base_url.lower()
@@ -92,10 +92,10 @@ For high-assurance or proprietary silicon environments, Mind 3.0 provides strict
               "Loopback-only inference endpoint enforcement requires 127.0.0.1 or localhost."
           )
   ```
-- **Data Boundary Guarantee**: Under `loopback_only=True`, inference traffic is dispatched exclusively via [PhaseDriver._query_ollama](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L441-L456) to local sockets on `127.0.0.1:11434`. No IP packets traverse physical network adapters.
-- **Cryptographic Attestation Token**: Every trace event emitted under loopback mode computes and records a deterministic SHA-256 token ([driver.py:325-330](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L325-L330)):
+- **Data Boundary Guarantee**: Under `loopback_only=True`, inference traffic is dispatched exclusively via [PhaseDriver._query_ollama](src/mind3/core/driver.py#L441-L456) to local sockets on `127.0.0.1:11434`. No IP packets traverse physical network adapters.
+- **Hash-Chained Internal Trace Record**: Every trace event emitted under loopback mode computes and records a deterministic SHA-256 token ([driver.py:325-330](src/mind3/core/driver.py#L325-L330)):
   $$\text{SHA-256}(\text{session\_id} \mathbin{\Vert} \text{turn} \mathbin{\Vert} \text{step\_index} \mathbin{\Vert} \text{"LOOPBACK\_ONLY\_NO\_EGRESS"} \mathbin{\Vert} \text{prev\_hash})$$
-  This token is stored as `loopback_attestation` (and `air_gapped_attestation`), providing a tamper-evident audit record that the run was configured without external egress.
+  This token is stored as `loopback_attestation` (and `air_gapped_attestation`), providing a hash-chained internal trace record (not a PKI or hardware-backed attestation) reflecting the local configuration state.
 
 ---
 
@@ -104,7 +104,7 @@ For high-assurance or proprietary silicon environments, Mind 3.0 provides strict
 Mind 3.0 executes all compiler, simulator, and verification tooling inside Linux Bubblewrap (`bwrap`).
 
 ### Code Implementation
-Implemented in [src/mind3/sandbox/bwrap.py](file:///Users/sagniksengupta/Desktop/AI/src/mind3/sandbox/bwrap.py):
+Implemented in [src/mind3/sandbox/bwrap.py](src/mind3/sandbox/bwrap.py):
 - **Invocation Arguments**:
   ```python
   cmd = [
@@ -128,7 +128,7 @@ Implemented in [src/mind3/sandbox/bwrap.py](file:///Users/sagniksengupta/Desktop
   - The loopback interface (`lo`) is created down/unconfigured.
   - No physical or virtual network interfaces from the host are inherited.
   - All outbound socket connections (`connect()`, `sendto()`) fail with `Network is unreachable` or `Connection refused`.
-- **Automated Test**: [`test_bubblewrap_sandbox_network_isolation_outbound_blocked`](file:///Users/sagniksengupta/Desktop/AI/tests/test_mind3.py) tests outbound connection attempts to both public external addresses (`1.1.1.1:80`) and host loopback listeners, verifying that the sandbox blocks egress.
+- **Automated Test**: [`test_bubblewrap_sandbox_network_isolation_outbound_blocked`](tests/test_mind3.py) tests outbound connection attempts to both public external addresses (`1.1.1.1:80`) and host loopback listeners, verifying that the sandbox blocks egress.
 - **Host Platform Constraint**: Bubblewrap requires Linux kernel primitives (`clone()` with namespaces, `sys/capability.h`). On macOS (`Darwin`), `bwrap` is neither available nor buildable (`libcap: Linux is required`). `PhaseDriver` fails closed with:
   `RuntimeError: bwrap binary not found on PATH. Mind 3.0 forbids unsandboxed execution.`
 
@@ -136,7 +136,7 @@ Implemented in [src/mind3/sandbox/bwrap.py](file:///Users/sagniksengupta/Desktop
 
 ## 6. Filesystem Security & Path Traversal Protections
 
-To protect the host environment from path traversal attacks and accidental file destruction, [PhaseDriver._policy_check](file:///Users/sagniksengupta/Desktop/AI/src/mind3/core/driver.py#L540-L580) enforces deterministic validation on every agent action:
+To protect the host environment from path traversal attacks and accidental file destruction, [PhaseDriver._policy_check](src/mind3/core/driver.py#L540-L580) enforces deterministic validation on every agent action:
 
 1. **Null Byte Injection**: Paths containing null bytes (`\x00`) are rejected with `ValueError`.
 2. **Strict Canonical Resolution**: Target paths are resolved to absolute canonical paths. If `target_path` is not relative to `workspace.resolve()` (or `commonpath` deviates), `PermissionError` is raised.

@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Literal
 
 from ..sandbox.bwrap import BubblewrapSandbox
 from .types import VerificationDomain, VerificationResult
+from .contracts import validate_rtl_against_contract
 
 # Failure patterns indicating hardware simulation assertion mismatches or fatal halts.
 # Tightened to specific iverilog/vvp runtime and assertion failure signatures to avoid
@@ -696,6 +698,79 @@ def parse_yosys_cdc(output: str) -> dict[str, Any]:
     return {"passed": passed, "violations": violations, "tooling_unavailable": tooling_unavailable}
 
 
+def parse_sby_cover(output: str, targets: list[dict[str, Any]]) -> dict[str, dict[str, Any | None]]:
+    """Attribute executed SBY cover-mode witness locations back to generated cover points.
+
+    Args:
+        output: Combined SBY stdout/stderr from a `mode cover` run.
+        targets: List of dicts with keys: name (property name), file (cover
+            checker basename, e.g. "top_cover.sv"), line (1-based source line
+            of the cover statement, as recorded at generation time).
+
+    Returns:
+        Mapping of property name to {"reached": bool | None, "step": int | None}.
+        reached is None when the output contains neither a reached nor an
+        unreached record for the point (unattributable output).
+
+    Calibrated against SBY v0.69 engine lines, which report reached covers
+    with their step and both outcomes with hierarchical witness locations
+    of the form file:line.col-line.col.
+    """
+    results: dict[str, dict[str, Any | None]] = {}
+    for target in targets:
+        name = str(target["name"])
+        loc = f"{re.escape(str(target['file']))}:{int(target['line'])}\\."
+        reached_match = re.search(
+            rf"Reached cover statement in step (\d+) at [^\n]*?\b{loc}", output
+        )
+        if reached_match:
+            results[name] = {"reached": True, "step": int(reached_match.group(1))}
+            continue
+        unreached_match = re.search(
+            rf"Unreached cover statement at [^\n]*?\b{loc}", output
+        )
+        if unreached_match:
+            results[name] = {"reached": False, "step": None}
+            continue
+        results[name] = {"reached": None, "step": None}
+    return results
+
+
+
+
+def _classify_compile_diagnostic(text: str) -> str:
+    """Map deterministic compiler diagnostics to the forensic failure taxonomy."""
+    lower = text.lower()
+    if any(token in lower for token in ("port", "module", "top module", "instantiat", "connection")) and any(token in lower for token in ("missing", "not found", "does not exist", "unknown", "undeclared", "undefined")):
+        return "INTERFACE_ERROR"
+    if any(token in lower for token in ("width", "bit width", "signed", "unsigned", "truncat", "select", "part-select", "range")):
+        return "TYPE_WIDTH_ERROR"
+    if any(token in lower for token in ("clock", "reset", "posedge", "negedge", "sensitivity list")):
+        return "CLOCK_RESET_ERROR"
+    if any(token in lower for token in ("syntax error", "unexpected token", "parse error", "malformed")):
+        return "SYNTAX_ERROR"
+    return "SYNTAX_ERROR"
+
+
+def _parse_compiler_location(text: str) -> tuple[str | None, int | None, int | None]:
+    """Best-effort parse of common Icarus/Verilator file:line:column diagnostics."""
+    patterns = [
+        re.compile(r"(?P<file>[^\s:]+):(?P<line>\d+):(?P<col>\d+):"),
+        re.compile(r"(?P<file>[^\s:]+):(?P<line>\d+):"),
+    ]
+    for pattern in patterns:
+        match = pattern.search(text)
+        if match:
+            return match.group("file"), int(match.group("line")), int(match.groupdict().get("col") or 1)
+    return None, None, None
+
+
+def _source_context_for_file(path: Path, line: int, radius: int = 2) -> str:
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    start = max(1, line - radius)
+    end = min(len(lines), line + radius)
+    return "\n".join(f"{idx}: {lines[idx - 1]}" for idx in range(start, end + 1))
+
 
 def _is_binary_missing(proc: Any, binary: str) -> bool:
     """Detect whether a subshell execution failed because an EDA binary was missing."""
@@ -711,6 +786,33 @@ def _is_binary_missing(proc: Any, binary: str) -> bool:
     )
 
 
+def _make_subprocess_diagnostic(
+    tool: str,
+    cmd: list[str],
+    proc: Any,
+    runner: Any,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build structured diagnostic record for failed EDA subprocess execution."""
+    exec_mode = (
+        getattr(runner, "execution_mode", getattr(runner, "runner_type", "unknown"))
+        if runner is not None
+        else "unknown"
+    )
+    diag: dict[str, Any] = {
+        "tool": tool,
+        "executable": cmd[0] if cmd else tool,
+        "argv": list(cmd),
+        "return_code": getattr(proc, "returncode", -1),
+        "stdout": str(getattr(proc, "stdout", "") or "")[-4000:],
+        "stderr": str(getattr(proc, "stderr", "") or "")[-4000:],
+        "execution_mode": exec_mode,
+    }
+    if extra:
+        diag.update(extra)
+    return diag
+
+
 def detect_eda_tool_versions(runner: Any) -> dict[str, str]:
     """Inspect and record installed versions of all EDA binaries.
 
@@ -719,7 +821,8 @@ def detect_eda_tool_versions(runner: Any) -> dict[str, str]:
     """
     tools = {
         "yosys": ["yosys", "-V"],
-        "sta": ["sta", "-version"],
+        # Prefer the canonical ``sta`` name; use ``opensta`` on hosts that expose only that alias.
+        "sta": (["sta", "-version"] if shutil.which("sta") or not shutil.which("opensta") else ["opensta", "-version"]),
         "verilator": ["verilator", "--version"],
         "sby": ["sby", "--version"],
         "openroad": ["openroad", "-version"],
@@ -739,16 +842,19 @@ def detect_eda_tool_versions(runner: Any) -> dict[str, str]:
 
 
 class SiliconSignoffVerifier(BaseVerifier):
-    """6-Gate Hierarchical Verification Pipeline for Tapeout-Grade Silicon Signoff.
+    """6-gate hierarchical RTL verification pipeline with optional physical checks.
 
     Gate 1: Yosys Elaboration & Latch Trap Detector
     Gate 1b: Logic Equivalence Checking (LEC) (opt-in via require_lec=True)
-    Gate 2: SymbiYosys Formal Property Verification (BMC)
     Gate 3: Verilator Coverage Signoff (Branch & Toggle)
+    Gate 2: SymbiYosys Formal Property Verification (BMC)
     Gate 4: OpenSTA Multi-Corner Timing Signoff (setup + hold)
     Gate 5: OpenROAD Place-and-Route (opt-in; require_pnr=True to enable)
     Gate 6: Yosys CDC Static Analysis (clock-domain crossing detection)
     DFT:    Scan-chain advisory audit (always runs; never blocks signoff)
+
+    Execution proceeds sequentially and fails closed on the first failing gate.
+    Note: Gate 2 is not executed or recorded when an earlier gate (such as Gate 3) fails.
     """
 
     def __init__(
@@ -817,6 +923,57 @@ class SiliconSignoffVerifier(BaseVerifier):
         self.require_lec: bool = require_lec
         self.detected_versions: dict[str, str] = {}
 
+    def _make_not_run_gate(self, gate_name: str, reason: str) -> dict[str, Any]:
+        """Create a gate report entry for a gate that was not executed due to earlier failure."""
+        return {
+            "gate": gate_name,
+            "passed": False,
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "",
+            "details": f"NOT_RUN: {reason}",
+            "error_category": "NOT_RUN",
+            "status": "NOT_RUN",
+            "not_run_reason": reason,
+            "simulated": False,
+            "skipped": False,
+        }
+
+    def _append_not_run_gates(self, gate_reports: list[dict[str, Any]], start_after_gate: str) -> None:
+        """Append NOT_RUN entries for all gates that would execute after the given gate."""
+        # Define the full execution order of gates
+        gate_order = [
+            ("Gate 1: Yosys Elaboration & Latch Trap", True),
+            ("Gate 1b: Logic Equivalence Checking (LEC)", self.require_lec),
+            ("Gate 3: Verilator Coverage Signoff", True),
+            ("Gate 2: SymbiYosys Formal Property Verification", self.require_formal),
+            ("Gate 4: OpenSTA Multi-Corner Timing Signoff", bool(self.liberty_paths)),
+            ("Gate 5: OpenROAD Place-and-Route", self.require_pnr),
+            ("Gate 6: Yosys CDC Static Analysis", self.require_cdc),
+            ("DFT Scan Audit (Advisory)", True),
+        ]
+        # Find the index of the gate that just failed
+        start_idx = -1
+        for i, (gate_name, _) in enumerate(gate_order):
+            if gate_name == start_after_gate:
+                start_idx = i
+                break
+        # If not found, don't add any NOT_RUN gates
+        if start_idx == -1:
+            return
+        # Add NOT_RUN for all subsequent gates that are enabled
+        for gate_name, condition in gate_order[start_idx + 1:]:
+            if condition:
+                reason = f"blocked by earlier gate failure ({start_after_gate})"
+                gate_reports.append(self._make_not_run_gate(gate_name, reason))
+
+    def _mark_gate_status(self, gate_report: dict[str, Any]) -> None:
+        """Set explicit status field on an executed gate report based on passed field."""
+        if gate_report.get("passed", False):
+            gate_report["status"] = "PASS"
+        else:
+            gate_report["status"] = "FAIL"
+
     def verify(
         self,
         workspace: Path,
@@ -853,7 +1010,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── Gate 1: Yosys AST Elaboration & Latch Trap Detector ──────────────
         gate1_res = self._run_gate1_yosys(eda_runner, sources, resolved_ws)
         gate_reports.append(gate1_res)
+        self._mark_gate_status(gate1_res)
         if not gate1_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 1: Yosys Elaboration & Latch Trap")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -871,7 +1030,9 @@ class SiliconSignoffVerifier(BaseVerifier):
                 eda_runner, sources, gate1_res.get("netlist_path", f"{self.top_module}_netlist.v"), resolved_ws
             )
             gate_reports.append(gate1b_res)
+            self._mark_gate_status(gate1b_res)
             if not gate1b_res["passed"]:
+                self._append_not_run_gates(gate_reports, "Gate 1b: Logic Equivalence Checking (LEC)")
                 return VerificationResult(
                     passed=False,
                     domain=VerificationDomain.RTL,
@@ -883,25 +1044,13 @@ class SiliconSignoffVerifier(BaseVerifier):
                     gate_reports=gate_reports,
                 )
 
-        # ── Gate 2: SymbiYosys Formal Property Verification ──────────────────
-        gate2_res = self._run_gate2_formal_sby(eda_runner, sources, resolved_ws)
-        gate_reports.append(gate2_res)
-        if not gate2_res["passed"]:
-            return VerificationResult(
-                passed=False,
-                domain=VerificationDomain.RTL,
-                exit_code=gate2_res["exit_code"],
-                stdout=gate2_res["stdout"],
-                stderr=gate2_res["stderr"],
-                failure_reason=gate2_res["details"],
-                error_category=gate2_res["error_category"],
-                gate_reports=gate_reports,
-            )
-
-        # ── Gate 3: Verilator 5.x Coverage Signoff ───────────────────────────
+        # ── Gate 3: Verilator functional simulation/coverage ─────────────────
+        # Compile/simulate before formal so formal never runs on behaviorally unvalidated RTL.
         gate3_res = self._run_gate3_coverage(eda_runner, sources, resolved_ws)
         gate_reports.append(gate3_res)
+        self._mark_gate_status(gate3_res)
         if not gate3_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 3: Verilator Coverage Signoff")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -913,10 +1062,37 @@ class SiliconSignoffVerifier(BaseVerifier):
                 gate_reports=gate_reports,
             )
 
+        # ── Gate 2: SymbiYosys Formal Property Verification ──────────────────
+        gate2_res = self._run_gate2_formal_sby(eda_runner, sources, resolved_ws)
+        gate_reports.append(gate2_res)
+        self._mark_gate_status(gate2_res)
+        if not gate2_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 2: SymbiYosys Formal Property Verification")
+            return VerificationResult(
+                passed=False,
+                domain=VerificationDomain.RTL,
+                exit_code=gate2_res["exit_code"],
+                stdout=gate2_res["stdout"],
+                stderr=gate2_res["stderr"],
+                failure_reason=gate2_res["details"],
+                error_category=gate2_res["error_category"],
+                gate_reports=gate_reports,
+            )
+
         # ── Gate 4: OpenSTA Multi-Corner Timing Signoff (setup + hold) ────────
-        gate4_res = self._run_gate4_timing(eda_runner, sources, resolved_ws)
+        try:
+            gate4_res = self._run_gate4_timing(eda_runner, sources, resolved_ws)
+        except (ValueError, OSError) as exc:
+            gate4_res = {
+                "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+                "passed": False, "exit_code": 1, "stdout": "", "stderr": str(exc),
+                "details": f"Timing stage unavailable: {exc}", "error_category": "ENVIRONMENT_FAILURE",
+                "simulated": False, "skipped": False,
+            }
         gate_reports.append(gate4_res)
+        self._mark_gate_status(gate4_res)
         if not gate4_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 4: OpenSTA Multi-Corner Timing Signoff")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -933,7 +1109,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── Gate 5: OpenROAD Place-and-Route (opt-in) ─────────────────────────
         gate5_res = self._run_gate5_openroad_pnr(eda_runner, sources, resolved_ws)
         gate_reports.append(gate5_res)
+        self._mark_gate_status(gate5_res)
         if not gate5_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 5: OpenROAD Place-and-Route")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -949,7 +1127,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── Gate 6: Yosys CDC Static Analysis ────────────────────────────────
         gate6_res = self._run_gate6_cdc_analysis(eda_runner, sources, resolved_ws)
         gate_reports.append(gate6_res)
+        self._mark_gate_status(gate6_res)
         if not gate6_res["passed"]:
+            self._append_not_run_gates(gate_reports, "Gate 6: Yosys CDC Static Analysis")
             return VerificationResult(
                 passed=False,
                 domain=VerificationDomain.RTL,
@@ -965,6 +1145,7 @@ class SiliconSignoffVerifier(BaseVerifier):
         # ── DFT Scan Audit (advisory — never blocks signoff) ──────────────────
         dft_res = self._run_dft_scan_audit(eda_runner, sources, resolved_ws)
         gate_reports.append(dft_res)
+        self._mark_gate_status(dft_res)
 
         # Integrity: silicon_verified is False if any required gate was simulated or skipped.
         # Exception: Gate 5 (PnR, opt-in via require_pnr=False) and the DFT advisory
@@ -974,6 +1155,15 @@ class SiliconSignoffVerifier(BaseVerifier):
             _OPTIONAL_GATE_NAMES.add("Gate 6: Yosys CDC Static Analysis")
         if not self.require_lec:
             _OPTIONAL_GATE_NAMES.add("Gate 1b: Logic Equivalence Checking (LEC)")
+        # A contract-declared no-CDC skip is vacuous by explicit declaration, so it
+        # does not invalidate signoff. Tool absence (CDC_TOOLING_UNAVAILABLE) and
+        # analysis failures never reach this path: they fail closed above.
+        if any(
+            g.get("gate") == "Gate 6: Yosys CDC Static Analysis"
+            and g.get("cdc_skip_reason") == "contract_declares_no_cdc"
+            for g in gate_reports
+        ):
+            _OPTIONAL_GATE_NAMES.add("Gate 6: Yosys CDC Static Analysis")
 
         is_simulated = any(g.get("simulated", False) for g in gate_reports)
         is_skipped = any(
@@ -1010,19 +1200,151 @@ class SiliconSignoffVerifier(BaseVerifier):
         )
 
     def _run_gate1_yosys(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
-        """Execute Yosys technology synthesis, hierarchy elaboration, and latch detection."""
+        """Perform deterministic structural validation + compile, then Yosys elaboration."""
+        # Structural contract validation is deterministic and must happen before any EDA stage.
+        if self.contract is not None:
+            primary_source = next((s for s in sources if s.stem == self.top_module), sources[0] if sources else None)
+            if primary_source is not None:
+                try:
+                    rtl_code = primary_source.read_text(encoding="utf-8")
+                except OSError as exc:
+                    return {
+                        "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                        "passed": False,
+                        "exit_code": 1,
+                        "stdout": "",
+                        "stderr": str(exc),
+                        "details": f"Unable to read generated RTL for structural contract validation: {exc}",
+                        "error_category": "ENVIRONMENT_FAILURE",
+                        "simulated": False,
+                    }
+                violations = validate_rtl_against_contract(self.contract, rtl_code)
+                if violations:
+                    first = violations[0]
+                    msg = "\n".join(v.get("message", "") for v in violations)
+                    return {
+                        "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                        "passed": False,
+                        "exit_code": 1,
+                        "stdout": "",
+                        "stderr": msg,
+                        "details": f"Structural contract validation failed: {msg}",
+                        "error_category": str(first.get("category", "INTERFACE_ERROR")),
+                        "diagnostic": first,
+                        "structural_violations": violations,
+                        "simulated": False,
+                    }
+
         # Static lexical latch audit
         lexical_check = self._lexical_latch_check(sources)
         if not lexical_check["passed"]:
             return lexical_check
 
-        # Extra safety: filter out SVA/testbench files that might have been generated after source collection
         synthesis_sources = [
             s for s in sources
             if not s.name.endswith(("_sva.sv", "_formal_top.sv", "_checker.sv", "_tb.sv", "_tb.v"))
         ]
-        
         src_args = [str(s.relative_to(ws)) for s in synthesis_sources]
+
+        # Explicit compile is a hard gate before Yosys/formal. Prefer Icarus for SystemVerilog
+        # compilation; fall back to Verilator lint when Icarus is not available.
+        compile_tool = None
+        compile_proc = None
+        compile_cmd: list[str] = []
+        if runner is not None:
+            compile_cmd = ["iverilog", "-g2012", "-s", self.top_module, "-o", ".mind_compile.vvp", *src_args]
+            compile_proc = runner.run(compile_cmd, timeout_sec=60)
+            if compile_proc.returncode != 0 and _is_binary_missing(compile_proc, "iverilog"):
+                compile_cmd = ["verilator", "--lint-only", "--sv", "-Wall", "--top-module", self.top_module, *src_args]
+                compile_proc = runner.run(compile_cmd, timeout_sec=60)
+                compile_tool = "verilator"
+            else:
+                compile_tool = "iverilog"
+
+        if compile_proc is None:
+            return {
+                "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": "",
+                "stderr": "No EDA runner configured for compile stage.",
+                "details": "Compile stage could not execute because no EDA runner was configured.",
+                "error_category": "ENVIRONMENT_FAILURE",
+                "simulated": False,
+            }
+
+        compile_combined = f"{compile_proc.stdout}\n{compile_proc.stderr}"
+        if compile_proc.returncode != 0 and _is_binary_missing(compile_proc, compile_tool or "iverilog"):
+            if self.allow_mock_fallback:
+                return {
+                    "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                    "passed": True,
+                    "exit_code": 0,
+                    "stdout": "[SIMULATED - NOT REAL TOOL OUTPUT] RTL compile stage simulated because no compiler is installed.",
+                    "stderr": compile_proc.stderr,
+                    "details": "Compile stage simulated by explicit allow_mock_fallback; this result is not valid benchmark evidence.",
+                    "error_category": None,
+                    "simulated": True,
+                    "skipped": False,
+                }
+            return {
+                "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                "passed": False,
+                "exit_code": 127,
+                "stdout": compile_proc.stdout,
+                "stderr": compile_proc.stderr,
+                "details": (
+                    "No supported RTL compiler available (tried Icarus and Verilator). "
+                    "Install Icarus or Verilator (or provide the required OSS CAD Suite toolchain).\n"
+                    f"{compile_combined[-3000:]}"
+                ),
+                "error_category": "EDA_BINARY_MISSING",
+                "compile_tool": compile_tool or "iverilog",
+                "diagnostic": {"tool": compile_tool or "iverilog", "error": compile_combined[-4000:]},
+                "simulated": False,
+            }
+        if compile_proc.returncode != 0:
+            file_name, line, column = _parse_compiler_location(compile_combined)
+            source_context = ""
+            if file_name and line:
+                candidate = Path(file_name)
+                if not candidate.is_absolute():
+                    candidate = (ws / candidate).resolve()
+                if candidate.exists():
+                    try:
+                        source_context = _source_context_for_file(candidate, line)
+                    except Exception:
+                        source_context = ""
+            category = _classify_compile_diagnostic(compile_combined)
+            diagnostic = _make_subprocess_diagnostic(
+                tool=compile_tool or "iverilog",
+                cmd=compile_cmd,
+                proc=compile_proc,
+                runner=runner,
+                extra={
+                    "stage": "compile",
+                    "error": compile_combined[-4000:],
+                    "file": file_name,
+                    "line": line,
+                    "column": column,
+                    "source_context": source_context,
+                },
+            )
+            return {
+                "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                "passed": False,
+                "exit_code": compile_proc.returncode,
+                "stdout": compile_proc.stdout,
+                "stderr": compile_proc.stderr,
+                "details": f"RTL compile failed ({compile_tool or 'iverilog'}): {compile_combined[-3500:]}",
+                "error_category": category,
+                "compile_tool": compile_tool or "iverilog",
+                "diagnostic": diagnostic,
+                "simulated": False,
+            }
+        compile_artifact = ws / ".mind_compile.vvp"
+        if compile_artifact.exists():
+            compile_artifact.unlink(missing_ok=True)
         netlist_name = f"{self.top_module}_netlist.v"
 
         ast_name = f"{self.top_module}_ast.json"
@@ -1065,6 +1387,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                         "or install the OSS CAD Suite (https://github.com/YosysHQ/oss-cad-suite-build)."
                     ),
                     "error_category": "EDA_BINARY_MISSING",
+                    "diagnostic": _make_subprocess_diagnostic("yosys", cmd, proc, runner),
                     "simulated": False,
                 }
             simulated_check = dict(lexical_check)
@@ -1093,13 +1416,28 @@ class SiliconSignoffVerifier(BaseVerifier):
                                 "stderr": proc.stderr,
                                 "details": f"Unintended latch cell '{cell_name}' of type '{cell_type}' detected in structured AST.",
                                 "error_category": "LATCH_INFERRED",
+                                "diagnostic": _make_subprocess_diagnostic(
+                                    "yosys",
+                                    cmd,
+                                    proc,
+                                    runner,
+                                    extra={"cell": cell_name, "cell_type": cell_type},
+                                ),
                                 "simulated": False,
                             }
             except Exception:
                 ast_json = None
 
-        # 2. Fallback regex inspection on combined tool stdout/stderr
-        latch_match = re.search(r"\$(?:d|ad)?latch\b", combined_output)
+        # 2. Fallback regex inspection on combined tool stdout/stderr.
+        # Be careful not to match informational lines such as "No latch inferred for signal".
+        latch_match = None
+        for m in re.finditer(r"\$(?:d|ad)?latch\b|latch\s+inferred", combined_output, re.IGNORECASE):
+            start = m.start()
+            prefix = combined_output[max(0, start - 10):start].lower()
+            if not re.search(r"\bno\s+$", prefix):
+                latch_match = m
+                break
+
         if latch_match and not has_override:
             return {
                 "gate": "Gate 1: Yosys Elaboration & Latch Trap",
@@ -1109,6 +1447,13 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "stderr": proc.stderr,
                 "details": "Unintended latch inferred in AST without synopsys keep_latch override.",
                 "error_category": "LATCH_INFERRED",
+                "diagnostic": _make_subprocess_diagnostic(
+                    "yosys",
+                    cmd,
+                    proc,
+                    runner,
+                    extra={"match": latch_match.group(0)},
+                ),
                 "simulated": False,
             }
 
@@ -1122,11 +1467,12 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "stderr": proc.stderr,
                 "details": "Combinational loop detected during elaboration.",
                 "error_category": "COMBINATIONAL_LOOP",
+                "diagnostic": _make_subprocess_diagnostic("yosys", cmd, proc, runner),
                 "simulated": False,
             }
 
         passed = proc.returncode == 0
-        return {
+        res = {
             "gate": "Gate 1: Yosys Elaboration & Latch Trap",
             "passed": passed,
             "exit_code": proc.returncode,
@@ -1137,6 +1483,9 @@ class SiliconSignoffVerifier(BaseVerifier):
             "netlist_path": netlist_name if passed else None,
             "simulated": False,
         }
+        if not passed:
+            res["diagnostic"] = _make_subprocess_diagnostic("yosys", cmd, proc, runner)
+        return res
 
     def _run_gate_lec(
         self,
@@ -1271,13 +1620,120 @@ class SiliconSignoffVerifier(BaseVerifier):
             "simulated": False,
         }
 
+    def _run_gate2_vacuity_check(
+        self, runner: Any, ws: Path, depth: int, generated_harness: bool
+    ) -> dict[str, Any]:
+        """Bounded antecedent-reachability check for Gate 2 implication properties.
+
+        Runs one executed SBY `mode cover` job (same bound as the BMC proof)
+        over cover points mirroring each implication's evaluation condition.
+        Never static: every classification below rests on executed tool output.
+
+        Returns a JSON-safe vacuity dict with status EXERCISED, VACUOUS,
+        NOT_APPLICABLE, or COVER_ERROR.
+        """
+        from .contracts import VerificationHarnessGenerator
+
+        base: dict[str, Any] = {
+            "assert_depth": depth,
+            "cover_depth": depth,
+            "antecedents": {},
+        }
+        if not generated_harness or self.contract is None:
+            return {
+                **base,
+                "status": "NOT_APPLICABLE",
+                "reason": "user-supplied harness; antecedent exercise not assessed",
+            }
+        implications, unsupported = VerificationHarnessGenerator.implication_antecedents(self.contract)
+        if unsupported:
+            first = unsupported[0]
+            return {
+                **base,
+                "status": "COVER_ERROR",
+                "reason": f"cover generation failed for '{first['name']}': {first['error']}",
+            }
+        if not implications:
+            return {
+                **base,
+                "status": "NOT_APPLICABLE",
+                "reason": "no implication antecedents to exercise",
+            }
+
+        cover_code, cover_lines = VerificationHarnessGenerator.build_cover_bind_module(
+            self.contract, implications
+        )
+        cover_name = f"{self.top_module}_cover"
+        (ws / f"{cover_name}.sv").write_text(cover_code, encoding="utf-8")
+        (ws / f"{cover_name}_top.sv").write_text(
+            VerificationHarnessGenerator.build_cover_top_module(self.contract), encoding="utf-8"
+        )
+        (ws / f"{cover_name}.sby").write_text(
+            VerificationHarnessGenerator.build_cover_sby_config(self.contract, depth=depth),
+            encoding="utf-8",
+        )
+
+        proc = runner.run(["sby", "-f", f"{cover_name}.sby"], timeout_sec=60)
+        combined = f"{proc.stdout}\n{proc.stderr}"
+        if _is_binary_missing(proc, "sby") or (
+            "Traceback (most recent call last)" in combined
+            or "sby: error" in combined.lower()
+            or re.search(r"\bSBY\b.*\bERROR\b", combined) is not None
+        ):
+            return {
+                **base,
+                "status": "COVER_ERROR",
+                "reason": "cover execution failed",
+                "cover_stdout": str(proc.stdout or "")[-2000:],
+                "cover_stderr": str(proc.stderr or "")[-2000:],
+            }
+
+        targets = [
+            {"name": cp["name"], "file": f"{cover_name}.sv", "line": line}
+            for cp, line in zip(implications, cover_lines)
+        ]
+        results = parse_sby_cover(combined, targets)
+        unknown = [name for name, r in results.items() if r["reached"] is None]
+        if unknown:
+            return {
+                **base,
+                "status": "COVER_ERROR",
+                "reason": f"cover output unattributable for: {', '.join(sorted(unknown))}",
+                "antecedents": results,
+                "cover_stdout": str(proc.stdout or "")[-2000:],
+            }
+        unreached = [name for name, r in results.items() if r["reached"] is False]
+        if unreached:
+            return {
+                **base,
+                "status": "VACUOUS",
+                "reason": (
+                    f"antecedent(s) never exercised within bound: {', '.join(sorted(unreached))}"
+                ),
+                "unexercised": sorted(unreached),
+                "antecedents": results,
+            }
+        return {
+            **base,
+            "status": "EXERCISED",
+            "reason": "all implication antecedents reached within bound",
+            "antecedents": results,
+        }
+
     def _run_gate2_formal_sby(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
-        """Execute SymbiYosys Bounded Model Checking formal verification with SVA binding."""
-        sby_files = list(ws.glob("*.sby"))
+        """Execute SymbiYosys Bounded Model Checking formal verification using typed bounded-property templates (a supported subset of SVA)."""
+        preferred = ws / f"{self.top_module}.sby"
+        sby_candidates = sorted(
+            (p for p in ws.glob("*.sby") if not p.name.endswith("_cover.sby")),
+            key=lambda p: p.name,
+        )
+        sby_files = [preferred] if preferred in sby_candidates else sby_candidates
+        generated_harness = False
         if not sby_files and self.contract is not None:
             from .contracts import VerificationHarnessGenerator, UnsupportedFormalPropertyError
-            props = getattr(self.contract, "sva_properties", None)
-            if props is None or len(props) == 0:
+            structured_props = list(getattr(self.contract, "formal_properties", []) or [])
+            legacy_props = list(getattr(self.contract, "sva_properties", []) or [])
+            if not structured_props and not legacy_props:
                 if self.require_formal:
                     return {
                         "gate": "Gate 2: SymbiYosys Formal Property Verification",
@@ -1316,6 +1772,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 sby_path = ws / f"{self.top_module}.sby"
                 sby_path.write_text(sby_content, encoding="utf-8")
                 sby_files = [sby_path]
+                generated_harness = True
 
         if not sby_files:
             if self.require_formal:
@@ -1327,7 +1784,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "stderr": "Missing formal verification harness (.sby).",
                     "details": (
                         "No .sby formal harness or formal contract found. "
-                        "Generate a SymbiYosys (.sby) formal verification harness or specify an InterfaceContract with SVA properties."
+                        "Generate a SymbiYosys (.sby) formal verification harness or specify an InterfaceContract with typed bounded-property templates (a supported subset of SVA)."
                     ),
                     "error_category": "MISSING_VERIFICATION_ARTIFACT",
                     "skipped": False,
@@ -1391,13 +1848,44 @@ class SiliconSignoffVerifier(BaseVerifier):
                 }
 
             # Parse counterexample timestamp (supports legacy 'step X FAILED' and modern SBY 'step X')
-            t_fail_match = re.search(r"step\s+(\d+)\s+FAILED", combined) or re.search(r"failed assertion.*?\bstep\s+(\d+)", combined)
+            t_fail_match = re.search(r"step\s+(\d+)\s+FAILED", combined) or re.search(r"failed assertion.*?\bstep\s+(\d+)", combined, re.I)
             t_fail = t_fail_match.group(1) if t_fail_match else "unknown"
-            prop_match = re.search(r"(?:Assert failed in \S+:|Assertion failed:|failed assertion\s+)(\S+)", combined)
+            prop_match = re.search(r"(?:Assert failed in \S+:|Assertion failed:|failed assertion\s+)([A-Za-z_][\w.$]*)", combined, re.I)
             prop_name = prop_match.group(1) if prop_match else None
-            trace_match = re.search(r"(?:writing trace to VCD file:|writing trace to\s+)(\S+\.vcd)", combined)
+            # Prefer the summary line (task-dir-prefixed, ws-relative); fall back to
+            # the engine line (task-dir-relative). The old pattern missed the
+            # space after "file:" and never matched real SBY output.
+            trace_match = re.search(r"counterexample trace:\s+(\S+\.vcd)", combined, re.I) or re.search(
+                r"(?:writing trace to VCD file:\s*|writing trace to\s+)(\S+\.vcd)", combined, re.I
+            )
             trace_path = trace_match.group(1) if trace_match else None
-            details_str = f"Formal SVA invariant violated at cycle step T={t_fail}."
+            property_source = None
+            if prop_name and self.contract is not None:
+                for prop in [*getattr(self.contract, "formal_properties", []), *getattr(self.contract, "sva_properties", [])]:
+                    if getattr(prop, "name", "") == prop_name:
+                        property_source = getattr(prop, "expression", None) or getattr(prop, "property_expr", None) or getattr(prop, "description", None)
+                        break
+            counterexample_trace = None
+            if trace_path:
+                trace_candidate = Path(trace_path)
+                if not trace_candidate.is_absolute():
+                    # Engine lines are relative to the SBY task directory
+                    # (<ws>/<sby-stem>/); summary lines are ws-relative.
+                    # Probe the task directory first, then the workspace.
+                    task_dir = ws / Path(str(sby_files[0])).stem
+                    candidates = [task_dir / trace_candidate, ws / trace_candidate]
+                    trace_candidate = next(
+                        (c for c in candidates if c.exists() and c.is_file()),
+                        candidates[0],
+                    )
+                if trace_candidate.exists() and trace_candidate.is_file():
+                    try:
+                        counterexample_trace = "\n".join(trace_candidate.read_text(encoding="utf-8", errors="replace").splitlines()[:120])
+                    except OSError:
+                        counterexample_trace = trace_path
+                else:
+                    counterexample_trace = trace_path
+            details_str = f"Formal invariant violated at cycle step T={t_fail}."
             if prop_name:
                 details_str += f" Assertion: {prop_name}."
             if trace_path:
@@ -1414,17 +1902,72 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "failing_property": prop_name,
                 "step": t_fail,
                 "trace_file": trace_path,
+                "property_source": property_source,
+                "counterexample_trace": counterexample_trace,
                 "simulated": False,
             }
 
+        # Assert job passed. A passing implication whose antecedent was never
+        # exercised proves nothing, so assess bounded antecedent reachability
+        # with an executed cover job before reporting an ordinary PASS.
+        bmc_depth = 25
+        vacuity = self._run_gate2_vacuity_check(runner, ws, bmc_depth, generated_harness)
+        if vacuity["status"] == "VACUOUS":
+            return {
+                "gate": "Gate 2: SymbiYosys Formal Property Verification",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    f"Bounded BMC to depth {bmc_depth} found no counterexample, but "
+                    f"{vacuity['reason']} (bounded antecedent reachability to depth "
+                    f"{bmc_depth}). An unexercised implication is reported as VACUOUS, "
+                    "never as an ordinary PASS."
+                ),
+                "error_category": "VACUOUS_PROPERTY",
+                "unexercised_properties": vacuity.get("unexercised", []),
+                "bmc_depth": bmc_depth,
+                "vacuity": vacuity,
+                "simulated": False,
+                "skipped": False,
+            }
+        if vacuity["status"] == "COVER_ERROR":
+            return {
+                "gate": "Gate 2: SymbiYosys Formal Property Verification",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    f"Bounded BMC to depth {bmc_depth} found no counterexample, but "
+                    f"antecedent reachability could not be established: {vacuity['reason']}."
+                ),
+                "error_category": "FORMAL_ANALYSIS_FAILED",
+                "bmc_depth": bmc_depth,
+                "vacuity": vacuity,
+                "simulated": False,
+                "skipped": False,
+            }
+        if vacuity["status"] == "EXERCISED":
+            exercise_note = (
+                f" All {len(vacuity['antecedents'])} implication antecedent(s) reached "
+                f"within bound (reachability depth {bmc_depth})."
+            )
+        else:
+            exercise_note = f" Vacuity assessment: {vacuity['reason']}."
         return {
             "gate": "Gate 2: SymbiYosys Formal Property Verification",
             "passed": True,
             "exit_code": 0,
             "stdout": proc.stdout,
             "stderr": proc.stderr,
-            "details": "SymbiYosys BMC depth 25 proven: zero invariant counterexamples.",
+            "details": (
+                f"Bounded BMC to depth {bmc_depth}: zero invariant counterexamples.{exercise_note}"
+            ),
             "error_category": None,
+            "bmc_depth": bmc_depth,
+            "vacuity": vacuity,
             "simulated": False,
             "skipped": False,
         }
@@ -1519,14 +2062,31 @@ class SiliconSignoffVerifier(BaseVerifier):
 
         # Check for compiler errors
         if proc.returncode != 0:
+            combined_diag = f"{proc.stdout}\n{proc.stderr}"[-5000:]
+            file_name, line, column = _parse_compiler_location(combined_diag)
+            diagnostic = _make_subprocess_diagnostic(
+                tool="verilator",
+                cmd=cmd,
+                proc=proc,
+                runner=runner,
+                extra={
+                    "stage": "build",
+                    "error": combined_diag,
+                    "file": file_name,
+                    "line": line,
+                    "column": column,
+                    "source_context": _source_context_for_file((ws / file_name) if file_name and not Path(file_name).is_absolute() else Path(file_name) if file_name else Path(ws / f"{self.top_module}.sv"), line) if line and file_name else "",
+                },
+            )
             return {
                 "gate": "Gate 3: Verilator Coverage Signoff",
                 "passed": False,
                 "exit_code": proc.returncode,
                 "stdout": proc.stdout,
                 "stderr": proc.stderr,
-                "details": "Verilator coverage build compilation failed.",
+                "details": f"Verilator simulation/coverage build failed: {combined_diag}",
                 "error_category": "COVERAGE_BUILD_FAILURE",
+                "diagnostic": diagnostic,
                 "simulated": False,
             }
 
@@ -1542,25 +2102,41 @@ class SiliconSignoffVerifier(BaseVerifier):
             sim_proc = runner.run(sim_cmd, timeout_sec=60)
             sim_stdout = sim_proc.stdout
             sim_stderr = sim_proc.stderr
-            # Check if non-zero exit code is due to $finish (normal testbench completion)
+            # Any non-zero simulation exit is a real simulation failure. Do not infer success
+            # from VCD output, $finish strings, or a testbench's own PASS message.
             if sim_proc.returncode != 0:
-                combined_sim_output = f"{sim_proc.stdout}\n{sim_proc.stderr}"
-                vcd_present = ("VCD info: dumpfile" in sim_proc.stdout or 
-                               "VCD info: dumpfile" in sim_proc.stderr)
-                finish_present = ("$finish" in sim_proc.stdout or 
-                                  "$finish" in sim_proc.stderr or
-                                  "ALL TESTS PASSED" in sim_proc.stdout)
-                if not (vcd_present and finish_present):
-                    return {
-                        "gate": "Gate 3: Verilator Coverage Signoff",
-                        "passed": False,
-                        "exit_code": sim_proc.returncode,
-                        "stdout": sim_stdout,
-                        "stderr": sim_stderr,
-                        "details": f"Verilator simulation runtime failed with exit code {sim_proc.returncode}.",
-                        "error_category": "SIMULATION_FAILURE",
-                        "simulated": False,
-                    }
+                combined_sim_output = f"{sim_proc.stdout}\n{sim_proc.stderr}"[-5000:]
+                cycle_match = re.search(r"(?:cycle|time|step)\s*[=:]\s*(\d+)", combined_sim_output, re.IGNORECASE)
+                mismatch_match = re.search(r"(?:got|observed)\s+([^,;\n]+).*?(?:expected)\s+([^,;\n]+)", combined_sim_output, re.IGNORECASE)
+                sim_diag = _make_subprocess_diagnostic(
+                    tool="verilator",
+                    cmd=sim_cmd,
+                    proc=sim_proc,
+                    runner=runner,
+                    extra={
+                        "stage": "simulation",
+                        "error": combined_sim_output,
+                        "file": None,
+                        "line": None,
+                        "column": None,
+                        "source_context": "",
+                    },
+                )
+                return {
+                    "gate": "Gate 3: Verilator Coverage Signoff",
+                    "passed": False,
+                    "exit_code": sim_proc.returncode,
+                    "stdout": sim_stdout,
+                    "stderr": sim_stderr,
+                    "details": f"Verilator simulation runtime failed with exit code {sim_proc.returncode}: {combined_sim_output}",
+                    "error_category": "SIMULATION_FAILURE",
+                    "diagnostic": sim_diag,
+                    "cycle": int(cycle_match.group(1)) if cycle_match else None,
+                    "observed_behavior": mismatch_match.group(1).strip() if mismatch_match else None,
+                    "expected_behavior": mismatch_match.group(2).strip() if mismatch_match else None,
+                    "failing_test": "generated_verilator_testbench",
+                    "simulated": False,
+                }
 
         # Parse coverage from coverage.dat or fallback to simulation logs
         cov_file = None
@@ -1671,7 +2247,8 @@ class SiliconSignoffVerifier(BaseVerifier):
             )
             target_script = sta_script
 
-        cmd = ["sta", "-exit", str(target_script.relative_to(ws))]
+        sta_bin = "sta" if shutil.which("sta") else "opensta"
+        cmd = [sta_bin, "-exit", str(target_script.relative_to(ws))]
         proc = runner.run(cmd, timeout_sec=30)
         combined = f"{proc.stdout}\n{proc.stderr}"
 
@@ -2010,8 +2587,55 @@ class SiliconSignoffVerifier(BaseVerifier):
             "simulated": False,
         }
 
+    def _cdc_requirement(self) -> tuple[bool, str]:
+        """Decide from explicit contract state whether CDC analysis is required.
+
+        Returns (required, reason_code) where reason_code is one of:
+        "explicit_opt_out", "no_contract", "async_inputs_undeclared",
+        "async_reset", "async_inputs_declared", or "contract_declares_no_cdc".
+
+        Clock count deliberately plays no role: one clock never skips CDC, and
+        multiple clocks are left for the tool to analyze. Only an explicit
+        contract declaration (async_inputs == [] with no async reset) waives
+        the requirement; an undeclared (None) async-input state requires it.
+        """
+        if not self.require_cdc:
+            return False, "explicit_opt_out"
+        contract = self.contract
+        if contract is None:
+            return True, "no_contract"
+        async_inputs = getattr(contract, "async_inputs", None)
+        if async_inputs is None:
+            return True, "async_inputs_undeclared"
+        reset = getattr(contract, "reset", None)
+        if reset is not None and not bool(getattr(reset, "synchronous", True)):
+            return True, "async_reset"
+        if len(async_inputs) > 0:
+            return True, "async_inputs_declared"
+        return False, "contract_declares_no_cdc"
+
     def _run_gate6_cdc_analysis(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
         """Execute Yosys CDC static analysis to detect unregistered clock-domain crossings."""
+        if self.require_cdc:
+            required, reason = self._cdc_requirement()
+            if not required:
+                return {
+                    "gate": "Gate 6: Yosys CDC Static Analysis",
+                    "passed": True,
+                    "exit_code": 0,
+                    "stdout": "CDC analysis skipped: contract explicitly declares no CDC crossings requiring analysis.",
+                    "stderr": "",
+                    "details": (
+                        "CDC gate skipped: the contract explicitly declares no asynchronous "
+                        "inputs and no asynchronous reset, so no crossings require analysis. "
+                        "This skip is by contract declaration, not by clock count."
+                    ),
+                    "error_category": None,
+                    "cdc_violations": [],
+                    "cdc_skip_reason": "contract_declares_no_cdc",
+                    "skipped": True,
+                    "simulated": False,
+                }
         src_args = [str(s.relative_to(ws)) for s in sources]
         yosys_cdc_script = (
             f"read_verilog -sv {' '.join(src_args)}; "
@@ -2046,6 +2670,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "details": "CDC gate bypassed: missing Yosys binary and caller opted out.",
                     "error_category": None,
                     "cdc_violations": [],
+                    "cdc_skip_reason": "explicit_opt_out",
                     "skipped": True,
                     "simulated": False,
                 }
@@ -2090,6 +2715,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "details": "CDC gate bypassed: Yosys lacks CDC command and caller opted out.",
                     "error_category": None,
                     "cdc_violations": [],
+                    "cdc_skip_reason": "explicit_opt_out",
                     "skipped": True,
                     "simulated": False,
                 }
@@ -2226,16 +2852,20 @@ class SiliconSignoffVerifier(BaseVerifier):
 
 
 def get_gate_presentation_label(gate: dict[str, Any]) -> str:
-    """Derive [REAL EDA] vs [SIMULATED] vs [SKIPPED] directly from gate report fields.
+    """Derive [REAL EDA] vs [SIMULATED] vs [SKIPPED] vs [NOT_RUN] directly from gate report fields.
 
     Precedence:
-    1. If gate is skipped (`gate.get("skipped", False)` is True) -> "[SKIPPED]"
-    2. Else if gate is simulated/mocked (`gate.get("simulated", False)` is True) -> "[SIMULATED]"
-    3. Else (`skipped` is False and `simulated` is False) -> "[REAL EDA]"
+    1. If gate is NOT_RUN (`gate.get("status") == "NOT_RUN"`) -> "[NOT_RUN]"
+    2. If gate is skipped (`gate.get("skipped", False)` is True) -> "[SKIPPED]"
+    3. Else if gate is simulated/mocked (`gate.get("simulated", False)` is True) -> "[SIMULATED]"
+    4. Else (`skipped` is False and `simulated` is False) -> "[REAL EDA]"
 
     Raises:
         ValueError: If gate fields are contradictory (e.g. both skipped=True and simulated=True).
     """
+    status = gate.get("status")
+    if status == "NOT_RUN":
+        return "[NOT_RUN]"
     skipped = bool(gate.get("skipped", False))
     simulated = bool(gate.get("simulated", False))
     if skipped and simulated:
@@ -2253,11 +2883,14 @@ def format_gate_report_row(gate: dict[str, Any], idx: int | None = None) -> str:
     """Format a single gate report row for CLI presentation.
 
     Derives both status tag and tool provenance tag directly from gate report flags:
-    - Status: [SKIP] if skipped, [PASS] if passed, [FAIL] if not passed.
-    - Provenance: [SKIPPED], [SIMULATED], or [REAL EDA] via get_gate_presentation_label.
+    - Status: [NOT_RUN] if status=NOT_RUN, [SKIP] if skipped, [PASS] if passed, [FAIL] if not passed.
+    - Provenance: [NOT_RUN], [SKIPPED], [SIMULATED], or [REAL EDA] via get_gate_presentation_label.
     """
     label = get_gate_presentation_label(gate)
-    if gate.get("skipped", False):
+    status_val = gate.get("status")
+    if status_val == "NOT_RUN":
+        status = "[NOT_RUN]"
+    elif gate.get("skipped", False):
         status = "[SKIP]"
     elif gate.get("passed", False):
         status = "[PASS]"

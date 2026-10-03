@@ -821,10 +821,13 @@ def test_eda_runners_local_and_remote(monkeypatch: pytest.MonkeyPatch) -> None:
         assert mock_sb.executed_commands[0] == ["yosys", "-V"]
 
         # Remote SSH runner
+        known_hosts = ws / "known_hosts"
+        known_hosts.write_text("eda.corp.internal ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest\n", encoding="utf-8")
         remote_runner = RemoteSSHRunner(
             host="eda.corp.internal",
             user="silicon_team",
             remote_workdir="/eda/scratch/mind3",
+            known_hosts_file=known_hosts,
         )
         assert remote_runner.runner_type == "remote_ssh"
         assert remote_runner.host == "eda.corp.internal"
@@ -837,6 +840,7 @@ def test_eda_runners_local_and_remote(monkeypatch: pytest.MonkeyPatch) -> None:
 
         monkeypatch.setenv("EDA_REMOTE_HOST", "eda-farm.enterprise.com")
         monkeypatch.setenv("EDA_REMOTE_USER", "cad_user")
+        monkeypatch.setenv("EDA_REMOTE_KNOWN_HOSTS", str(known_hosts))
         factory_remote = get_eda_runner(ws, mock_sb)  # type: ignore
         assert isinstance(factory_remote, RemoteSSHRunner)
         assert factory_remote.host == "eda-farm.enterprise.com"
@@ -1241,7 +1245,7 @@ def test_acceptance_2_stop_silently_noop_passing_gates_2_and_3() -> None:
         assert res.passed is False
         assert res.error_category == "MISSING_VERIFICATION_ARTIFACT"
         assert res.silicon_verified is False
-        assert "sby" in str(res.failure_reason).lower() or "formal" in str(res.failure_reason).lower()
+        assert "verilator" in str(res.failure_reason).lower() or "coverage" in str(res.failure_reason).lower()
 
         # Add .sby harness; now Gate 3 must fail due to missing .cpp testbench
         (ws / "top.sby").write_text("[options]\nmode bmc\n", encoding="utf-8")
@@ -2063,9 +2067,13 @@ def test_parse_model_code_response_robustness() -> None:
     json_action = '{"action": "write_file", "path": "alu.sv", "content": "module alu(input clk); endmodule"}'
     assert _parse_model_code_response(json_action) == "module alu(input clk); endmodule"
 
-    # Case 2: Generic JSON dictionary wrapping code under 'content' key is unwrapped (was previously asserting bug)
+    # Case 2: Phase 0 strict guarantee restored — a generic JSON dictionary wrapping
+    # code under 'content' is NOT unwrapped in strict mode (default). It recovers
+    # only under explicitly enabled lenient mode via the documented known-key list.
     json_dict = '{"content": "module fifo(); endmodule"}'
-    assert _parse_model_code_response(json_dict) == "module fifo(); endmodule"
+    with pytest.raises(ModelResponseParseError):
+        _parse_model_code_response(json_dict)
+    assert _parse_model_code_response(json_dict, parser_mode="lenient") == "module fifo(); endmodule"
 
     # Case 3: Markdown code fences
     fenced_code = "```systemverilog\nmodule counter(input clk);\nendmodule\n```"
@@ -2084,41 +2092,48 @@ def test_parse_model_code_response_robustness() -> None:
 
 
 def test_parse_model_code_response_regression_suite() -> None:
-    """Regression suite covering all 5 extraction precedence levels and audit payload shapes."""
-    # 1. Exact 3 payload shapes captured in original 3-task live audit
+    """Regression suite covering strict acceptance and lenient documented recovery."""
+    # 1. Exact 3 payload shapes captured in original 3-task live audit.
+    #    These are lenient-mode documented known keys; strict mode rejects them.
     audit_module_code = '{"module_code": "module audit1(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule"}'
-    assert _parse_model_code_response(audit_module_code) == "module audit1(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule"
+    assert _parse_model_code_response(audit_module_code, parser_mode="lenient") == "module audit1(input clk, output reg q); always @(posedge clk) q <= ~q; endmodule"
 
     audit_content = '{"content": "module audit2(input clk, output q); assign q = 1\'b1; endmodule"}'
-    assert _parse_model_code_response(audit_content) == "module audit2(input clk, output q); assign q = 1'b1; endmodule"
+    assert _parse_model_code_response(audit_content, parser_mode="lenient") == "module audit2(input clk, output q); assign q = 1'b1; endmodule"
 
     audit_response = '{"response": "module audit3(input a, b, output y); assign y = a & b; endmodule"}'
-    assert _parse_model_code_response(audit_response) == "module audit3(input a, b, output y); assign y = a & b; endmodule"
+    assert _parse_model_code_response(audit_response, parser_mode="lenient") == "module audit3(input a, b, output y); assign y = a & b; endmodule"
 
-    # 2. Key precedence and remaining valid keys (verilog_code, code, rtl, text)
+    for audit_payload in (audit_module_code, audit_content, audit_response):
+        with pytest.raises(ModelResponseParseError):
+            _parse_model_code_response(audit_payload)
+
+    # 2. Key precedence and remaining documented keys (verilog_code, code, rtl, text)
     for key in ("verilog_code", "code", "rtl", "text"):
         payload = json.dumps({key: f"module mod_{key}(); endmodule"})
-        assert _parse_model_code_response(payload) == f"module mod_{key}(); endmodule"
+        assert _parse_model_code_response(payload, parser_mode="lenient") == f"module mod_{key}(); endmodule"
+        with pytest.raises(ModelResponseParseError):
+            _parse_model_code_response(payload)
 
     # module_code takes precedence over text
     precedence_payload = json.dumps({
         "module_code": "module winner(); endmodule",
         "text": "module loser(); endmodule",
     })
-    assert _parse_model_code_response(precedence_payload) == "module winner(); endmodule"
+    assert _parse_model_code_response(precedence_payload, parser_mode="lenient") == "module winner(); endmodule"
 
     # Inner markdown fence within JSON value
     inner_fence_payload = json.dumps({
         "module_code": "```verilog\nmodule inner_fenced();\nendmodule\n```",
     })
-    assert _parse_model_code_response(inner_fence_payload) == "module inner_fenced();\nendmodule"
+    assert _parse_model_code_response(inner_fence_payload, parser_mode="lenient") == "module inner_fenced();\nendmodule"
 
-    # 3. Markdown-fenced responses across all supported tags
+    # 3. Markdown-fenced responses across all supported tags (strict accepts)
     for tag in ("systemverilog", "verilog", "sv", ""):
         fenced = f"```{tag}\nmodule fence_{tag or 'bare'}();\nendmodule\n```"
         assert _parse_model_code_response(fenced) == f"module fence_{tag or 'bare'}();\nendmodule"
 
-    # 4. Clean WriteFileAction-schema response (confirm existing path unchanged)
+    # 4. Clean WriteFileAction-schema response (strict accepts, unchanged path)
     clean_action = json.dumps({
         "action": "write_file",
         "path": "design_top.sv",
@@ -2126,7 +2141,8 @@ def test_parse_model_code_response_regression_suite() -> None:
     })
     assert _parse_model_code_response(clean_action) == "module design_top(input wire clk); endmodule"
 
-    # 5. Raw unstructured text with embedded module...endmodule block
+    # 5. Raw unstructured text with embedded module...endmodule block.
+    #    Strict rejects prose-wrapped modules as ambiguous; lenient extracts them.
     prose_response = (
         "Here is the synthesizable SystemVerilog module implementing the required register:\n\n"
         "module embedded_reg(input clk, input rst_n, input [7:0] d, output reg [7:0] q);\n"
@@ -2137,13 +2153,15 @@ def test_parse_model_code_response_regression_suite() -> None:
         "endmodule\n\n"
         "Note: reset is asynchronous active-low. Let me know if you need testbench verification."
     )
-    extracted_prose = _parse_model_code_response(prose_response)
+    with pytest.raises(ModelResponseParseError):
+        _parse_model_code_response(prose_response)
+    extracted_prose = _parse_model_code_response(prose_response, parser_mode="lenient")
     assert extracted_prose.startswith("module embedded_reg")
     assert extracted_prose.endswith("endmodule")
     assert "Here is the synthesizable" not in extracted_prose
     assert "Note: reset is asynchronous" not in extracted_prose
 
-    # 6. Genuinely unparseable garbage fails closed
+    # 6. Genuinely unparseable garbage fails closed in both modes
     garbage_cases = [
         "I am an LLM and I cannot answer this prompt.",
         '{"status": "error", "message": "token limit exceeded"}',
@@ -2156,6 +2174,8 @@ def test_parse_model_code_response_regression_suite() -> None:
     for garbage in garbage_cases:
         with pytest.raises(ModelResponseParseError):
             _parse_model_code_response(garbage)
+        with pytest.raises(ModelResponseParseError):
+            _parse_model_code_response(garbage, parser_mode="lenient")
 
 
 def test_parse_model_code_response_benchmark_ast_format() -> None:
@@ -2172,7 +2192,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         ],
         "implementation": "assign out = 1'b0;"
     })
-    result = _parse_model_code_response(benchmark_payload)
+    result = _parse_model_code_response(benchmark_payload, parser_mode="lenient")
     assert result.startswith("module TopModule")
     assert "endmodule" in result
     assert "output logic out" in result or "output wire out" in result
@@ -2187,7 +2207,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         ],
         "implementation": "assign out = 1'b0;\\n"
     })
-    result = _parse_model_code_response(escaped_payload)
+    result = _parse_model_code_response(escaped_payload, parser_mode="lenient")
     assert "assign out = 1'b0;\n" in result  # unescaping worked
 
     # With "name" instead of "module" key
@@ -2196,7 +2216,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         "pinout": [{"name": "clk", "direction": "input", "width": 1}, {"name": "q", "direction": "output", "width": 1}],
         "implementation": "always @(posedge clk) q <= 1'b1;"
     })
-    result = _parse_model_code_response(name_payload)
+    result = _parse_model_code_response(name_payload, parser_mode="lenient")
     assert "module MyModule" in result
     assert "input logic clk" in result
     assert "output logic q" in result
@@ -2207,7 +2227,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         "ports": [{"name": "a", "direction": "input", "width": 8}, {"name": "y", "direction": "output", "width": 8}],
         "implementation": "assign y = a + 1;"
     })
-    result = _parse_model_code_response(ports_payload)
+    result = _parse_model_code_response(ports_payload, parser_mode="lenient")
     assert "module TestMod" in result
     assert "input logic [7:0] a" in result
     assert "output logic [7:0] y" in result
@@ -2218,7 +2238,7 @@ def test_parse_model_code_response_benchmark_ast_format() -> None:
         "pinout": [{"name": "x", "direction": "input", "width": 1}],
         "implementation": "module FullMod(input x); assign x = 1'b0; endmodule"
     })
-    result = _parse_model_code_response(full_module_payload)
+    result = _parse_model_code_response(full_module_payload, parser_mode="lenient")
     assert result == "module FullMod(input x); assign x = 1'b0; endmodule"
 
 
@@ -2401,10 +2421,10 @@ def test_gate1_technology_synthesis_netlist_generation() -> None:
         assert report["netlist_path"] == "counter_netlist.v"
 
         # Verify yosys was invoked with abc -liberty technology mapping commands
-        executed_cmd = " ".join(mock_sb.executed_commands[0])
-        assert "abc -liberty" in executed_cmd
-        assert "dfflibmap -liberty" in executed_cmd
-        assert "counter_netlist.v" in executed_cmd
+        executed_all = " ".join(" ".join(cmd) for cmd in mock_sb.executed_commands)
+        assert "abc -liberty" in executed_all
+        assert "dfflibmap -liberty" in executed_all
+        assert "counter_netlist.v" in executed_all
 
 
 def test_gate2_sva_bind_auto_generation_and_property_parsing() -> None:
@@ -2523,12 +2543,15 @@ def test_remote_ssh_runner_workspace_sync(monkeypatch: pytest.MonkeyPatch) -> No
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
         (ws / "design.sv").write_text("module design(); endmodule", encoding="utf-8")
+        known_hosts = ws / "known_hosts"
+        known_hosts.write_text("cluster.silicon.corp ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest\n", encoding="utf-8")
 
         runner = RemoteSSHRunner(
             host="cluster.silicon.corp",
             user="cad_lead",
             workspace=ws,
             remote_workdir="/scratch/vlsi_job_001",
+            known_hosts_file=known_hosts,
         )
 
         # Mock successful subprocess execution for ssh/tar streaming
@@ -3361,6 +3384,12 @@ def test_air_gapped_emits_cryptographic_attestation() -> None:
 def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
     """Verify BubblewrapSandbox unshares network namespace and blocks outbound connections.
 
+    A passing run records EGRESS_BLOCK_VERIFIED: the host baseline proves the
+    endpoint is reachable, and the identical attempt inside the sandbox fails,
+    so only sandbox enforcement explains the block. Test B (host loopback) is
+    self-baselining: the host listener provably accepts connections, which the
+    unshared network namespace cannot reach.
+
     NOTE: A skipped run is NOT a verified pass and must not be reported as one
     in any downstream summary. Real verification requires a Linux kernel host
     with bwrap installed.
@@ -3395,12 +3424,31 @@ def test_bubblewrap_sandbox_network_isolation_outbound_blocked() -> None:
     t = threading.Thread(target=accept_thread, daemon=True)
     t.start()
 
+    # Host baseline: the external attempt below proves sandbox enforcement only
+    # if the same connection succeeds OUTSIDE the sandbox. If the host itself
+    # cannot reach the endpoint, a sandbox failure would be indistinguishable
+    # from generic network unavailability, so the test must skip (not pass).
+    try:
+        baseline = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        baseline.settimeout(4.0)
+        baseline.connect(("1.1.1.1", 80))
+        baseline.close()
+        host_can_reach_external = True
+    except OSError:
+        host_can_reach_external = False
+
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             ws = Path(tmpdir)
             sandbox = BubblewrapSandbox(workspace=ws, bwrap_binary=bwrap_path)
 
             # Test A: Attempt outbound connection to external public IP (e.g. 1.1.1.1:80)
+            if not host_can_reach_external:
+                pytest.skip(
+                    "host cannot reach 1.1.1.1:80 outside the sandbox, so a "
+                    "sandbox-side failure cannot be attributed to enforcement. "
+                    "Note: this skip is not a verified pass."
+                )
             cmd_external = [
                 "python3",
                 "-c",
@@ -3577,8 +3625,8 @@ def test_gate_presentation_label_contradiction_detection() -> None:
         assert skipped_gates == ["Gate 5: OpenROAD Place-and-Route"]
         assert real_gates == [
             "Gate 1: Yosys Elaboration & Latch Trap",
-            "Gate 2: SymbiYosys Formal Property Verification",
             "Gate 3: Verilator Coverage Signoff",
+            "Gate 2: SymbiYosys Formal Property Verification",
             "Gate 4: OpenSTA Multi-Corner Timing Signoff",
             "Gate 6: Yosys CDC Static Analysis",
             "DFT Scan Audit (Advisory)",
@@ -3668,3 +3716,800 @@ def test_security_doc_cites_real_code_locations_and_telemetry() -> None:
     # Architectural constraint on Darwin/bwrap documented
     assert "Darwin" in content
     assert "libcap" in content
+
+
+def test_gate_not_run_state_explicit() -> None:
+    """NOT_RUN state must be explicitly represented for gates blocked by earlier failures.
+
+    Verifies that gates which never execute due to an earlier gate failure
+    are recorded with status=NOT_RUN and a reason, never as PASS/FAIL/VERIFIED.
+    """
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class FailingGate1Runner:
+        """Runner that makes Gate 1 fail."""
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            return subprocess.CompletedProcess(
+                args=command,
+                returncode=1,
+                stdout="",
+                stderr="Yosys elaboration failed: latch inferred",
+            )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text(
+            "module top(input a, output b); assign b = a; endmodule\n"
+        )
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = FailingGate1Runner(ws)
+        res = verifier.verify(ws, runner)
+
+        # Gate 1 should have FAILED
+        gate1 = next(g for g in res.gate_reports if "Gate 1:" in g["gate"])
+        assert gate1["status"] == "FAIL"
+        assert gate1["passed"] is False
+
+        # Gates 3, 2, 4, 6, DFT should be NOT_RUN (Gate 1b is opt-in and not required)
+        not_run_gates = [g for g in res.gate_reports if g.get("status") == "NOT_RUN"]
+        not_run_names = [g["gate"] for g in not_run_gates]
+
+        expected_not_run = [
+            "Gate 3: Verilator Coverage Signoff",
+            "Gate 2: SymbiYosys Formal Property Verification",
+            "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+            "Gate 6: Yosys CDC Static Analysis",
+            "DFT Scan Audit (Advisory)",
+        ]
+        for expected in expected_not_run:
+            assert expected in not_run_names, f"Expected {expected} to be NOT_RUN"
+
+        # Verify NOT_RUN gates have reason
+        for g in not_run_gates:
+            assert "not_run_reason" in g
+            assert "blocked by earlier gate failure" in g["not_run_reason"]
+            assert g["passed"] is False  # NOT_RUN must not be PASS
+
+        # No gate should have status PASS or FAIL except Gate 1
+        for g in res.gate_reports:
+            if g["gate"] == gate1["gate"]:
+                continue
+            assert g.get("status") == "NOT_RUN", f"Gate {g['gate']} should be NOT_RUN but is {g.get('status')}"
+
+
+def test_gate3_fails_gate2_not_run() -> None:
+    """If Gate 3 fails, Gate 2 must be NOT_RUN (not PASS/FAIL)."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class FailingGate3Runner:
+        """Runner that makes Gate 1 pass but Gate 3 fail (simulation binary missing)."""
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            cmd_str = " ".join(command)
+
+            # Gate 2: sby - return success (won't be reached due to Gate 3 failure)
+            if "sby" in cmd_str:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+            # Everything else passes (Gate 3 will fail because sim binary missing)
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text(
+            "module top(input a, output b); assign b = a; endmodule\n"
+        )
+        (ws / "top.sby").write_text("[options]\nmode bmc\n")
+        (ws / "top_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = FailingGate3Runner(ws)
+        res = verifier.verify(ws, runner)
+
+        # Gate 1 should PASS
+        gate1 = next(g for g in res.gate_reports if "Gate 1:" in g["gate"])
+        assert gate1["status"] == "PASS"
+
+        # Gate 3 will FAIL (simulation binary not found)
+        gate3 = next(g for g in res.gate_reports if "Gate 3:" in g["gate"])
+        assert gate3["status"] == "FAIL"
+
+        # Gate 2 should be NOT_RUN (blocked by Gate 3 failure)
+        gate2 = next(g for g in res.gate_reports if "Gate 2:" in g["gate"])
+        assert gate2["status"] == "NOT_RUN"
+        assert "blocked by earlier gate failure (Gate 3:" in gate2["not_run_reason"]
+        assert gate2["passed"] is False
+
+        # Gates 4, 6, DFT should also be NOT_RUN
+        for g in res.gate_reports:
+            if "Gate 4:" in g["gate"] or "Gate 6:" in g["gate"] or "DFT" in g["gate"]:
+                assert g["status"] == "NOT_RUN"
+                assert "blocked by earlier gate failure (Gate 3:" in g["not_run_reason"]
+
+
+def test_gate2_fails_later_gates_not_run() -> None:
+    """If Gate 2 fails, Gates 4, 5, 6 must be NOT_RUN."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class FailingGate2Runner:
+        """Runner that makes Gate 1, 3 pass but Gate 2 fail."""
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            cmd_str = " ".join(command)
+
+            # Gate 2: sby - return failure
+            if "sby" in cmd_str:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=1,
+                    stdout="",
+                    stderr="Assert failed in top: assert_property",
+                )
+
+            # Gate 3: verilator --build - return success with coverage info in output
+            if "verilator" in cmd_str and "--build" in cmd_str:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout="branch coverage 98.2%\ntoggle coverage 94.5%",
+                    stderr="",
+                )
+
+            # Gate 3: simulation binary execution - return success
+            if "obj_dir" in cmd_str or "Vtop" in cmd_str:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+            # Everything else passes
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text(
+            "module top(input a, output b); assign b = a; endmodule\n"
+        )
+        (ws / "top.sby").write_text("[options]\nmode bmc\n")
+        (ws / "top_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = FailingGate2Runner(ws)
+        res = verifier.verify(ws, runner)
+
+        # Gate 1 should PASS
+        gate1 = next(g for g in res.gate_reports if "Gate 1:" in g["gate"])
+        assert gate1["status"] == "PASS"
+
+        # Gate 2 should FAIL (formal verification failure)
+        gate2 = next(g for g in res.gate_reports if "Gate 2:" in g["gate"])
+        assert gate2["status"] == "FAIL"
+
+        # Gates 4, 6, DFT should be NOT_RUN (blocked by Gate 2 failure)
+        for g in res.gate_reports:
+            if "Gate 4:" in g["gate"] or "Gate 6:" in g["gate"] or "DFT" in g["gate"]:
+                assert g["status"] == "NOT_RUN"
+                assert "blocked by earlier gate failure (Gate 2:" in g["not_run_reason"]
+
+
+def test_all_gates_pass_full_verification() -> None:
+    """All required gates PASS -> aggregate verification PASS."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class AllPassRunner:
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            cmd_str = " ".join(command)
+
+            # Gate 3: verilator --build - return success with coverage info
+            if "verilator" in cmd_str and "--build" in cmd_str:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout="branch coverage 98.2%\ntoggle coverage 94.5%",
+                    stderr="",
+                )
+
+            # Gate 3: simulation binary execution - return success
+            if "obj_dir" in cmd_str or "Vtop" in cmd_str:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+            # Gate 4: sta - return success with timing info
+            if "sta" in cmd_str or "opensta" in cmd_str:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout="OpenSTA 2.6.0\nwns 0.25\n",
+                    stderr="",
+                )
+
+            # Everything else passes
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text(
+            "module top(input a, output b); assign b = a; endmodule\n"
+        )
+        (ws / "top.sby").write_text("[options]\nmode bmc\n")
+        (ws / "top_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = AllPassRunner(ws)
+        res = verifier.verify(ws, runner)
+
+        # All required gates should PASS
+        required_gates = [
+            "Gate 1: Yosys Elaboration & Latch Trap",
+            "Gate 3: Verilator Coverage Signoff",
+            "Gate 2: SymbiYosys Formal Property Verification",
+            "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+            "Gate 6: Yosys CDC Static Analysis",
+        ]
+        for gate_name in required_gates:
+            g = next(g for g in res.gate_reports if g["gate"] == gate_name)
+            assert g["status"] == "PASS", f"Expected {gate_name} to PASS"
+
+        # DFT is advisory
+        dft = next(g for g in res.gate_reports if "DFT" in g["gate"])
+        assert dft["status"] == "PASS"
+
+        # Overall result
+        assert res.passed is True
+        assert res.silicon_verified is True  # No simulated/skipped required gates
+
+
+def test_not_run_prevents_aggregate_pass() -> None:
+    """Any required gate NOT_RUN must prevent aggregate silicon_verified PASS."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class FailingGate1Runner:
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            return subprocess.CompletedProcess(
+                args=command, returncode=1, stdout="", stderr="fail"
+            )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "top.sv").write_text("module top(); endmodule\n")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+            require_formal=True,
+            require_coverage=True,
+            require_pnr=False,
+            require_cdc=True,
+            require_lec=False,
+        )
+        runner = FailingGate1Runner(ws)
+        res = verifier.verify(ws, runner)
+
+        # silicon_verified must be False because required gates are NOT_RUN
+        assert res.silicon_verified is False
+        assert res.passed is False
+
+
+def test_empty_gate_reports_not_verified() -> None:
+    """No gates execute (source missing) -> not verified."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class EmptyRunner:
+        def __init__(self, workspace: Path) -> None:
+            self.workspace = workspace.resolve()
+
+        def run(self, command: list[str], timeout_sec: int = 30) -> "subprocess.CompletedProcess[str]":
+            import subprocess
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        # No .sv files
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+
+        verifier = SiliconSignoffVerifier(
+            top_module="top",
+            liberty_path="dummy.lib",
+            allow_mock_fallback=False,
+        )
+        runner = EmptyRunner(ws)
+        res = verifier.verify(ws, runner)
+
+        assert res.passed is False
+        assert res.silicon_verified is False
+        assert res.error_category == "MISSING_SOURCE_FILES"
+
+
+# ── Stage 3 parser-mode tests ──────────────────────────────────────────────
+
+
+def _stage3_architect_json(module_name: str) -> str:
+    return json.dumps({
+        "module_name": module_name,
+        "functional_spec": "Stage 3 parser mode test spec",
+        "ports": [
+            {"name": "clk", "direction": "input", "width": 1, "description": "Clock"},
+            {"name": "out", "direction": "output", "width": 1, "description": "Output"},
+        ],
+        "sva_properties": [],
+        "timing": {"clock_name": "clk", "period_ns": 5.0},
+    })
+
+
+def test_parser_mode_defaults_to_strict_and_rejects_inference() -> None:
+    """Strict is the default; provider/model/failure signals never enable lenient mode."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        for provider, model in (("ollama", "qwen2.5-coder:7b"), ("ollama", "tiny-local-model"), ("openrouter", "some-model")):
+            kwargs: dict[str, Any] = {"session_id": "s", "workspace": ws, "verifier": MockVerifier()}
+            if provider == "openrouter":
+                kwargs["api_key"] = "test-key"
+            driver = PhaseDriver(provider=provider, model=model, **kwargs)  # type: ignore
+            assert driver.parser_mode == "strict"
+            driver.close()
+        # Invalid modes are rejected loudly, never coerced.
+        with pytest.raises(ValueError):
+            PhaseDriver(session_id="s", workspace=ws, verifier=MockVerifier(), parser_mode="auto")  # type: ignore
+
+
+def test_strict_mode_recorded_in_trace(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A default (strict) run records parser_mode='strict' on MODEL_CALL and parse-failure traces."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        driver = PhaseDriver(
+            session_id="stage3-strict-trace",
+            workspace=ws,
+            verifier=MockVerifier(should_pass=True),
+            sandbox=mock_sb,  # type: ignore
+            max_repairs=1,
+        )
+        assert driver.parser_mode == "strict"
+
+        query_count = 0
+
+        def mock_queries(messages: list[dict[str, str]]) -> str:
+            nonlocal query_count
+            query_count += 1
+            if query_count == 1:
+                return _stage3_architect_json("strict_trace_mod")
+            return '{"status": "error"}'
+
+        monkeypatch.setattr(driver, "_query_ollama", mock_queries)
+        assert driver.run_silicon_pipeline("Synthesize strict_trace_mod", liberty_path="sky130.lib") is False
+
+        model_calls = [r for r in driver.transcript if r.phase == PhaseEnum.MODEL_CALL and "parser_mode" in r.event.payload]
+        assert len(model_calls) >= 1
+        assert all(r.event.payload["parser_mode"] == "strict" for r in model_calls)
+        failures = [r for r in driver.transcript if r.event.payload.get("error_category") == "RESPONSE_PARSE_FAILURE"]
+        assert len(failures) >= 1
+        assert all(r.event.payload.get("parser_mode") == "strict" for r in failures)
+        # No trace may claim lenient when strict was configured.
+        assert all(r.event.payload.get("parser_mode") != "lenient" for r in driver.transcript)
+
+
+def test_lenient_mode_recorded_in_trace(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An explicit lenient run records parser_mode='lenient' and recovers documented keys."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        driver = PhaseDriver(
+            session_id="stage3-lenient-trace",
+            workspace=ws,
+            verifier=MockVerifier(should_pass=True),
+            sandbox=mock_sb,  # type: ignore
+            max_repairs=1,
+            parser_mode="lenient",
+        )
+
+        calls = 0
+
+        def mock_queries(messages: list[dict[str, str]]) -> str:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return _stage3_architect_json("lenient_trace_mod")
+            return '{"content": "module m(input clk, output out); assign out = 1\'b0; endmodule"}'
+
+        monkeypatch.setattr(driver, "_query_ollama", mock_queries)
+        driver.run_silicon_pipeline("Synthesize lenient_trace_mod", liberty_path="sky130.lib")
+
+        # Lenient recovery extracted the documented content-key module: the
+        # EXECUTE trace carries the recovered RTL (a later mocked-EDA abort
+        # rolls the workspace file back, which is out of scope here).
+        executions = [
+            r for r in driver.transcript
+            if r.phase == PhaseEnum.EXECUTE and r.event.payload.get("role") == "Principal RTL Design Engineer"
+        ]
+        assert len(executions) >= 1
+        assert executions[0].event.payload["content"] == "module lenient_trace_mod(input clk, output out); assign out = 1'b0; endmodule"
+
+        model_calls = [r for r in driver.transcript if r.phase == PhaseEnum.MODEL_CALL and "parser_mode" in r.event.payload]
+        assert len(model_calls) >= 1
+        assert all(r.event.payload["parser_mode"] == "lenient" for r in model_calls)
+        # No trace may claim strict when lenient was actually used.
+        assert all(r.event.payload.get("parser_mode") != "strict" for r in driver.transcript)
+
+
+def test_benchmark_transcript_environment_records_parser_mode() -> None:
+    """Benchmark transcripts carry the configured parser_mode in environment data."""
+    from mind3.benchmarks.runner import BenchmarkRunner, BenchmarkTask
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
+        runner = BenchmarkRunner()
+        task = BenchmarkTask(
+            task_id="fsm_01",
+            category="FSM",
+            name="fsm",
+            natural_language_spec="spec",
+            expected_ports=[
+                {"name": "clk", "direction": "input", "width": 1},
+                {"name": "out", "direction": "output", "width": 1},
+            ],
+            sva_properties=["assert a", "assert b"],
+            benchmark_origin="x",
+        )
+        for mode in ("strict", "lenient"):
+            driver = PhaseDriver(
+                session_id=f"stage3-env-{mode}",
+                workspace=ws,
+                verifier=MockVerifier(),
+                sandbox=mock_sb,  # type: ignore
+                parser_mode=mode,  # type: ignore
+            )
+            transcript = runner.extract_transcript_tuple(task, driver, False)
+            assert transcript.environment["parser_mode"] == mode
+            driver.close()
+
+
+# ── Stage 4 CDC / Gate 6 semantic tests ────────────────────────────────────
+# All tool interactions below use deterministic fakes (synthetic unit behavior),
+# never real CDC execution. Real-tool evidence lives in the negative controls.
+
+
+def _stage4_ports(*extra: str) -> list:
+    from mind3.core.contracts import PortDefinition, PortDirection
+    base = [
+        PortDefinition(name="clk", direction=PortDirection.INPUT, width=1),
+        PortDefinition(name="rst_n", direction=PortDirection.INPUT, width=1),
+        PortDefinition(name="out", direction=PortDirection.OUTPUT, width=1),
+    ]
+    for name in extra:
+        base.append(PortDefinition(name=name, direction=PortDirection.INPUT, width=1))
+    return base
+
+
+def _stage4_contract(async_inputs=None, synchronous=True, with_reset=True, with_clock=True):
+    from mind3.core.contracts import ClockContract, InterfaceContract, ResetContract
+    return InterfaceContract(
+        module_name="cdc_mod",
+        functional_spec="Stage 4 CDC test design",
+        ports=_stage4_ports("irq", "data_b"),
+        clock=ClockContract(name="clk") if with_clock else None,
+        reset=ResetContract(name="rst_n", polarity="active_low", synchronous=synchronous) if with_reset else None,
+        async_inputs=async_inputs,
+    )
+
+
+class _Stage4Runner:
+    """Deterministic fake EDA runner recording whether the CDC tool was invoked."""
+
+    def __init__(self, stdout="", stderr="", returncode=0):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = returncode
+        self.commands: list[list[str]] = []
+
+    def run(self, command: list[str], timeout_sec: int = 30):
+        import subprocess
+        self.commands.append(command)
+        return subprocess.CompletedProcess(
+            args=command, returncode=self.returncode, stdout=self.stdout, stderr=self.stderr
+        )
+
+
+class _Stage4RefusingRunner(_Stage4Runner):
+    def run(self, command: list[str], timeout_sec: int = 30):
+        raise AssertionError(f"CDC tool must not execute for a contract-declared no-CDC design: {command}")
+
+
+def _stage4_gate(contract, runner, require_cdc=True):
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        src = ws / "cdc_mod.sv"
+        src.write_text("module cdc_mod(input clk, input rst_n, input irq, input data_b, output out); assign out = irq & data_b; endmodule\n")
+        verifier = SiliconSignoffVerifier(top_module="cdc_mod", contract=contract, require_cdc=require_cdc)
+        return verifier, verifier._run_gate6_cdc_analysis(runner, [src], ws)
+
+
+def test_cdc_single_clock_no_async_explicit_contract_skipped() -> None:
+    """One clock + sync reset + explicitly empty async_inputs -> SKIPPED by declaration."""
+    contract = _stage4_contract(async_inputs=[], synchronous=True)
+    verifier, res = _stage4_gate(contract, _Stage4RefusingRunner())
+    assert res["gate"] == "Gate 6: Yosys CDC Static Analysis"
+    assert res["passed"] is True
+    assert res["skipped"] is True
+    assert res["simulated"] is False
+    assert res["cdc_skip_reason"] == "contract_declares_no_cdc"
+    assert "contract explicitly declares" in res["details"]
+    assert "clock count" in res["details"]
+    assert res["error_category"] is None
+    assert res["cdc_violations"] == []
+
+
+def test_cdc_single_clock_async_reset_requires_analysis() -> None:
+    """One clock + asynchronous reset -> CDC runs (tool invoked), clean output passes."""
+    contract = _stage4_contract(async_inputs=[], synchronous=False)
+    runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
+    verifier, res = _stage4_gate(contract, runner)
+    assert len(runner.commands) == 1
+    assert "cdc -verbose" in " ".join(runner.commands[0])
+    assert res["passed"] is True
+    assert res.get("skipped", False) is False
+    assert res["error_category"] is None
+
+
+def test_cdc_single_clock_async_input_requires_analysis() -> None:
+    """One clock + declared async input -> CDC runs even though reset is synchronous."""
+    contract = _stage4_contract(async_inputs=["irq"], synchronous=True)
+    runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
+    _, res = _stage4_gate(contract, runner)
+    assert len(runner.commands) == 1
+    assert res["passed"] is True
+
+
+def test_cdc_clock_count_never_decides() -> None:
+    """The requirement decision ignores clock count; undeclared async state always requires CDC."""
+    from mind3.core.verifier import SiliconSignoffVerifier
+    with_clock = SiliconSignoffVerifier(top_module="t", contract=_stage4_contract(async_inputs=None, with_clock=True))
+    without_clock = SiliconSignoffVerifier(top_module="t", contract=_stage4_contract(async_inputs=None, with_clock=False))
+    assert with_clock._cdc_requirement() == (True, "async_inputs_undeclared")
+    assert without_clock._cdc_requirement() == (True, "async_inputs_undeclared")
+    # A two-clock port list with undeclared async state is likewise required.
+    two_clock = _stage4_contract(async_inputs=None)
+    runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
+    _, res = _stage4_gate(two_clock, runner)
+    assert len(runner.commands) == 1
+
+
+def test_cdc_missing_tool_yields_tooling_unavailable() -> None:
+    """Required CDC + absent 'cdc' command -> FAIL with CDC_TOOLING_UNAVAILABLE, never PASS."""
+    contract = _stage4_contract(async_inputs=None)
+    runner = _Stage4Runner(stdout="No such command or cell type: cdc\n", stderr="", returncode=0)
+    _, res = _stage4_gate(contract, runner)
+    assert res["passed"] is False
+    assert res["error_category"] == "CDC_TOOLING_UNAVAILABLE"
+    assert res.get("skipped", False) is False
+    assert "CDC command" in res["details"] or "cdc" in res["details"].lower()
+
+
+def test_cdc_violation_reports_evidence() -> None:
+    """Tool-reported crossing -> FAIL with CDC_VIOLATION and preserved tool evidence."""
+    contract = _stage4_contract(async_inputs=["data_b"])
+    runner = _Stage4Runner(stdout="[cdc] warning: unregistered crossing from clk_a to clk_b\n", returncode=0)
+    _, res = _stage4_gate(contract, runner)
+    assert res["passed"] is False
+    assert res["error_category"] == "CDC_VIOLATION"
+    assert len(res["cdc_violations"]) == 1
+    assert "clk_a" in res["cdc_violations"][0]
+
+
+def test_cdc_tool_error_yields_analysis_failed() -> None:
+    """Tool crash (nonzero exit, no violation markers) -> FAIL with CDC_ANALYSIS_FAILED."""
+    contract = _stage4_contract(async_inputs=None)
+    runner = _Stage4Runner(stdout="", stderr="ERROR: hierarchy check failed for top\n", returncode=1)
+    _, res = _stage4_gate(contract, runner)
+    assert res["passed"] is False
+    assert res["error_category"] == "CDC_ANALYSIS_FAILED"
+
+
+def test_cdc_explicit_opt_out_recorded_distinctly() -> None:
+    """require_cdc=False skips are recorded as explicit opt-outs, distinct from contract skips."""
+    contract = _stage4_contract(async_inputs=None)
+    runner = _Stage4Runner(stdout="", stderr="yosys: command not found\n", returncode=127)
+    _, res = _stage4_gate(contract, runner, require_cdc=False)
+    assert res["passed"] is True
+    assert res["skipped"] is True
+    assert res["cdc_skip_reason"] == "explicit_opt_out"
+    assert "opted out" in res["details"]
+    assert res["cdc_skip_reason"] != "contract_declares_no_cdc"
+
+
+def test_cdc_pass_requires_actual_execution() -> None:
+    """PASS occurs only when the tool actually ran and reported clean."""
+    contract = _stage4_contract(async_inputs=["irq"])
+    runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
+    _, res = _stage4_gate(contract, runner)
+    assert len(runner.commands) == 1
+    assert res["passed"] is True
+    assert res["error_category"] is None
+    assert res["cdc_violations"] == []
+
+
+def test_cdc_gate_always_has_explicit_state_in_orchestration() -> None:
+    """Through verify(), a failing Gate 6 is recorded with explicit FAIL status (never NOT_RUN/PASS)."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class _FailGate6Runner:
+        def run(self, command: list[str], timeout_sec: int = 30):
+            import subprocess
+            cmd = " ".join(command)
+            if "cdc -verbose" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="[cdc] warning: crossing clk to out\n", stderr="")
+            if "verilator" in cmd and "--build" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="branch coverage 98.2%\ntoggle coverage 94.5%", stderr="")
+            if "sta" in cmd or "opensta" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="OpenSTA 2.6.0\nwns 0.25\n", stderr="")
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "cdc_mod.sv").write_text("module cdc_mod(input clk, input rst_n, input irq, input data_b, output out); assign out = irq & data_b; endmodule\n")
+        (ws / "cdc_mod.sby").write_text("[options]\nmode bmc\n")
+        (ws / "cdc_mod_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+        contract = _stage4_contract(async_inputs=["out"])
+        verifier = SiliconSignoffVerifier(
+            top_module="cdc_mod", contract=contract, liberty_path="dummy.lib",
+            allow_mock_fallback=False, require_cdc=True,
+        )
+        res = verifier.verify(ws, _FailGate6Runner())  # type: ignore
+        assert res.passed is False
+        assert res.silicon_verified is False
+        gate6 = next(g for g in res.gate_reports if g["gate"] == "Gate 6: Yosys CDC Static Analysis")
+        assert gate6["status"] == "FAIL"
+        assert gate6["error_category"] == "CDC_VIOLATION"
+        assert gate6["passed"] is False
+
+
+def test_cdc_contract_skip_keeps_signoff_neutral() -> None:
+    """A contract-declared no-CDC skip does not invalidate silicon_verified; tool absence does."""
+    import tempfile
+    from pathlib import Path
+    from mind3.core.verifier import SiliconSignoffVerifier
+
+    class _SkipGate6Runner:
+        def run(self, command: list[str], timeout_sec: int = 30):
+            import subprocess
+            cmd = " ".join(command)
+            if "cdc -verbose" in cmd:
+                raise AssertionError("CDC tool must not run for contract-declared no-CDC design")
+            if "verilator" in cmd and "--build" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="branch coverage 98.2%\ntoggle coverage 94.5%", stderr="")
+            if "sta" in cmd or "opensta" in cmd:
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="OpenSTA 2.6.0\nwns 0.25\n", stderr="")
+            return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        (ws / "cdc_mod.sv").write_text("module cdc_mod(input clk, input rst_n, input irq, input data_b, output out); assign out = irq & data_b; endmodule\n")
+        (ws / "cdc_mod.sby").write_text("[options]\nmode bmc\n")
+        (ws / "cdc_mod_tb.cpp").write_text("int main() { return 0; }")
+        (ws / "dummy.lib").write_text("library(dummy) { cell(dummy) { area: 1; } }")
+        contract = _stage4_contract(async_inputs=[], synchronous=True)
+        verifier = SiliconSignoffVerifier(
+            top_module="cdc_mod", contract=contract, liberty_path="dummy.lib",
+            allow_mock_fallback=False, require_cdc=True,
+        )
+        res = verifier.verify(ws, _SkipGate6Runner())  # type: ignore
+        gate6 = next(g for g in res.gate_reports if g["gate"] == "Gate 6: Yosys CDC Static Analysis")
+        assert gate6["skipped"] is True
+        assert gate6["cdc_skip_reason"] == "contract_declares_no_cdc"
+        assert res.passed is True
+        assert res.silicon_verified is True
+
+
+def test_cdc_result_survives_serialization() -> None:
+    """Gate 6 records round-trip through JSON with categories and reasons intact."""
+    import json
+    contract = _stage4_contract(async_inputs=None)
+    _, missing = _stage4_gate(contract, _Stage4Runner(stdout="No such command: cdc\n", returncode=0))
+    _, violation = _stage4_gate(
+        _stage4_contract(async_inputs=["data_b"]),
+        _Stage4Runner(stdout="[cdc] warning: crossing a to b\n", returncode=0),
+    )
+    _, skipped = _stage4_gate(_stage4_contract(async_inputs=[]), _Stage4RefusingRunner())
+    for res in (missing, violation, skipped):
+        parsed = json.loads(json.dumps(res))
+        assert parsed["error_category"] == res["error_category"]
+        assert parsed.get("cdc_skip_reason") == res.get("cdc_skip_reason")
+        assert parsed["cdc_violations"] == res["cdc_violations"]
+        assert parsed["passed"] == res["passed"]
+
+
+def test_cdc_categories_stay_distinct_in_taxonomy() -> None:
+    """Classifier preserves fine-grained CDC categories instead of collapsing them."""
+    from mind3.core.failure_taxonomy import FailureCategory, classify_failure
+    assert classify_failure(error_category="CDC_VIOLATION").canonical_category == FailureCategory.CDC_FAILURE
+    tooling = classify_failure(error_category="CDC_TOOLING_UNAVAILABLE")
+    assert tooling.fine_grained_category == "CDC_TOOLING_UNAVAILABLE"
+    assert tooling.canonical_category != FailureCategory.CDC_FAILURE
+    failed = classify_failure(error_category="CDC_ANALYSIS_FAILED")
+    assert failed.fine_grained_category == "CDC_ANALYSIS_FAILED"
+    assert failed.canonical_category != FailureCategory.CDC_FAILURE
+
+
+def test_cdc_async_input_must_be_declared_port() -> None:
+    """Contract consistency rejects async inputs that are not declared input ports."""
+    from mind3.core.contracts import validate_contract_consistency
+    bad = _stage4_contract(async_inputs=["ghost_signal"])
+    violations = validate_contract_consistency(bad)
+    assert any("ghost_signal" in v["message"] for v in violations)
+    good = _stage4_contract(async_inputs=["irq"])
+    assert validate_contract_consistency(good) == []

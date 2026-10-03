@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 # Setup paths
-MIND3_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
+MIND3_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
 sys.path.insert(0, str(MIND3_ROOT / "src"))
 
 from mind3.core.contracts import (
@@ -21,9 +21,9 @@ from mind3.core.contracts import (
 from mind3.core.verifier import SiliconSignoffVerifier
 from mind3.sandbox.remote_eda import LocalBwrapRunner
 
-ARTIFACTS_P6 = Path("/home/mind/Desktop/AI/artifacts/P6")
+ARTIFACTS_P6 = Path(os.environ.get("MIND3_ARTIFACTS_DIR", MIND3_ROOT / "artifacts")) / "P6"
 ARTIFACTS_P6.mkdir(parents=True, exist_ok=True)
-LIBERTY_PATH = "/home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
+LIBERTY_PATH = os.environ.get("MIND3_LIBERTY_PATH", "")
 
 
 def run_case_a():

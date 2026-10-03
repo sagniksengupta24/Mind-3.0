@@ -8,8 +8,8 @@ if [ -z "$TASK_ID" ]; then
     exit 1
 fi
 
-export PATH=/home/mind/oss-cad-suite/bin:/home/mind/openroad-env/bin:$PATH
-PYTHON="/home/mind/Desktop/AI/Mind-3.0/.venv/bin/python"
+REPO_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+PYTHON="${MIND3_PYTHON:-$REPO_ROOT/.venv/bin/python}"
 
 echo "Executing benchmark task: ${TASK_ID}"
-${PYTHON} /home/mind/Desktop/AI/Mind-3.0/scripts/execute_task_engine.py --task "${TASK_ID}"
+${PYTHON} "$REPO_ROOT/scripts/execute_task_engine.py" --task "${TASK_ID}"

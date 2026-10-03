@@ -5,6 +5,7 @@ Enforces host-write / bwrap-exec isolation with unshared networking and strictly
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -51,6 +52,14 @@ class BubblewrapSandbox:
     def bwrap_binary(self) -> str:
         """Return the resolved path to the bwrap binary."""
         return self._bwrap_bin
+
+    @property
+    def runner_type(self) -> str:
+        return "local_bwrap"
+
+    @property
+    def execution_mode(self) -> str:
+        return "local_bwrap"
 
     def run(
         self,
@@ -103,14 +112,16 @@ class BubblewrapSandbox:
         if Path("/etc").exists():
             cmd.extend(["--ro-bind", "/etc", "/etc"])
 
-        # Auto-bind standard EDA tool suites and PDKs read-only if present on host
-        standard_ro_paths = [
-            Path("/opt"),
-            Path("/home/mind/.local"),
-            Path("/home/mind/openroad-env"),
-            Path("/home/mind/oss-cad-suite"),
-            Path("/home/mind/pdk"),
-        ]
+        # Tool/PDK locations are deployment configuration, never a developer's
+        # home directory baked into the runner.  Use a platform-neutral default
+        # plus MIND3_EDA_READONLY_PATHS (colon-separated) for custom installs.
+        configured_paths = os.environ.get("MIND3_EDA_READONLY_PATHS", "")
+        standard_ro_paths = [Path("/opt")]
+        standard_ro_paths.extend(
+            Path(raw).expanduser()
+            for raw in configured_paths.split(os.pathsep)
+            if raw.strip()
+        )
         for p in standard_ro_paths:
             if p.exists():
                 cmd.extend(["--ro-bind", str(p), str(p)])

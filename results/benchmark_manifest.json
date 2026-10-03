@@ -1,0 +1,24 @@
+{
+  "benchmark_suite": "heldout",
+  "task_set_sha256": "bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24",
+  "task_count": 120,
+  "model_version": "gemini-1.5-pro",
+  "provider": "mock",
+  "seed": 42,
+  "git_commit_sha": "9201daf0b7c6cb515ce060011a2f8eb55fe552e6",
+  "environment": {
+    "platform": "Darwin",
+    "python": "3.14.7",
+    "tool_versions": {
+      "yosys": "Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)",
+      "verilator": "Verilator 5.052 2026-09-05 rev vUNKNOWN-built20260905",
+      "sby": "SBY v0.69",
+      "opensta": "missing",
+      "openroad": "missing"
+    }
+  },
+  "summary_sha256": "a6fc9c00cb9e24a2a203773c9d7d088d4f158b375b57f787ab7fa376434bb9fc",
+  "baseline_comparison_sha256": "6dd6f64f62f34b27e2fef79c32f9a3fb07bc3b4f4a41bfea98bc04859fe0faa0",
+  "failures_sha256": "1a239f9ec047f194d14ed0e3c51e4d62597bab7299eb409191297f570417dedc",
+  "created_at": "2026-09-30T06:38:37Z"
+}

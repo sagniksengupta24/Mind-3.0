@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
-TASKS_DIR = Path("/home/mind/Desktop/AI/Mind-3.0/benchmarks/mind_baseline/tasks")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+TASKS_DIR = Path(os.environ.get("MIND3_TASKS_DIR", PROJECT_ROOT / "benchmarks/mind_baseline/tasks"))
 TASKS_DIR.mkdir(parents=True, exist_ok=True)
 
 tasks = [

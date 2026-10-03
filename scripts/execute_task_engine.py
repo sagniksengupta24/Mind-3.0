@@ -26,11 +26,11 @@ from typing import Any
 
 import httpx
 
-WORKSPACE_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
+WORKSPACE_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
 TASKS_DIR = WORKSPACE_ROOT / "benchmarks/mind_baseline/tasks"
 ARTIFACTS_DIR = WORKSPACE_ROOT / "artifacts/step1"
 LEDGER_FILE = ARTIFACTS_DIR / "trace_ledger.jsonl"
-EDA_PATH = "/home/mind/oss-cad-suite/bin:/home/mind/openroad-env/bin:" + os.environ.get("PATH", "")
+EDA_PATH = os.environ.get("MIND3_EDA_BIN_PATH", os.environ.get("PATH", ""))
 
 # ── Unified Protocol Configuration ──────────────────────────────────────────
 STEP1_BMC_DEPTH = 25

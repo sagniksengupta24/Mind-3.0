@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 import pytest
 
+
 from mind3.core.contracts import (
     InterfaceContract,
     PortDefinition,
@@ -16,6 +17,7 @@ from mind3.core.verifier import SiliconSignoffVerifier
 from mind3.sandbox.remote_eda import LocalBwrapRunner
 
 
+@pytest.mark.eda
 def test_p5_valid_fixture_pass():
     """Valid sequential counter with LFSR stimulus achieves full coverage and passes Gate 3."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -55,7 +57,7 @@ def test_p5_valid_fixture_pass():
             min_toggle_coverage=50.0,
             allow_mock_fallback=False,
         )
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate3_coverage(runner, [rtl_file], ws)
         assert res["passed"] is True, f"Gate 3 failed: {res.get('details')}"
         assert res["simulated"] is False
@@ -63,6 +65,7 @@ def test_p5_valid_fixture_pass():
         assert "toggle" in metrics or "branch" in metrics
 
 
+@pytest.mark.eda
 def test_p5_broken_fixture_fail():
     """Broken RTL syntax must trigger COVERAGE_BUILD_FAILURE."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -78,12 +81,13 @@ def test_p5_broken_fixture_fail():
         (ws / "broken_tb.cpp").write_text(cpp_tb, encoding="utf-8")
 
         verifier = SiliconSignoffVerifier(top_module="broken", contract=contract, allow_mock_fallback=False)
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate3_coverage(runner, [rtl_file], ws)
         assert res["passed"] is False
         assert res["error_category"] == "COVERAGE_BUILD_FAILURE"
 
 
+@pytest.mark.eda
 def test_p5_below_threshold_fail():
     """DUT with 0% toggle coverage due to dead output must fail with COVERAGE_DEFICIT."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -124,7 +128,7 @@ def test_p5_below_threshold_fail():
             min_toggle_coverage=90.0,
             allow_mock_fallback=False,
         )
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate3_coverage(runner, [rtl_file], ws)
         assert res["passed"] is False
         assert res["error_category"] == "COVERAGE_DEFICIT"

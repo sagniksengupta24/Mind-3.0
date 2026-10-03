@@ -1,0 +1,20 @@
+{
+  "task_id": "fsm_heldout_08",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 0,
+  "runtime_sec": 0.051,
+  "token_usage": 2500,
+  "estimated_cost_usd": 0.007,
+  "failure_category": "FORMAL_FAILURE",
+  "tool_versions": {},
+  "model_version": "gemini-1.5-pro",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "49099c8818217fcf1b7a4fd317447b73a6c46f012c0a6171a2421004556096cf",
+  "run_hash": "320dc9286db1421bde54b70e10138c70326399810528d9ef3a233f0662b7b150"
+}

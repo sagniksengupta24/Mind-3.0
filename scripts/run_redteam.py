@@ -9,9 +9,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-MIND3_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
+MIND3_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
 sys.path.insert(0, str(MIND3_ROOT / "src"))
-sys.path.insert(0, "/home/mind/Desktop/AI/benchmark_scratch")
+BENCHMARK_ROOT = Path(os.environ.get("MIND3_BENCHMARK_ROOT", MIND3_ROOT.parent / "benchmark_scratch")).resolve()
+sys.path.insert(0, str(BENCHMARK_ROOT))
 
 from mind3.core.contracts import (
     InterfaceContract,
@@ -23,9 +24,9 @@ from mind3.core.contracts import (
 from mind3.core.verifier import SiliconSignoffVerifier
 from mind3.sandbox.remote_eda import LocalBwrapRunner
 
-ARTIFACTS_P6 = Path("/home/mind/Desktop/AI/artifacts/P6")
+ARTIFACTS_P6 = Path(os.environ.get("MIND3_ARTIFACTS_DIR", MIND3_ROOT / "artifacts")) / "P6"
 ARTIFACTS_P6.mkdir(parents=True, exist_ok=True)
-LIBERTY_PATH = "/home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
+LIBERTY_PATH = os.environ.get("MIND3_LIBERTY_PATH", "")
 
 
 def test_redteam_battery():

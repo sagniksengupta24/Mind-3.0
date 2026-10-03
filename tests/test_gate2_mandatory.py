@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 import pytest
 
+
 from mind3.core.contracts import (
     InterfaceContract,
     PortDefinition,
@@ -18,6 +19,7 @@ from mind3.core.verifier import SiliconSignoffVerifier
 from mind3.sandbox.remote_eda import LocalBwrapRunner
 
 
+@pytest.mark.eda
 def test_1_comb_pass():
     """Combinational DUT verified clean via live SBY BMC."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -41,12 +43,13 @@ def test_1_comb_pass():
             ],
         )
         verifier = SiliconSignoffVerifier(top_module="comb_adder", contract=contract, allow_mock_fallback=False)
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate2_formal_sby(runner, [dut_file], ws)
         assert res["passed"] is True, f"Combinational PASS failed: {res.get('details')}"
         assert res["simulated"] is False
 
 
+@pytest.mark.eda
 def test_2_comb_fail():
     """Buggy combinational DUT caught via live SBY with counterexample."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -70,13 +73,14 @@ def test_2_comb_fail():
             ],
         )
         verifier = SiliconSignoffVerifier(top_module="comb_adder_buggy", contract=contract, allow_mock_fallback=False)
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate2_formal_sby(runner, [dut_file], ws)
         assert res["passed"] is False
         assert res["error_category"] == "FORMAL_INVARIANT_BREACH"
         assert res["failing_property"] is not None or "assert" in res["stdout"].lower()
 
 
+@pytest.mark.eda
 def test_3_seq_pass():
     """Sequential DUT verified clean via live SBY BMC."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -104,12 +108,13 @@ def test_3_seq_pass():
             ],
         )
         verifier = SiliconSignoffVerifier(top_module="seq_reg", contract=contract, allow_mock_fallback=False)
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate2_formal_sby(runner, [dut_file], ws)
         assert res["passed"] is True, f"Sequential PASS failed: {res.get('details')}"
         assert res["simulated"] is False
 
 
+@pytest.mark.eda
 def test_4_seq_fail():
     """Buggy sequential DUT caught via live SBY BMC."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -137,7 +142,7 @@ def test_4_seq_fail():
             ],
         )
         verifier = SiliconSignoffVerifier(top_module="seq_reg_buggy", contract=contract, allow_mock_fallback=False)
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate2_formal_sby(runner, [dut_file], ws)
         assert res["passed"] is False
         assert res["error_category"] == "FORMAL_INVARIANT_BREACH"
@@ -207,7 +212,7 @@ def test_7_unsupported_property_never_pass():
             ],
         )
         verifier = SiliconSignoffVerifier(top_module="unsupported_dut", contract=contract, allow_mock_fallback=False)
-        runner = LocalBwrapRunner(ws)
+        runner = LocalBwrapRunner(ws, allow_unsandboxed=True)
         res = verifier._run_gate2_formal_sby(runner, [dut_file], ws)
         assert res["passed"] is False
         assert res["error_category"] == "UNSUPPORTED_FORMAL_PROPERTY"

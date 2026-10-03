@@ -256,7 +256,9 @@ def test_environment_eda_tool_availability_honesty() -> None:
     import shutil
     from mind3.sandbox.remote_eda import LocalBwrapRunner
 
-    versions = detect_eda_tool_versions(LocalBwrapRunner(workspace=Path.cwd()))
+    versions = detect_eda_tool_versions(
+        LocalBwrapRunner(workspace=Path.cwd(), allow_unsandboxed=True)
+    )
     for tool_name in ["yosys", "sta", "verilator", "sby", "openroad"]:
         assert tool_name in versions
         # Must be either a non-empty string or 'missing', never empty or None
@@ -265,7 +267,9 @@ def test_environment_eda_tool_availability_honesty() -> None:
         if shutil.which(tool_name) is not None:
             # When installed on PATH, must report genuine version output
             assert versions[tool_name] != "missing"
-            NAME_OMITTING_TOOLS = {"sta", "openroad"}  # confirmed via real OpenSTA 2.3.1 and OpenROAD f12e2f4741 output on this host
+            # OpenSTA's -version output returns only the numeric version (e.g. '3.1.0' on this host),
+            # omitting the executable name 'sta' from its output string.
+            NAME_OMITTING_TOOLS = {"sta"}
             ver_lower = versions[tool_name].lower()
             assert (
                 tool_name.lower() in ver_lower
@@ -289,6 +293,5 @@ def test_opensta_cli_syntax_against_help_fixture() -> None:
     # Verify that -exit and cmd_file are the documented script execution mechanism
     assert "-exit" in help_text
     assert "cmd_file" in help_text
-
 
 

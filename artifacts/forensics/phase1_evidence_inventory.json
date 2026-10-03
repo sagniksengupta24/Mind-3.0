@@ -1,0 +1,92 @@
+{
+  "phase": "Phase 1 - failure forensics",
+  "current_live_development_benchmark": {
+    "suite": "development-20",
+    "task_count": 20,
+    "status": "BLOCKED_BEFORE_TASK_EXECUTION",
+    "command": "PYTHONPATH=src python3 -m mind3.cli benchmark --suite benchmarks/development-20 --sample-size 20 --provider ollama --model qwen2.5-coder:7b --output artifacts/benchmark_dev20_live_attempt",
+    "exit_code": 1,
+    "stderr": "Benchmark execution failed: LIVE_BENCHMARK_PREREQUISITES_MISSING: bwrap, yosys, sby, verilator, sta",
+    "artifacts_available": {
+      "specification": true,
+      "contract": true,
+      "generated_rtl": false,
+      "compiler_output": false,
+      "simulation_output": false,
+      "formal_output": false,
+      "repair_attempts": false,
+      "final_rtl": false
+    }
+  },
+  "development_tasks": [
+    "counter_04",
+    "arbiter_02",
+    "fifo_01",
+    "fsm_heldout_04",
+    "uart_01",
+    "reg_if_01",
+    "apb_01",
+    "fifo_04",
+    "spi_02",
+    "axi_04",
+    "dma_04",
+    "cdc_04",
+    "reset_02",
+    "adapters_03",
+    "fifo_03",
+    "arbiter_03",
+    "axi_05",
+    "cdc_05",
+    "reset_04",
+    "adapters_09"
+  ],
+  "development_task_set_sha256": "539e79afaf6fa445a95ad82c2337ff70f60d60d4e912f114dd9a3cf402f59c8c",
+  "heldout_contract_audit": {
+    "task_count": 120,
+    "contracts_built": 120,
+    "harness_generation_errors": 0,
+    "contract_consistency_violations": 1,
+    "violations": [
+      {
+        "task_id": "arbiter_02",
+        "category": "SPECIFICATION_ERROR",
+        "reason": "properties reference clk although clk is absent from expected_ports"
+      }
+    ]
+  },
+  "historical_real_run": {
+    "source": "artifacts/P6",
+    "sample_size": 20,
+    "source_note": "Preserved prior real Ollama + EDA run; not the current held-out benchmark.",
+    "evidence_fields_present": [
+      "specification references are described in logs",
+      "verifier diagnostics",
+      "failure categories",
+      "benchmark verdicts"
+    ],
+    "evidence_fields_missing_from_uploaded_archive": [
+      "generated RTL source",
+      "final RTL source",
+      "full repair payloads",
+      "original testbench source"
+    ],
+    "sample_failure_distribution": {
+      "OTHER": 11,
+      "ENVIRONMENT_FAILURE": 8,
+      "SYNTAX_ERROR": 1
+    }
+  },
+  "environment": {
+    "python": "3.13.5",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "required_binaries": {
+      "bwrap": null,
+      "iverilog": null,
+      "verilator": null,
+      "yosys": null,
+      "sby": null,
+      "sta": null
+    },
+    "model_binary": null
+  }
+}

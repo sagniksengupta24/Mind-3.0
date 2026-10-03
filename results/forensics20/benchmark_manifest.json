@@ -1,0 +1,24 @@
+{
+  "benchmark_suite": "heldout",
+  "task_set_sha256": "bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24",
+  "task_count": 20,
+  "model_version": "gemini-1.5-pro",
+  "provider": "mock",
+  "seed": 42,
+  "git_commit_sha": "UNKNOWN_COMMIT",
+  "environment": {
+    "platform": "Linux",
+    "python": "3.13.5",
+    "tool_versions": {
+      "yosys": "missing",
+      "verilator": "missing",
+      "sby": "missing",
+      "opensta": "missing",
+      "openroad": "missing"
+    }
+  },
+  "summary_sha256": "235de2446b81316e838d70db1e63ed496309ec3e715a268b0a989fa024990a47",
+  "baseline_comparison_sha256": "85123d43c6cde0e45b87219db5020456b072a506aec705e56b6aa41038da5386",
+  "failures_sha256": "62107068ecb81ee770cfac72e19b073c02c92a1e2462a30d8cdb737f11835edc",
+  "created_at": "2026-09-30T07:03:04Z"
+}

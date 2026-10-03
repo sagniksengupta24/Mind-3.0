@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import statistics
 from pathlib import Path
 
-WORKSPACE_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
+WORKSPACE_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
 ARTIFACTS_DIR = WORKSPACE_ROOT / "artifacts/step1"
 TASKS_DIR = WORKSPACE_ROOT / "benchmarks/mind_baseline/tasks"
 

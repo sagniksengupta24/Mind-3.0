@@ -1,41 +1,11 @@
-# Byte-compiled / optimized / DLL files
+.venv/
 __pycache__/
 *.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Virtual environments
-.venv/
-.venv*/
-venv/
-ENV/
-env/
-
-# Testing & Coverage
-.coverage
-.coverage.*
-coverage.xml
 .pytest_cache/
-
-# IDEs & OS
-.DS_Store
-.DS_Store?
-._*
-.vscode/
-*.swp
-*.swo
-
-# Mind runtime data
+.mypy_cache/
+.pyright/
+artifacts/runs/
 .mind/
-transcript.jsonl
-
-# PDK artifacts (Rule 4: no scope leakage)
-pdk/
-*.lib
-*.lef
-*.tlef
-*.gds
-*.tar.zst
-*.vvp
+dist/
+.DS_Store
+audit/manifest_*

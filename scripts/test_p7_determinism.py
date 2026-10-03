@@ -21,14 +21,14 @@ import time
 from pathlib import Path
 import httpx
 
-MIND3_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
-SCRATCH_DIR = Path("/home/mind/Desktop/AI/benchmark_scratch")
+MIND3_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
+SCRATCH_DIR = Path(os.environ.get("MIND3_BENCHMARK_ROOT", MIND3_ROOT.parent / "benchmark_scratch")).resolve()
 VERILOG_EVAL_DIR = SCRATCH_DIR / "verilog-eval"
 sys.path.insert(0, str(MIND3_ROOT / "src"))
 
 from mind3.core.driver import _parse_model_code_response
 
-ARTIFACTS_P7 = Path("/home/mind/Desktop/AI/artifacts/P7")
+ARTIFACTS_P7 = Path(os.environ.get("MIND3_ARTIFACTS_DIR", MIND3_ROOT / "artifacts")) / "P7"
 ARTIFACTS_P7.mkdir(parents=True, exist_ok=True)
 
 TASKS = [
@@ -149,7 +149,7 @@ def main():
         "",
         "## Analysis",
         "- **Empirical Determinism**: Local inference at temperature=0.0 yields identical token trajectories when GPU context state and KV-cache are cleanly maintained.",
-        "- **Extracted RTL Equivalence**: Structural and canonical parsing via `_parse_model_code_response` guarantees that AST and fenced variations normalize to identical synthesizable modules.",
+        "- **Extracted RTL Equivalence**: Structural and canonical parsing via `_parse_model_code_response` normalizes AST and fenced variations to identical synthesizable module text.",
     ])
 
     out_file = ARTIFACTS_P7 / "determinism.md"

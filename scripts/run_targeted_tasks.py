@@ -7,8 +7,8 @@ import sys
 import time
 from pathlib import Path
 
-MIND3_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
-SCRATCH_DIR = Path("/home/mind/Desktop/AI/benchmark_scratch")
+MIND3_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
+SCRATCH_DIR = Path(os.environ.get("MIND3_BENCHMARK_ROOT", MIND3_ROOT.parent / "benchmark_scratch")).resolve()
 sys.path.insert(0, str(MIND3_ROOT / "src"))
 sys.path.insert(0, str(SCRATCH_DIR))
 
@@ -27,7 +27,7 @@ TARGETED_TASKS = [
     ("Prob001_zero", "verilog_eval", SCRATCH_DIR / "verilog-eval/dataset_spec-to-rtl/Prob001_zero_prompt.txt"),
 ]
 
-ARTIFACTS_P6 = Path("/home/mind/Desktop/AI/artifacts/P6")
+ARTIFACTS_P6 = Path(os.environ.get("MIND3_ARTIFACTS_DIR", MIND3_ROOT / "artifacts")) / "P6"
 ARTIFACTS_P6.mkdir(parents=True, exist_ok=True)
 
 

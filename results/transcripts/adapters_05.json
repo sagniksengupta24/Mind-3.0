@@ -1,0 +1,20 @@
+{
+  "task_id": "adapters_05",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 0,
+  "runtime_sec": 0.031,
+  "token_usage": 2500,
+  "estimated_cost_usd": 0.007,
+  "failure_category": "FORMAL_FAILURE",
+  "tool_versions": {},
+  "model_version": "gemini-1.5-pro",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "9cc95e5e6bf768a0cffc8464ad4cd932237ded4c2e47f00de862251339175ec9",
+  "run_hash": "47e734f9b507f31b035414ed8672187e7e135011b2279b8b6098dee3c2cac39a"
+}

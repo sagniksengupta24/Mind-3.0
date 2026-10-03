@@ -1,0 +1,28 @@
+{
+  "benchmark_suite": "development-20",
+  "task_set_sha256": "539e79afaf6fa445a95ad82c2337ff70f60d60d4e912f114dd9a3cf402f59c8c",
+  "task_count": 20,
+  "real_task_count": 20,
+  "requested_task_count": 20,
+  "execution_status": "COMPLETED",
+  "model_version": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "performance_claim_valid": true,
+  "seed": 42,
+  "git_commit_sha": "UNKNOWN_COMMIT",
+  "environment": {
+    "platform": "Darwin",
+    "python": "3.14.7",
+    "tool_versions": {
+      "yosys": "Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)",
+      "verilator": "Verilator 5.052 2026-09-05 rev vUNKNOWN-built20260905",
+      "sby": "SBY v0.69",
+      "opensta": "3.1.0",
+      "openroad": "missing"
+    }
+  },
+  "summary_sha256": "81ac6668ae8c1b9d0cb5af09403b51f57fb037464adeec8ece4ef3b53bf48f26",
+  "baseline_comparison_sha256": "66838350db371485e7d2f064f57832c5d4d2318510473e0fbde29ecdeb145b0a",
+  "failures_sha256": "1a2f01d0ddce65d3af41093504dd8466eeb6fca8917b1c9aaeec68f08d10ade4",
+  "created_at": "2026-09-30T11:39:58Z"
+}

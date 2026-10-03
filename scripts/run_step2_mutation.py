@@ -21,7 +21,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-WORKSPACE_ROOT = Path("/home/mind/Desktop/AI/Mind-3.0")
+WORKSPACE_ROOT = Path(os.environ.get("MIND3_ROOT", Path(__file__).resolve().parents[1])).resolve()
 STEP1_ARTIFACTS = WORKSPACE_ROOT / "artifacts/step1"
 STEP2_ARTIFACTS = WORKSPACE_ROOT / "artifacts/step2"
 TASKS_DIR = WORKSPACE_ROOT / "benchmarks/mind_baseline/tasks"
@@ -84,7 +84,7 @@ def get_verified_rtl(task_id: str) -> tuple[str, str]:
 def run_mutation_suite():
     STEP2_ARTIFACTS.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
-    env["PATH"] = f"/home/mind/oss-cad-suite/bin:/home/mind/openroad-env/bin:{env.get('PATH', '')}"
+    env["PATH"] = os.environ.get("MIND3_EDA_BIN_PATH", env.get("PATH", ""))
 
     print("=================================================================")
     print("Starting Mind 3.0 Step 2 Mutation Testing Protocol")

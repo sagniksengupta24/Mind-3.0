@@ -30,6 +30,7 @@ from .contracts import (
     VerificationHarnessGenerator,
     VerificationRepairer,
 )
+from .formal_templates import UnsupportedFormalTemplate
 from .types import (
     AgentAction,
     PhaseEnum,
@@ -1551,7 +1552,7 @@ class PhaseDriver:
         # Verification artifacts are derived only from the immutable contract.
         try:
             sva_bind_content = VerificationHarnessGenerator.build_sva_bind_module(contract)
-        except UnsupportedFormalPropertyError as exc:
+        except (UnsupportedFormalPropertyError, UnsupportedFormalTemplate) as exc:
             sva_bind_content = (
                 f"// Formal property construct unsupported by toolchain\n"
                 f"// unsupported: {exc}\n"

@@ -4109,8 +4109,9 @@ def test_parser_mode_defaults_to_strict_and_rejects_inference() -> None:
     """Strict is the default; provider/model/failure signals never enable lenient mode."""
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
+        mock_sb = MockSandbox(ws)
         for provider, model in (("ollama", "qwen2.5-coder:7b"), ("ollama", "tiny-local-model"), ("openrouter", "some-model")):
-            kwargs: dict[str, Any] = {"session_id": "s", "workspace": ws, "verifier": MockVerifier()}
+            kwargs: dict[str, Any] = {"session_id": "s", "workspace": ws, "verifier": MockVerifier(), "sandbox": mock_sb}
             if provider == "openrouter":
                 kwargs["api_key"] = "test-key"
             driver = PhaseDriver(provider=provider, model=model, **kwargs)  # type: ignore
@@ -4118,7 +4119,7 @@ def test_parser_mode_defaults_to_strict_and_rejects_inference() -> None:
             driver.close()
         # Invalid modes are rejected loudly, never coerced.
         with pytest.raises(ValueError):
-            PhaseDriver(session_id="s", workspace=ws, verifier=MockVerifier(), parser_mode="auto")  # type: ignore
+            PhaseDriver(session_id="s", workspace=ws, verifier=MockVerifier(), sandbox=mock_sb, parser_mode="auto")  # type: ignore
 
 
 def test_strict_mode_recorded_in_trace(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1731,6 +1731,7 @@ class SiliconSignoffVerifier(BaseVerifier):
         generated_harness = False
         if not sby_files and self.contract is not None:
             from .contracts import VerificationHarnessGenerator, UnsupportedFormalPropertyError
+            from .formal_templates import UnsupportedFormalTemplate
             structured_props = list(getattr(self.contract, "formal_properties", []) or [])
             legacy_props = list(getattr(self.contract, "sva_properties", []) or [])
             if not structured_props and not legacy_props:
@@ -1753,7 +1754,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     sby_content = VerificationHarnessGenerator.build_sby_config(
                         self.contract, depth=25, include_sva_file=True
                     )
-                except UnsupportedFormalPropertyError as exc:
+                except (UnsupportedFormalPropertyError, UnsupportedFormalTemplate) as exc:
                     return {
                         "gate": "Gate 2: SymbiYosys Formal Property Verification",
                         "passed": False,

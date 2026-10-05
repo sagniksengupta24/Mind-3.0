@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-09-30T07:03:04Z",
+  "task_set_path": "/mnt/data/mind_work/Mind-3.0/benchmarks/heldout/tasks.jsonl",
+  "task_set_sha256": "bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24",
+  "transcript_count": 20,
+  "real_transcript_count": 20,
+  "fixture_count": 0,
+  "compile_pass_count": 0,
+  "simulation_pass_count": 0,
+  "formal_pass_count": 0,
+  "full_verified_pass_count": 0,
+  "repair_success_count": 0,
+  "compile_pass_rate": 0.0,
+  "simulation_pass_rate": 0.0,
+  "formal_pass_rate": 0.0,
+  "full_verified_pass_rate": 0.0,
+  "repair_success_rate": 0.0,
+  "full_verified_ci95": [
+    0.0,
+    0.1611
+  ],
+  "mean_runtime_sec": 0.003,
+  "mean_cost_usd": 0.007,
+  "failure_categories": {
+    "FORMAL_FAILURE": 20
+  },
+  "tool_versions": {
+    "yosys": "missing",
+    "verilator": "missing",
+    "sby": "missing",
+    "opensta": "missing",
+    "openroad": "missing"
+  }
+}

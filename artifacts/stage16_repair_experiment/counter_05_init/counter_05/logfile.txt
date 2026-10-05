@@ -1,0 +1,40 @@
+SBY 14:33:08 [counter_05] Removing directory '/home/mind/Desktop/Mind-3.0-main/artifacts/stage16_repair_experiment/counter_05_init/counter_05'.
+SBY 14:33:08 [counter_05] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage16_repair_experiment/counter_05_init/counter_05.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage16_repair_experiment/counter_05_init/counter_05/src/counter_05.sv'.
+SBY 14:33:08 [counter_05] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage16_repair_experiment/counter_05_init/counter_05_formal_top.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage16_repair_experiment/counter_05_init/counter_05/src/counter_05_formal_top.sv'.
+SBY 14:33:08 [counter_05] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage16_repair_experiment/counter_05_init/counter_05_sva.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage16_repair_experiment/counter_05_init/counter_05/src/counter_05_sva.sv'.
+SBY 14:33:08 [counter_05] engine_0: smtbmc z3
+SBY 14:33:08 [counter_05] base: starting process "cd counter_05/src; yosys -ql ../model/design.log ../model/design.ys"
+SBY 14:33:08 [counter_05] base: Warning: Wire counter_05_formal_top.\rst_n is used but has no driver.
+SBY 14:33:08 [counter_05] base: Warning: Wire counter_05_formal_top.\kick is used but has no driver.
+SBY 14:33:08 [counter_05] base: Warning: Wire counter_05_formal_top.\clk is used but has no driver.
+SBY 14:33:08 [counter_05] base: finished (returncode=0)
+SBY 14:33:08 [counter_05] prep: starting process "cd counter_05/model; yosys -ql design_prep.log design_prep.ys"
+SBY 14:33:08 [counter_05] prep: Warning: Wire counter_05_formal_top.\rst_n is used but has no driver.
+SBY 14:33:08 [counter_05] prep: Warning: Wire counter_05_formal_top.\kick is used but has no driver.
+SBY 14:33:08 [counter_05] prep: Warning: Wire counter_05_formal_top.\clk is used but has no driver.
+SBY 14:33:08 [counter_05] prep: finished (returncode=0)
+SBY 14:33:08 [counter_05] smt2: starting process "cd counter_05/model; yosys -ql design_smt2.log design_smt2.ys"
+SBY 14:33:08 [counter_05] smt2: finished (returncode=0)
+SBY 14:33:08 [counter_05] engine_0: starting process "cd counter_05; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2"
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Solver: z3
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Checking assumptions in step 0..
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Checking assertions in step 0..
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Checking assumptions in step 1..
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Checking assertions in step 1..
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Checking assumptions in step 2..
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Checking assertions in step 2..
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  BMC failed!
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Assert failed in counter_05_formal_top.sva: counter_05_sva.sv:26.24-26.39 ($assert$counter_05_sva.sv:26$18)
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw
+SBY 14:33:08 [counter_05] engine_0: ##   0:00:00  Status: failed
+SBY 14:33:08 [counter_05] engine_0: finished (returncode=1)
+SBY 14:33:08 [counter_05] engine_0: Status returned by engine: FAIL
+SBY 14:33:08 [counter_05] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY 14:33:08 [counter_05] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY 14:33:08 [counter_05] summary: engine_0 (smtbmc z3) returned FAIL
+SBY 14:33:08 [counter_05] summary: counterexample trace: counter_05/engine_0/trace.vcd
+SBY 14:33:08 [counter_05] summary:   failed assertion counter_05_formal_top.sva.$assert$counter_05_sva.sv:26$18 at counter_05_sva.sv:26.24-26.39 step 2
+SBY 14:33:08 [counter_05] DONE (FAIL, rc=2)

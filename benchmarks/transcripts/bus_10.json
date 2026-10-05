@@ -1,0 +1,119 @@
+{
+  "task_id": "bus_10",
+  "category": "Bus Protocol",
+  "name": "wishbone_classic_slave",
+  "natural_language_spec": "Wishbone classic slave memory interface responding with ACK_O assertion following STB_I and CYC_I.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "bus_10",
+    "functional_spec": "Wishbone classic slave memory interface responding with ACK_O assertion following STB_I and CYC_I.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "cyc",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "stb",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "we",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "ack",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge clk) rst |-> ack == 0);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (rst) ack |-> (cyc && stb));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      },
+      {
+        "name": "chk_prop_2",
+        "property_expr": "assert property (@(posedge clk) disable iff (rst) ack |=> !ack);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 2"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule bus_10 (\n  input wire clk,\n  input wire rst,\n  input wire cyc,\n  input wire stb,\n  input wire we,\n  output wire ack\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": null,
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 1,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.029239
+}

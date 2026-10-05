@@ -1,0 +1,83 @@
+{
+  "counter_04_A": {
+    "task": "counter_04",
+    "variant": "A",
+    "init": "COVERAGE_DEFICIT",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_DEFICIT",
+    "reason": "Coverage deficit: branch=100.0% (min 95.0%), toggle=11.1% (min 90.0%)."
+  },
+  "counter_04_B": {
+    "task": "counter_04",
+    "variant": "B",
+    "init": "COVERAGE_DEFICIT",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_DEFICIT",
+    "reason": "Coverage deficit: branch=100.0% (min 95.0%), toggle=11.1% (min 90.0%)."
+  },
+  "counter_04_C": {
+    "task": "counter_04",
+    "variant": "C",
+    "init": "COVERAGE_DEFICIT",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_DEFICIT",
+    "reason": "Coverage deficit: branch=100.0% (min 95.0%), toggle=11.1% (min 90.0%)."
+  },
+  "counter_03_A": {
+    "task": "counter_03",
+    "variant": "A",
+    "init": "COVERAGE_DEFICIT",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_DEFICIT",
+    "reason": "Coverage deficit: branch=75.0% (min 95.0%), toggle=90.5% (min 90.0%)."
+  },
+  "counter_03_B": {
+    "task": "counter_03",
+    "variant": "B",
+    "init": "COVERAGE_DEFICIT",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_DEFICIT",
+    "reason": "Coverage deficit: branch=75.0% (min 95.0%), toggle=90.5% (min 90.0%)."
+  },
+  "counter_03_C": {
+    "task": "counter_03",
+    "variant": "C",
+    "init": "COVERAGE_DEFICIT",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_DEFICIT",
+    "reason": "Coverage deficit: branch=75.0% (min 95.0%), toggle=90.5% (min 90.0%)."
+  },
+  "counter_05_A": {
+    "task": "counter_05",
+    "variant": "A",
+    "init": "FORMAL_INVARIANT_BREACH",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_DEFICIT",
+    "reason": "Coverage deficit: branch=100.0% (min 95.0%), toggle=60.0% (min 90.0%)."
+  },
+  "counter_05_B": {
+    "task": "counter_05",
+    "variant": "B",
+    "init": "FORMAL_INVARIANT_BREACH",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_DEFICIT",
+    "reason": "Coverage deficit: branch=100.0% (min 95.0%), toggle=60.0% (min 90.0%)."
+  },
+  "counter_05_C": {
+    "task": "counter_05",
+    "variant": "C",
+    "init": "FORMAL_INVARIANT_BREACH",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "FORMAL_INVARIANT_BREACH",
+    "reason": "Formal invariant violated at cycle step T=2. Assertion: counter_05_formal_top.sva.$assert$counter_05_sva.sv. Trace: counter_05/engine_0/trace.vcd."
+  }
+}

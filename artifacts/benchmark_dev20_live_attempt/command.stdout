@@ -1,0 +1,5 @@
+=== Mind 3.0 Benchmark Execution ===
+Suite: /mnt/data/mind_work/Mind-3.0/benchmarks/development-20
+Output: /mnt/data/mind_work/Mind-3.0/artifacts/benchmark_dev20_live_attempt
+Seed: 42
+Model: qwen2.5-coder:7b

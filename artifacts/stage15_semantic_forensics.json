@@ -1,0 +1,72 @@
+[
+  {
+    "task": "counter_01",
+    "spec": "8-bit saturating up/down counter",
+    "primary_root_cause": "coverage-unreachable logic",
+    "secondary_root_cause": "other",
+    "detail": "Saturating logic plausible; sim never saturates so toggle stalls at 50%. Testbench stimulus bound, RTL not disproven."
+  },
+  {
+    "task": "counter_02",
+    "spec": "4-bit Gray code counter",
+    "primary_root_cause": "wrong algorithm",
+    "secondary_root_cause": "latch inference",
+    "detail": "Gray next-state is a bit-permutation, not Gray increment; separate samples also infer combinational latches."
+  },
+  {
+    "task": "counter_03",
+    "spec": "2-digit BCD counter",
+    "primary_root_cause": "incorrect arithmetic",
+    "secondary_root_cause": "coverage-unreachable logic",
+    "detail": "Decade logic structurally right; sim never reaches 99 so branch coverage stalls at 75%."
+  },
+  {
+    "task": "counter_04",
+    "spec": "8-bit twisted-ring Johnson counter",
+    "primary_root_cause": "wrong state sequence",
+    "secondary_root_cause": "other",
+    "detail": "Plain rotate `{q[6:0],q[7]}` instead of twisted `{q[6:0],~q[7]}`; reset-to-0 never leaves 0 so toggle is 11%."
+  },
+  {
+    "task": "counter_05",
+    "spec": "window watchdog counter",
+    "primary_root_cause": "wrong algorithm",
+    "secondary_root_cause": "other",
+    "detail": "No time-window logic at all (fault follows ~kick); formal breach genuine."
+  },
+  {
+    "task": "counter_06",
+    "spec": "programmable frequency divider",
+    "primary_root_cause": "incorrect arithmetic",
+    "secondary_root_cause": "latch inference",
+    "detail": "Divider edge cases (`div_val-1` underflow) plus reset-only register driving latch inference in samples."
+  },
+  {
+    "task": "counter_07",
+    "spec": "boundary counter rollover at MAX-1",
+    "primary_root_cause": "specification ambiguity",
+    "secondary_root_cause": "coverage-unreachable logic",
+    "detail": "Rolls at 255; MAX undefined in spec and no SVA pins it; sim never reaches bound."
+  },
+  {
+    "task": "counter_08",
+    "spec": "signed accumulator with saturation",
+    "primary_root_cause": "incorrect signedness",
+    "secondary_root_cause": "incorrect width handling",
+    "detail": "Unsigned arithmetic on signed intent plus 9-vs-8-bit width warnings fatal under -Wall."
+  },
+  {
+    "task": "counter_09",
+    "spec": "8-bit Galois LFSR x^8+x^6+x^5+x^4+1",
+    "primary_root_cause": "wrong algorithm",
+    "secondary_root_cause": "invalid SystemVerilog construct",
+    "detail": "Arbitrary bit permutation, not the specified polynomial; `reg` declared inside always."
+  },
+  {
+    "task": "counter_10",
+    "spec": "dual-edge strobe event counter",
+    "primary_root_cause": "invalid SystemVerilog construct",
+    "secondary_root_cause": "other",
+    "detail": "`$changed(strobe)` is unsynthesizable; one repair reached 89.5% toggle, 0.5pp short."
+  }
+]

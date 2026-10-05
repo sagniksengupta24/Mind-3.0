@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 5
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -formal -sv reset_deassertion_problem.sv reset_deassertion_problem_formal_top.sv
+prep -top reset_deassertion_problem_formal_top
+
+[files]
+reset_deassertion_problem.sv
+reset_deassertion_problem_formal_top.sv

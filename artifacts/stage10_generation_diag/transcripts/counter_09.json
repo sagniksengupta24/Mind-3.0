@@ -1,0 +1,456 @@
+{
+  "task_id": "counter_09",
+  "category": "counters",
+  "name": "linear_feedback_shift_reg",
+  "natural_language_spec": "8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_09",
+    "functional_spec": "8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "lfsr_out",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);",
+      "assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);",
+      "assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "lfsr_out == 8'h01",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "lfsr_out != 8'h00",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module counter_09 (\n  input clk,\n  input rst_n,\n  output [7:0] lfsr_out\n);\n\n  reg [7:0] lfsr;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      lfsr <= 8'h01;\n    end else begin\n      lfsr <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};\n    end\n  end\n\n  assign lfsr_out = lfsr;\n\nendmodule",
+  "gate_failure_category": "COVERAGE_BUILD_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"lfsr_out == 8'h01\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"lfsr_out != 8'h00\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n  ],\n  \"module_name\": \"counter_09\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"lfsr_out\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"COVERAGE_BUILD_FAILURE\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"lfsr_out == 8'h01\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"lfsr_out != 8'h00\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n    ],\n    \"module_name\": \"counter_09\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"lfsr_out\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 3: Verilator Coverage Signoff)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"simulation\",\n  \"stderr_tail\": \"%Warning-EOFNEWLINE: counter_09.sv:19:10: Missing newline at end of file (POSIX 3.206).\\n                                        : ... Suggest add newline.\\n   19 | endmodule\\n      |          ^\\n                     ... For warning description see https://verilator.org/warn/EOFNEWLINE?v=5.020\\n                     ... Use \\\"/* verilator lint_off EOFNEWLINE */\\\" and lint_on around source to disable this message.\\n%Error: Exiting due to 1 warning(s)\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"verilator\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_09 (\n  input clk,\n  input rst_n,\n  output [7:0] lfsr_out\n);\n\n  reg [7:0] lfsr;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      lfsr <= 8'h01;\n    end else begin\n      lfsr <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};\n    end\n  end\n\n  assign lfsr_out = lfsr;\n\nendmodule\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_09 (\n  input clk,\n  input rst_n,\n  output [7:0] lfsr_out\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 2,
+          "stdout": "",
+          "stderr": "counter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+          "details": "RTL compile failed (iverilog): \ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_09",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_09.sv",
+              "counter_09_netlist.v"
+            ],
+            "return_code": 2,
+            "stdout": "",
+            "stderr": "counter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+            "file": "counter_09_netlist.v",
+            "line": 3,
+            "column": 1,
+            "source_context": "1: /* Generated by Yosys 0.33 (git sha1 2584903a060) */\n2: \n3: module counter_09(clk, rst_n, lfsr_out);\n4:   wire [7:0] _00_;\n5:   wire _01_;"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"lfsr_out == 8'h01\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"lfsr_out != 8'h00\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n  ],\n  \"module_name\": \"counter_09\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"lfsr_out\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 2,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"lfsr_out == 8'h01\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"lfsr_out != 8'h00\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n    ],\n    \"module_name\": \"counter_09\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"lfsr_out\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"COVERAGE_BUILD_FAILURE\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"counter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\\ncounter_09.sv:1:      : It was declared here as a module.\\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\\n\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_09 (\n  input clk,\n  input rst_n,\n  output [7:0] lfsr_out\n);\n\n  reg [7:0] lfsr;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      lfsr <= 8'h01;\n    end else begin\n      lfsr <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};\n    end\n  end\n\n  assign lfsr_out = lfsr;\n\nendmodule\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_09 (\n  input clk,\n  input rst_n,\n  output [7:0] lfsr_out\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 2,
+          "stdout": "",
+          "stderr": "counter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+          "details": "RTL compile failed (iverilog): \ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_09",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_09.sv",
+              "counter_09_netlist.v"
+            ],
+            "return_code": 2,
+            "stdout": "",
+            "stderr": "counter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+            "file": "counter_09_netlist.v",
+            "line": 3,
+            "column": 1,
+            "source_context": "1: /* Generated by Yosys 0.33 (git sha1 2584903a060) */\n2: \n3: module counter_09(clk, rst_n, lfsr_out);\n4:   wire [7:0] _00_;\n5:   wire _01_;"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"lfsr_out == 8'h01\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"lfsr_out != 8'h00\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n  ],\n  \"module_name\": \"counter_09\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"lfsr_out\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 3,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"lfsr_out == 8'h01\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"lfsr_out != 8'h00\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"8-bit Galois LFSR with maximal-length pseudo-random polynomial x^8 + x^6 + x^5 + x^4 + 1\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n    ],\n    \"module_name\": \"counter_09\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"lfsr_out\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> lfsr_out == 8'h01);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) lfsr_out != 8'h00);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"COVERAGE_BUILD_FAILURE\",\n    \"SYNTAX_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"counter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\\ncounter_09.sv:1:      : It was declared here as a module.\\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\\n\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_09 (\n  input clk,\n  input rst_n,\n  output [7:0] lfsr_out\n);\n\n  reg [7:0] lfsr;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      lfsr <= 8'h01;\n    end else begin\n      lfsr <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};\n    end\n  end\n\n  assign lfsr_out = lfsr;\n\nendmodule\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_09 (\n  input clk,\n  input rst_n,\n  output [7:0] lfsr_out\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 2,
+          "stdout": "",
+          "stderr": "counter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+          "details": "RTL compile failed (iverilog): \ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_09",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_09.sv",
+              "counter_09_netlist.v"
+            ],
+            "return_code": 2,
+            "stdout": "",
+            "stderr": "counter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_09_netlist.v:3: error: 'counter_09' has already been declared in this scope.\ncounter_09.sv:1:      : It was declared here as a module.\ncounter_09_netlist.v:74: error: Module counter_09 was already declared here: counter_09.sv:1\n\n",
+            "file": "counter_09_netlist.v",
+            "line": 3,
+            "column": 1,
+            "source_context": "1: /* Generated by Yosys 0.33 (git sha1 2584903a060) */\n2: \n3: module counter_09(clk, rst_n, lfsr_out);\n4:   wire [7:0] _00_;\n5:   wire _01_;"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "failure_category": "SYNTAX_ERROR",
+    "passed": false
+  },
+  "timestamp": 1791188265.4102294,
+  "duration_seconds": 14.118,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "1538b987efd6821f4858891433cab71a6f76bff7a7bc9ea7129bcd1455468e26"
+  }
+}

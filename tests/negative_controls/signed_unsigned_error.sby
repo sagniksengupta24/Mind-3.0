@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 5
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -formal -sv signed_unsigned_error.sv signed_unsigned_error_formal_top.sv
+prep -top signed_unsigned_error_formal_top
+
+[files]
+signed_unsigned_error.sv
+signed_unsigned_error_formal_top.sv

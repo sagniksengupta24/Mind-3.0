@@ -1,0 +1,177 @@
+{
+  "creator": "Yosys 0.33 (git sha1 2584903a060)",
+  "modules": {
+    "counter_04": {
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "counter_04.sv:1.1-19.10"
+      },
+      "ports": {
+        "clk": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "rst_n": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "q": {
+          "direction": "output",
+          "bits": [ 4, 5, 6, 7, 8, 9, 10, 11 ]
+        }
+      },
+      "cells": {
+        "$auto$ff.cc:266:slice$81": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_04.sv:9.3-15.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 11 ],
+            "Q": [ 4 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$82": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_04.sv:9.3-15.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 4 ],
+            "Q": [ 5 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$83": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_04.sv:9.3-15.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 5 ],
+            "Q": [ 6 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$84": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_04.sv:9.3-15.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 6 ],
+            "Q": [ 7 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$85": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_04.sv:9.3-15.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 7 ],
+            "Q": [ 8 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$86": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_04.sv:9.3-15.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 8 ],
+            "Q": [ 9 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$87": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_04.sv:9.3-15.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 9 ],
+            "Q": [ 10 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$88": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_04.sv:9.3-15.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 10 ],
+            "Q": [ 11 ],
+            "RESET_B": [ 3 ]
+          }
+        }
+      },
+      "netnames": {
+        "clk": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "counter_04.sv:2.9-2.12"
+          }
+        },
+        "q": {
+          "hide_name": 0,
+          "bits": [ 4, 5, 6, 7, 8, 9, 10, 11 ],
+          "attributes": {
+            "src": "counter_04.sv:4.16-4.17"
+          }
+        },
+        "q_reg": {
+          "hide_name": 0,
+          "bits": [ 4, 5, 6, 7, 8, 9, 10, 11 ],
+          "attributes": {
+            "src": "counter_04.sv:7.13-7.18"
+          }
+        },
+        "rst_n": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "counter_04.sv:3.9-3.14"
+          }
+        }
+      }
+    }
+  }
+}

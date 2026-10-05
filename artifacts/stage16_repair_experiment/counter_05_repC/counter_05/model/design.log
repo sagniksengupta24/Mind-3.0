@@ -1,0 +1,356 @@
+
+ /----------------------------------------------------------------------------\
+ |                                                                            |
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |                                                                            |
+ |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |                                                                            |
+ |  Permission to use, copy, modify, and/or distribute this software for any  |
+ |  purpose with or without fee is hereby granted, provided that the above    |
+ |  copyright notice and this permission notice appear in all copies.         |
+ |                                                                            |
+ |  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |
+ |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |
+ |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |
+ |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |
+ |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |
+ |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |
+ |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |
+ |                                                                            |
+ \----------------------------------------------------------------------------/
+
+ Yosys 0.33 (git sha1 2584903a060)
+
+
+-- Executing script file `../model/design.ys' --
+
+1. Executing Verilog-2005 frontend: counter_05.sv
+Parsing formal SystemVerilog input from `counter_05.sv' to AST representation.
+Storing AST representation for module `$abstract\counter_05'.
+Successfully finished Verilog frontend.
+
+2. Executing Verilog-2005 frontend: counter_05_sva.sv
+Parsing formal SystemVerilog input from `counter_05_sva.sv' to AST representation.
+Storing AST representation for module `$abstract\counter_05_sva'.
+Successfully finished Verilog frontend.
+
+3. Executing Verilog-2005 frontend: counter_05_formal_top.sv
+Parsing formal SystemVerilog input from `counter_05_formal_top.sv' to AST representation.
+Storing AST representation for module `$abstract\counter_05_formal_top'.
+Successfully finished Verilog frontend.
+
+4. Executing PREP pass.
+
+4.1. Executing HIERARCHY pass (managing design hierarchy).
+
+4.2. Executing AST frontend in derive mode using pre-parsed AST for module `\counter_05_formal_top'.
+Generating RTLIL representation for module `\counter_05_formal_top'.
+
+4.2.1. Analyzing design hierarchy..
+Top module:  \counter_05_formal_top
+
+4.2.2. Executing AST frontend in derive mode using pre-parsed AST for module `\counter_05_sva'.
+Generating RTLIL representation for module `\counter_05_sva'.
+
+4.2.3. Executing AST frontend in derive mode using pre-parsed AST for module `\counter_05'.
+Generating RTLIL representation for module `\counter_05'.
+
+4.2.4. Analyzing design hierarchy..
+Top module:  \counter_05_formal_top
+Used module:     \counter_05_sva
+Used module:     \counter_05
+
+4.2.5. Analyzing design hierarchy..
+Top module:  \counter_05_formal_top
+Used module:     \counter_05_sva
+Used module:     \counter_05
+Removing unused module `$abstract\counter_05_formal_top'.
+Removing unused module `$abstract\counter_05_sva'.
+Removing unused module `$abstract\counter_05'.
+Removed 3 unused modules.
+Module counter_05_sva directly or indirectly contains formal properties -> setting "keep" attribute.
+Module counter_05_formal_top directly or indirectly contains formal properties -> setting "keep" attribute.
+
+4.3. Executing PROC pass (convert processes to netlists).
+
+4.3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+4.3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 2 switch rules as full_case in process $proc$counter_05.sv:10$24 in module counter_05.
+Removed a total of 0 dead cases.
+
+4.3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 1 redundant assignment.
+Promoted 5 assignments to connections.
+
+4.3.4. Executing PROC_INIT pass (extract init attributes).
+Found init rule in `\counter_05_sva.$proc$counter_05_sva.sv:0$22'.
+  Set init value: $formal$counter_05_sva.sv:26$3_EN = 1'0
+Found init rule in `\counter_05_sva.$proc$counter_05_sva.sv:0$20'.
+  Set init value: $formal$counter_05_sva.sv:19$2_EN = 1'0
+Found init rule in `\counter_05_sva.$proc$counter_05_sva.sv:13$19'.
+  Set init value: \init = 1'1
+
+4.3.5. Executing PROC_ARST pass (detect async resets in processes).
+Found async reset \rst_n in `\counter_05.$proc$counter_05.sv:10$24'.
+
+4.3.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~5 debug messages>
+
+4.3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\counter_05.$proc$counter_05.sv:10$24'.
+     1/1: $0\fault_reg[0:0]
+Creating decoders for process `\counter_05_sva.$proc$counter_05_sva.sv:0$22'.
+Creating decoders for process `\counter_05_sva.$proc$counter_05_sva.sv:0$20'.
+Creating decoders for process `\counter_05_sva.$proc$counter_05_sva.sv:13$19'.
+Creating decoders for process `\counter_05_sva.$proc$counter_05_sva.sv:24$11'.
+     1/2: $0$formal$counter_05_sva.sv:26$3_EN[0:0]$14
+     2/2: $0$formal$counter_05_sva.sv:26$3_CHECK[0:0]$13
+Creating decoders for process `\counter_05_sva.$proc$counter_05_sva.sv:17$5'.
+     1/2: $0$formal$counter_05_sva.sv:19$2_EN[0:0]$7
+     2/2: $0$formal$counter_05_sva.sv:19$2_CHECK[0:0]$6
+Creating decoders for process `\counter_05_sva.$proc$counter_05_sva.sv:14$4'.
+
+4.3.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+4.3.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\counter_05.\fault_reg' using process `\counter_05.$proc$counter_05.sv:10$24'.
+  created $adff cell `$procdff$45' with positive edge clock and negative level reset.
+Creating register for signal `\counter_05_sva.$past$counter_05_sva.sv:26$1$0' using process `\counter_05_sva.$proc$counter_05_sva.sv:24$11'.
+  created $dff cell `$procdff$46' with positive edge clock.
+Creating register for signal `\counter_05_sva.$formal$counter_05_sva.sv:26$3_CHECK' using process `\counter_05_sva.$proc$counter_05_sva.sv:24$11'.
+  created $dff cell `$procdff$47' with positive edge clock.
+Creating register for signal `\counter_05_sva.$formal$counter_05_sva.sv:26$3_EN' using process `\counter_05_sva.$proc$counter_05_sva.sv:24$11'.
+  created $dff cell `$procdff$48' with positive edge clock.
+Creating register for signal `\counter_05_sva.$formal$counter_05_sva.sv:19$2_CHECK' using process `\counter_05_sva.$proc$counter_05_sva.sv:17$5'.
+  created $dff cell `$procdff$49' with positive edge clock.
+Creating register for signal `\counter_05_sva.$formal$counter_05_sva.sv:19$2_EN' using process `\counter_05_sva.$proc$counter_05_sva.sv:17$5'.
+  created $dff cell `$procdff$50' with positive edge clock.
+Creating register for signal `\counter_05_sva.\init' using process `\counter_05_sva.$proc$counter_05_sva.sv:14$4'.
+  created $dff cell `$procdff$51' with positive edge clock.
+
+4.3.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+4.3.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\counter_05.$proc$counter_05.sv:10$24'.
+Removing empty process `counter_05.$proc$counter_05.sv:10$24'.
+Removing empty process `counter_05_sva.$proc$counter_05_sva.sv:0$22'.
+Removing empty process `counter_05_sva.$proc$counter_05_sva.sv:0$20'.
+Removing empty process `counter_05_sva.$proc$counter_05_sva.sv:13$19'.
+Found and cleaned up 2 empty switches in `\counter_05_sva.$proc$counter_05_sva.sv:24$11'.
+Removing empty process `counter_05_sva.$proc$counter_05_sva.sv:24$11'.
+Found and cleaned up 2 empty switches in `\counter_05_sva.$proc$counter_05_sva.sv:17$5'.
+Removing empty process `counter_05_sva.$proc$counter_05_sva.sv:17$5'.
+Removing empty process `counter_05_sva.$proc$counter_05_sva.sv:14$4'.
+Cleaned up 5 empty switches.
+
+4.3.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module counter_05.
+Optimizing module counter_05_sva.
+<suppressed ~5 debug messages>
+Optimizing module counter_05_formal_top.
+
+4.4. Executing OPT_EXPR pass (perform const folding).
+Optimizing module counter_05.
+Optimizing module counter_05_sva.
+Optimizing module counter_05_formal_top.
+
+4.5. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \counter_05..
+Finding unused cells or wires in module \counter_05_sva..
+Finding unused cells or wires in module \counter_05_formal_top..
+Removed 3 unused cells and 22 unused wires.
+<suppressed ~5 debug messages>
+
+4.6. Executing CHECK pass (checking for obvious problems).
+Checking module counter_05...
+Checking module counter_05_formal_top...
+Warning: Wire counter_05_formal_top.\rst_n is used but has no driver.
+Warning: Wire counter_05_formal_top.\kick is used but has no driver.
+Warning: Wire counter_05_formal_top.\clk is used but has no driver.
+Checking module counter_05_sva...
+Found and reported 3 problems.
+
+4.7. Executing OPT pass (performing simple optimizations).
+
+4.7.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module counter_05.
+Optimizing module counter_05_formal_top.
+Optimizing module counter_05_sva.
+
+4.7.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\counter_05'.
+Finding identical cells in module `\counter_05_formal_top'.
+Finding identical cells in module `\counter_05_sva'.
+Removed a total of 0 cells.
+
+4.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \counter_05..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Running muxtree optimizer on module \counter_05_formal_top..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Running muxtree optimizer on module \counter_05_sva..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~5 debug messages>
+
+4.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \counter_05.
+  Optimizing cells in module \counter_05_formal_top.
+  Optimizing cells in module \counter_05_sva.
+Performed a total of 0 changes.
+
+4.7.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\counter_05'.
+Finding identical cells in module `\counter_05_formal_top'.
+Finding identical cells in module `\counter_05_sva'.
+Removed a total of 0 cells.
+
+4.7.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \counter_05..
+Finding unused cells or wires in module \counter_05_formal_top..
+Finding unused cells or wires in module \counter_05_sva..
+
+4.7.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module counter_05.
+Optimizing module counter_05_formal_top.
+Optimizing module counter_05_sva.
+
+4.7.8. Finished OPT passes. (There is nothing left to do.)
+
+4.8. Executing WREDUCE pass (reducing word size of cells).
+
+4.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \counter_05..
+Finding unused cells or wires in module \counter_05_formal_top..
+Finding unused cells or wires in module \counter_05_sva..
+
+4.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+4.11. Executing OPT pass (performing simple optimizations).
+
+4.11.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module counter_05.
+Optimizing module counter_05_formal_top.
+Optimizing module counter_05_sva.
+
+4.11.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\counter_05'.
+Finding identical cells in module `\counter_05_formal_top'.
+Finding identical cells in module `\counter_05_sva'.
+Removed a total of 0 cells.
+
+4.11.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \counter_05..
+Finding unused cells or wires in module \counter_05_formal_top..
+Finding unused cells or wires in module \counter_05_sva..
+
+4.11.4. Finished fast OPT passes.
+
+4.12. Printing statistics.
+
+=== counter_05 ===
+
+   Number of wires:                  6
+   Number of wire bits:              6
+   Number of public wires:           5
+   Number of public wire bits:       5
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                  2
+     $adff                           1
+     $mux                            1
+
+=== counter_05_formal_top ===
+
+   Number of wires:                  4
+   Number of wire bits:              4
+   Number of public wires:           4
+   Number of public wire bits:       4
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                  2
+     counter_05                      1
+     counter_05_sva                  1
+
+=== counter_05_sva ===
+
+   Number of wires:                 21
+   Number of wire bits:             21
+   Number of public wires:           5
+   Number of public wire bits:       5
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                 19
+     $assert                         2
+     $dff                            6
+     $logic_and                      1
+     $logic_not                      1
+     $mux                            8
+     $not                            1
+
+=== design hierarchy ===
+
+   counter_05_formal_top             1
+     counter_05                      1
+     counter_05_sva                  1
+
+   Number of wires:                 31
+   Number of wire bits:             31
+   Number of public wires:          14
+   Number of public wire bits:      14
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                 21
+     $adff                           1
+     $assert                         2
+     $dff                            6
+     $logic_and                      1
+     $logic_not                      1
+     $mux                            9
+     $not                            1
+
+4.13. Executing CHECK pass (checking for obvious problems).
+Checking module counter_05...
+Checking module counter_05_formal_top...
+Warning: Wire counter_05_formal_top.\rst_n is used but has no driver.
+Warning: Wire counter_05_formal_top.\kick is used but has no driver.
+Warning: Wire counter_05_formal_top.\clk is used but has no driver.
+Checking module counter_05_sva...
+Found and reported 3 problems.
+
+5. Executing HIERARCHY pass (managing design hierarchy).
+
+5.1. Analyzing design hierarchy..
+Top module:  \counter_05_formal_top
+Used module:     \counter_05
+Used module:     \counter_05_sva
+
+5.2. Analyzing design hierarchy..
+Top module:  \counter_05_formal_top
+Used module:     \counter_05
+Used module:     \counter_05_sva
+Removed 0 unused modules.
+Module counter_05_formal_top directly or indirectly contains formal properties -> setting "keep" attribute.
+Module counter_05_sva directly or indirectly contains formal properties -> setting "keep" attribute.
+
+6. Executing jny backend.
+
+7. Executing RTLIL backend.
+Output filename: ../model/design.il
+
+Warnings: 3 unique messages, 6 total
+End of script. Logfile hash: 793ec41a62, CPU: user 0.01s system 0.00s, MEM: 14.57 MB peak
+Yosys 0.33 (git sha1 2584903a060)
+Time spent: 28% 5x opt_expr (0 sec), 20% 4x opt_clean (0 sec), ...

@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal signed_multiplier.sv sva.sv
+prep -top signed_multiplier_formal
+
+[files]
+signed_multiplier.sv
+sva.sv

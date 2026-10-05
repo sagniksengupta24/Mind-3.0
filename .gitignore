@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.pyright/
+artifacts/runs/
+.mind/
+dist/
+.DS_Store
+audit/manifest_*

@@ -1,0 +1,8 @@
+VCD info: dumpfile wave.vcd opened for output.
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob009_popcount3_test.sv:36: $finish called at 1100 (1ps)
+Hint: Output 'out' has 220 mismatches. First mismatch occurred at time 5.
+Hint: Total mismatched samples is 220 out of 220 samples
+
+Simulation finished at 1100 ps
+Mismatches: 220 in 220 samples
+

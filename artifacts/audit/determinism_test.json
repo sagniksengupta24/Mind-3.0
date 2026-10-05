@@ -1,0 +1,24 @@
+{
+  "test": "Model Generation Determinism Trial",
+  "timestamp": "2026-09-28T00:27:25.262251+00:00",
+  "model": "qwen2.5-coder:30b",
+  "provider": "Ollama (local 127.0.0.1:11434)",
+  "parameters": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 42,
+    "num_predict": 2048
+  },
+  "task_id": "priority_encoder",
+  "trial_1": {
+    "sha256": "d245072ec4d4cf3e64246b4952bce18c67b3ecf55562d176e819fefdc8d3b17a",
+    "latency_seconds": 9.726
+  },
+  "trial_2": {
+    "sha256": "d245072ec4d4cf3e64246b4952bce18c67b3ecf55562d176e819fefdc8d3b17a",
+    "latency_seconds": 9.509
+  },
+  "is_bitwise_identical": true,
+  "determinism_classification": "bitwise reproducible",
+  "conclusion": "Model generation is bitwise reproducible under greedy temperature=0.0 with pinned seed on local Ollama."
+}

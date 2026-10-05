@@ -1,0 +1,88 @@
+{
+  "task_id": "arith_07",
+  "category": "Arithmetic",
+  "name": "leading_zero_counter_16bit",
+  "natural_language_spec": "16-bit priority leading zero counter outputting count 0 to 16.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "arith_07",
+    "functional_spec": "16-bit priority leading zero counter outputting count 0 to 16.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "in_vec",
+        "direction": "input",
+        "width": 16,
+        "description": ""
+      },
+      {
+        "name": "zero_count",
+        "direction": "output",
+        "width": 5,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(*) in_vec == 16'h0000 |-> zero_count == 5'd16);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(*) in_vec[15] == 1'b1 |-> zero_count == 5'd0);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule arith_07 (\n  input wire [15:0] in_vec,\n  output wire [4:0] zero_count\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": null,
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 1,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.027435
+}

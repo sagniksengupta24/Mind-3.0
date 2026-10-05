@@ -1,0 +1,21 @@
+=== Execution Log for Prob022_mux2to1 ===
+Time: Wed Sep 30 03:51:59 2026
+Duration: 18.55s
+Benchmark Verdict: PASS
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: a6126380c73211f574d3f8c2870c95e6b03cb2490db931e8d76d198b0d48dbca
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     a6126380c73211f574d3f8c2870c95e6b03cb2490db931e8d76d198b0d48dbca
+SHA Match:          True
+Diagnostic:         VCD info: dumpfile wave.vcd opened for output.
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob022_mux2to1_test.sv:43: $finish called at 610 (1ps)
+Hint: Output 'out' has no mismatches.
+Hint: Total mismatched samples is 0 out of 122 samples
+
+Simulation finished at 610 ps
+Mismatches: 0 in 122 samples
+
+

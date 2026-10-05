@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mind 3.0 Benchmark Report</title>
+<style>body{font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;max-width:1000px;margin:40px auto;padding:0 20px}table{border-collapse:collapse;width:100%;margin:16px 0 28px}th,td{border:1px solid #ccc;padding:8px;text-align:left}code{font-family:ui-monospace,monospace}.muted{color:#666}</style></head>
+<body>
+<h1>Mind 3.0 Benchmark Report</h1>
+<p class="muted">Generated: <code>2026-10-05T08:08:44Z</code><br>Task-set SHA-256: <code>bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24</code></p>
+<h2>Evidence scope</h2>
+<p>Evidence tier: <b>diagnostic</b> | Live provenance: <b>True</b></p>
+<p>Observed transcripts: <b>6</b>; real generation outputs used for metrics: <b>6</b>; fixtures excluded: <b>0</b>; required min tasks: <b>6</b>.</p>
+<p><em>Diagnostic evidence only: run was explicitly executed in diagnostic mode with 6 real transcripts (required_min_tasks=6). Not eligible for release claims.</em></p>
+<h2>Metrics</h2>
+<table><thead><tr><th>Metric</th><th>Count</th><th>Rate</th><th>95% CI</th></tr></thead><tbody><tr><td>Initial success (Pass@1)</td><td>0/6</td><td>0.0%</td><td>[0.0%, 39.0%]</td></tr>
+<tr><td>Functional success</td><td>0/6</td><td>0.0%</td><td>[0.0%, 39.0%]</td></tr>
+<tr><td>Full verified success</td><td>0/6</td><td>0.0%</td><td>[0.0%, 39.0%]</td></tr>
+<tr><td>Repair success</td><td>0/6</td><td>0.0%</td><td>—</td></tr></tbody></table>
+<h2>Guardrails</h2>
+<ul><li>Performance claims require at least 100 real holdout tasks.</li><li>Schema-validation fixtures and mock-provider runs are excluded.</li><li>Full verified is pipeline evidence, not foundry tapeout signoff.</li></ul>
+<h2>Failure categories</h2>
+<table><thead><tr><th>Category</th><th>Count</th></tr></thead><tbody><tr><td><code>TYPE_WIDTH_ERROR</code></td><td>5</td></tr>
+<tr><td><code>RESPONSE_PARSE_FAILURE</code></td><td>1</td></tr></tbody></table>
+<h2>Baselines</h2>
+<p>No same-task-set baselines were supplied.</p>
+<h2>Tool versions</h2>
+<ul><li><code>openroad</code>: <code>f12e2f474102bfb875eeee57fb610d7d7de17770</code></li><li><code>sby</code>: <code>SBY v0.69</code></li><li><code>sta</code>: <code>2.3.1</code></li><li><code>verilator</code>: <code>Verilator 5.020 2024-01-01 rev (Debian 5.020-1)</code></li><li><code>yosys</code>: <code>Yosys 0.33 (git sha1 2584903a060)</code></li></ul>
+</body></html>

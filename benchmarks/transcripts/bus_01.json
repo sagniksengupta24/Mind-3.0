@@ -1,0 +1,143 @@
+{
+  "task_id": "bus_01",
+  "category": "Bus Protocol",
+  "name": "apb_slave_gpio",
+  "natural_language_spec": "AMBA APB4 peripheral slave controlling an 8-bit bidirectional GPIO register port.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "bus_01",
+    "functional_spec": "AMBA APB4 peripheral slave controlling an 8-bit bidirectional GPIO register port.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "pclk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "presetn",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "psel",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "penable",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "pwrite",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "paddr",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "pwdata",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "prdata",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "pready",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "pslverr",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge pclk) !presetn |-> (!pready && !pslverr));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge pclk) disable iff (!presetn) !psel |-> !pready);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      },
+      {
+        "name": "chk_prop_2",
+        "property_expr": "assert property (@(posedge pclk) disable iff (!presetn) psel && penable |=> pready);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 2"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule bus_01 (\n  input wire pclk,\n  input wire presetn,\n  input wire psel,\n  input wire penable,\n  input wire pwrite,\n  input wire [7:0] paddr,\n  input wire [7:0] pwdata,\n  output wire [7:0] prdata,\n  output wire pready,\n  output wire pslverr\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": null,
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 1,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.028228
+}

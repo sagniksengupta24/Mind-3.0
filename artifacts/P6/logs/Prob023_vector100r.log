@@ -1,0 +1,13 @@
+=== Execution Log for Prob023_vector100r ===
+Time: Wed Sep 30 03:52:17 2026
+Duration: 76.81s
+Benchmark Verdict: MISMATCH
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: ef7d3a47ca99106bbd4c58c2aab20de6b3d54c5faf5721bf30efb06943bc736d
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     ef7d3a47ca99106bbd4c58c2aab20de6b3d54c5faf5721bf30efb06943bc736d
+SHA Match:          True
+Diagnostic:         199 mismatches detected

@@ -1,0 +1,106 @@
+{
+  "task_id": "fsm_04",
+  "category": "FSM",
+  "name": "parity_checker_fsm",
+  "natural_language_spec": "Even-parity checker FSM over serial stream, asserting error flag on odd parity at frame boundary.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "fsm_04",
+    "functional_spec": "Even-parity checker FSM over serial stream, asserting error flag on odd parity at frame boundary.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "bit_in",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "frame_end",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "parity_err",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge clk) !rst_n |-> parity_err == 0);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) !frame_end |-> parity_err == 0);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule fsm_04 (\n  input wire clk,\n  input wire rst_n,\n  input wire bit_in,\n  input wire frame_end,\n  output wire parity_err\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": null,
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 1,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.02581
+}

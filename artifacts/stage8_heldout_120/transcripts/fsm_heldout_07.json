@@ -1,0 +1,149 @@
+{
+  "task_id": "fsm_heldout_07",
+  "category": "FSMs",
+  "name": "adv_fsm_reset_glitch",
+  "natural_language_spec": "Adversarial FSM: reset asserted synchronously mid-operation on cycle 3",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "fsm_heldout_07",
+    "functional_spec": "Adversarial FSM: reset asserted synchronously mid-operation on cycle 3",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "step",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "active",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Adversarial FSM: reset asserted synchronously mid-operation on cycle 3"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) !rst_n |-> active == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) !step |-> active == $past(active));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) !rst_n |-> active == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) !step |-> active == $past(active));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "active == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "past_expression",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "(!(!step) || (active == $past(active)))",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Legacy SVA implication reduced to a bounded historical boolean expression."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Adversarial FSM: reset asserted synchronously mid-operation on cycle 3\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"active == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"Legacy SVA implication reduced to a bounded historical boolean expression.\",\n      \"expression\": \"(!(!step) || (active == $past(active)))\",\n      \"kind\": \"past_expression\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Adversarial FSM: reset asserted synchronously mid-operation on cycle 3\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) !rst_n |-> active == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) !step |-> active == $past(active));\"\n  ],\n  \"module_name\": \"fsm_heldout_07\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"step\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"active\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) !rst_n |-> active == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) !step |-> active == $past(active));\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Adversarial FSM: reset asserted synchronously mid-operation on cycle 3\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"active == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"Legacy SVA implication reduced to a bounded historical boolean expression.\",\n        \"expression\": \"(!(!step) || (active == $past(active)))\",\n        \"kind\": \"past_expression\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Adversarial FSM: reset asserted synchronously mid-operation on cycle 3\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) !rst_n |-> active == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) !step |-> active == $past(active));\"\n    ],\n    \"module_name\": \"fsm_heldout_07\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"step\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"active\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) !rst_n |-> active == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) !step |-> active == $past(active));\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"The model did not return a parseable synthesizable module.\",\n  \"error\": \"Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"RTL generation/parser\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"model-response-parser\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\n\n\nRepair the current RTL with the smallest semantically justified change.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    },
+    {
+      "turn": 2,
+      "guidance": "The previous repair response could not be parsed: Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module..\nReturn ONLY the complete SystemVerilog module, including its module declaration and endmodule.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    },
+    {
+      "turn": 3,
+      "guidance": "The previous repair response could not be parsed: Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module..\nReturn ONLY the complete SystemVerilog module, including its module declaration and endmodule.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791131184.9721954,
+  "duration_seconds": 15.123,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {},
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "56b9676988f30971b08c201de5df5018746a5a1d32c5d17ac22bc957332bd819"
+  }
+}

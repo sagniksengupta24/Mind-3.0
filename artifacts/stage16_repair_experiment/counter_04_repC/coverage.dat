@@ -1,0 +1,22 @@
+# SystemC::Coverage-3
+C 'fcounter_04.svl10n5pagev_branch/counter_04oifS10-11hTOP.counter_04' 6
+C 'fcounter_04.svl10n6pagev_branch/counter_04oelseS12-13hTOP.counter_04' 218
+C 'fcounter_04.svl2n9pagev_toggle/counter_04oclkhTOP.counter_04' 449
+C 'fcounter_04.svl3n9pagev_toggle/counter_04orst_nhTOP.counter_04' 3
+C 'fcounter_04.svl4n16pagev_toggle/counter_04oq[0]hTOP.counter_04' 0
+C 'fcounter_04.svl4n16pagev_toggle/counter_04oq[1]hTOP.counter_04' 0
+C 'fcounter_04.svl4n16pagev_toggle/counter_04oq[2]hTOP.counter_04' 0
+C 'fcounter_04.svl4n16pagev_toggle/counter_04oq[3]hTOP.counter_04' 0
+C 'fcounter_04.svl4n16pagev_toggle/counter_04oq[4]hTOP.counter_04' 0
+C 'fcounter_04.svl4n16pagev_toggle/counter_04oq[5]hTOP.counter_04' 0
+C 'fcounter_04.svl4n16pagev_toggle/counter_04oq[6]hTOP.counter_04' 0
+C 'fcounter_04.svl4n16pagev_toggle/counter_04oq[7]hTOP.counter_04' 0
+C 'fcounter_04.svl7n13pagev_toggle/counter_04oq_reg[0]hTOP.counter_04' 0
+C 'fcounter_04.svl7n13pagev_toggle/counter_04oq_reg[1]hTOP.counter_04' 0
+C 'fcounter_04.svl7n13pagev_toggle/counter_04oq_reg[2]hTOP.counter_04' 0
+C 'fcounter_04.svl7n13pagev_toggle/counter_04oq_reg[3]hTOP.counter_04' 0
+C 'fcounter_04.svl7n13pagev_toggle/counter_04oq_reg[4]hTOP.counter_04' 0
+C 'fcounter_04.svl7n13pagev_toggle/counter_04oq_reg[5]hTOP.counter_04' 0
+C 'fcounter_04.svl7n13pagev_toggle/counter_04oq_reg[6]hTOP.counter_04' 0
+C 'fcounter_04.svl7n13pagev_toggle/counter_04oq_reg[7]hTOP.counter_04' 0
+C 'fcounter_04.svl9n3pagev_line/counter_04oblockS9hTOP.counter_04' 224

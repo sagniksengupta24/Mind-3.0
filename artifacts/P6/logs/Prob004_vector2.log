@@ -1,0 +1,13 @@
+=== Execution Log for Prob004_vector2 ===
+Time: Wed Sep 30 03:44:47 2026
+Duration: 33.07s
+Benchmark Verdict: MISMATCH
+Mind3 Internal Verdict: FAIL
+Gates: G1=PASS, G2=FAIL, G3=SKIPPED
+Failed Category: UNSUPPORTED_FORMAL_PROPERTY
+Failure Class: GATE2_INFRASTRUCTURE_FAILURE
+SHA-256 Transcript: c3eed2e1883cf6ddc37644870580b0ff7341dfbc399970c3f1954511575c49b0
+SHA-256 Verified:   NO_VERIFIED_RTL
+SHA-256 Graded:     c3eed2e1883cf6ddc37644870580b0ff7341dfbc399970c3f1954511575c49b0
+SHA Match:          True
+Diagnostic:         109 mismatches detected

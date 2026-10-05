@@ -1,0 +1,474 @@
+{
+  "task_id": "counter_03",
+  "category": "counters",
+  "name": "bcd_counter_2digit",
+  "natural_language_spec": "2-digit 0-99 BCD decimal counter with carry out on wrap",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_03",
+    "functional_spec": "2-digit 0-99 BCD decimal counter with carry out on wrap",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "bcd_ones",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "bcd_tens",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "carry_out",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "2-digit 0-99 BCD decimal counter with carry out on wrap"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);",
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);",
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "bcd_ones <= 4'd9",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "bcd_tens <= 4'd9",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n\n  reg [3:0] bcd_ones_reg;\n  reg [3:0] bcd_tens_reg;\n  reg carry_out_reg;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      bcd_ones_reg <= 4'd0;\n      bcd_tens_reg <= 4'd0;\n      carry_out_reg <= 1'b0;\n    end else if (en) begin\n      if (bcd_ones_reg == 4'd9) begin\n        bcd_ones_reg <= 4'd0;\n        bcd_tens_reg <= bcd_tens_reg + 1'b1;\n        carry_out_reg <= 1'b1;\n      end else begin\n        bcd_ones_reg <= bcd_ones_reg + 1'b1;\n        carry_out_reg <= 1'b0;\n      end\n    end else begin\n      carry_out_reg <= 1'b0;\n    end\n  end\n\n  assign bcd_ones = bcd_ones_reg;\n  assign bcd_tens = bcd_tens_reg;\n  assign carry_out = carry_out_reg;\n\nendmodule",
+  "gate_failure_category": "FORMAL_INVARIANT_BREACH",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"2-digit 0-99 BCD decimal counter with carry out on wrap\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"bcd_ones <= 4'd9\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"bcd_tens <= 4'd9\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"2-digit 0-99 BCD decimal counter with carry out on wrap\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n  ],\n  \"module_name\": \"counter_03\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"bcd_ones\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"bcd_tens\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"carry_out\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"FORMAL_INVARIANT_BREACH\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"2-digit 0-99 BCD decimal counter with carry out on wrap\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"bcd_ones <= 4'd9\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"bcd_tens <= 4'd9\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"2-digit 0-99 BCD decimal counter with carry out on wrap\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n    ],\n    \"module_name\": \"counter_03\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"bcd_ones\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"bcd_tens\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"carry_out\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 2: SymbiYosys Formal Property Verification)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"formal\",\n  \"stderr_tail\": \"\",\n  \"stdout_tail\": \"op/Mind-3.0-main/artifacts/stage12_postfix_diag/run_workspaces/counter_03/counter_03/src/counter_03.sv'.\\nSBY 13:59:03 [counter_03] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage12_postfix_diag/run_workspaces/counter_03/counter_03_formal_top.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage12_postfix_diag/run_workspaces/counter_03/counter_03/src/counter_03_formal_top.sv'.\\nSBY 13:59:03 [counter_03] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage12_postfix_diag/run_workspaces/counter_03/counter_03_sva.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage12_postfix_diag/run_workspaces/counter_03/counter_03/src/counter_03_sva.sv'.\\nSBY 13:59:03 [counter_03] engine_0: smtbmc z3\\nSBY 13:59:03 [counter_03] base: starting process \\\"cd counter_03/src; yosys -ql ../model/design.log ../model/design.ys\\\"\\nSBY 13:59:03 [counter_03] base: Warning: Wire counter_03_formal_top.\\\\rst_n is used but has no driver.\\nSBY 13:59:03 [counter_03] base: Warning: Wire counter_03_formal_top.\\\\en is used but has no driver.\\nSBY 13:59:03 [counter_03] base: Warning: Wire counter_03_formal_top.\\\\clk is used but has no driver.\\nSBY 13:59:03 [counter_03] base: finished (returncode=0)\\nSBY 13:59:03 [counter_03] prep: starting process \\\"cd counter_03/model; yosys -ql design_prep.log design_prep.ys\\\"\\nSBY 13:59:03 [counter_03] prep: Warning: Wire counter_03_formal_top.\\\\rst_n is used but has no driver.\\nSBY 13:59:03 [counter_03] prep: Warning: Wire counter_03_formal_top.\\\\en is used but has no driver.\\nSBY 13:59:03 [counter_03] prep: Warning: Wire counter_03_formal_top.\\\\clk is used but has no driver.\\nSBY 13:59:03 [counter_03] prep: finished (returncode=0)\\nSBY 13:59:03 [counter_03] smt2: starting process \\\"cd counter_03/model; yosys -ql design_smt2.log design_smt2.ys\\\"\\nSBY 13:59:03 [counter_03] smt2: finished (returncode=0)\\nSBY 13:59:03 [counter_03] engine_0: starting process \\\"cd counter_03; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\\\"\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Solver: z3\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Checking assumptions in step 0..\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Checking assertions in step 0..\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Checking assumptions in step 1..\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Checking assertions in step 1..\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Checking assumptions in step 2..\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Checking assertions in step 2..\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  BMC failed!\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Assert failed in counter_03_formal_top.sva: counter_03_sva.sv:20.24-20.50 ($assert$counter_03_sva.sv:20$16)\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\\nSBY 13:59:03 [counter_03] engine_0: ##   0:00:00  Status: failed\\nSBY 13:59:03 [counter_03] engine_0: finished (returncode=1)\\nSBY 13:59:03 [counter_03] engine_0: Status returned by engine: FAIL\\nSBY 13:59:03 [counter_03] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\\nSBY 13:59:03 [counter_03] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\\nSBY 13:59:03 [counter_03] summary: engine_0 (smtbmc z3) returned FAIL\\nSBY 13:59:03 [counter_03] summary: counterexample trace: counter_03/engine_0/trace.vcd\\nSBY 13:59:03 [counter_03] summary:   failed assertion counter_03_formal_top.sva.$assert$counter_03_sva.sv:20$16 at counter_03_sva.sv:20.24-20.50 step 2\\nSBY 13:59:03 [counter_03] DONE (FAIL, rc=2)\\n\",\n  \"tool\": \"sby\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n\n  reg [3:0] bcd_ones_reg;\n  reg [3:0] bcd_tens_reg;\n  reg carry_out_reg;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      bcd_ones_reg <= 4'd0;\n      bcd_tens_reg <= 4'd0;\n      carry_out_reg <= 1'b0;\n    end else if (en) begin\n      if (bcd_ones_reg == 4'd9) begin\n        bcd_ones_reg <= 4'd0;\n        bcd_tens_reg <= bcd_tens_reg + 1'b1;\n        carry_out_reg <= 1'b1;\n      end else begin\n        bcd_ones_reg <= bcd_ones_reg + 1'b1;\n        carry_out_reg <= 1'b0;\n      end\n    end else begin\n      carry_out_reg <= 1'b0;\n    end\n  end\n\n  assign bcd_ones = bcd_ones_reg;\n  assign bcd_tens = bcd_tens_reg;\n  assign carry_out = carry_out_reg;\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 2,
+          "stdout": "",
+          "stderr": "counter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+          "details": "RTL compile failed (iverilog): \ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_03",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_03/src/counter_03.sv",
+              "counter_03.sv"
+            ],
+            "return_code": 2,
+            "stdout": "",
+            "stderr": "counter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+            "file": "counter_03.sv",
+            "line": 1,
+            "column": 1,
+            "source_context": "1: module counter_03 (\n2:   input clk,\n3:   input rst_n,"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"2-digit 0-99 BCD decimal counter with carry out on wrap\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"bcd_ones <= 4'd9\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"bcd_tens <= 4'd9\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"2-digit 0-99 BCD decimal counter with carry out on wrap\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n  ],\n  \"module_name\": \"counter_03\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"bcd_ones\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"bcd_tens\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"carry_out\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 2,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"2-digit 0-99 BCD decimal counter with carry out on wrap\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"bcd_ones <= 4'd9\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"bcd_tens <= 4'd9\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"2-digit 0-99 BCD decimal counter with carry out on wrap\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n    ],\n    \"module_name\": \"counter_03\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"bcd_ones\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"bcd_tens\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"carry_out\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"FORMAL_INVARIANT_BREACH\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"counter_03.sv:1: error: 'counter_03' has already been declared in this scope.\\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\\n\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n\n  reg [3:0] bcd_ones_reg;\n  reg [3:0] bcd_tens_reg;\n  reg carry_out_reg;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      bcd_ones_reg <= 4'd0;\n      bcd_tens_reg <= 4'd0;\n      carry_out_reg <= 1'b0;\n    end else if (en) begin\n      if (bcd_ones_reg == 4'd9) begin\n        bcd_ones_reg <= 4'd0;\n        bcd_tens_reg <= bcd_tens_reg + 1'b1;\n        carry_out_reg <= 1'b1;\n      end else begin\n        bcd_ones_reg <= bcd_ones_reg + 1'b1;\n        carry_out_reg <= 1'b0;\n      end\n    end else begin\n      carry_out_reg <= 1'b0;\n    end\n  end\n\n  assign bcd_ones = bcd_ones_reg;\n  assign bcd_tens = bcd_tens_reg;\n  assign carry_out = carry_out_reg;\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 2,
+          "stdout": "",
+          "stderr": "counter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+          "details": "RTL compile failed (iverilog): \ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_03",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_03/src/counter_03.sv",
+              "counter_03.sv"
+            ],
+            "return_code": 2,
+            "stdout": "",
+            "stderr": "counter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+            "file": "counter_03.sv",
+            "line": 1,
+            "column": 1,
+            "source_context": "1: module counter_03 (\n2:   input clk,\n3:   input rst_n,"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"2-digit 0-99 BCD decimal counter with carry out on wrap\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"bcd_ones <= 4'd9\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"bcd_tens <= 4'd9\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"2-digit 0-99 BCD decimal counter with carry out on wrap\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n  ],\n  \"module_name\": \"counter_03\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"bcd_ones\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"bcd_tens\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"carry_out\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 3,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"2-digit 0-99 BCD decimal counter with carry out on wrap\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"bcd_ones <= 4'd9\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"bcd_tens <= 4'd9\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"2-digit 0-99 BCD decimal counter with carry out on wrap\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n    ],\n    \"module_name\": \"counter_03\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"bcd_ones\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"bcd_tens\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"carry_out\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"FORMAL_INVARIANT_BREACH\",\n    \"SYNTAX_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"counter_03.sv:1: error: 'counter_03' has already been declared in this scope.\\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\\n\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n\n  reg [3:0] bcd_ones_reg;\n  reg [3:0] bcd_tens_reg;\n  reg carry_out_reg;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      bcd_ones_reg <= 4'd0;\n      bcd_tens_reg <= 4'd0;\n      carry_out_reg <= 1'b0;\n    end else if (en) begin\n      if (bcd_ones_reg == 4'd9) begin\n        bcd_ones_reg <= 4'd0;\n        bcd_tens_reg <= bcd_tens_reg + 1'b1;\n        carry_out_reg <= 1'b1;\n      end else begin\n        bcd_ones_reg <= bcd_ones_reg + 1'b1;\n        carry_out_reg <= 1'b0;\n      end\n    end else begin\n      carry_out_reg <= 1'b0;\n    end\n  end\n\n  assign bcd_ones = bcd_ones_reg;\n  assign bcd_tens = bcd_tens_reg;\n  assign carry_out = carry_out_reg;\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 2,
+          "stdout": "",
+          "stderr": "counter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+          "details": "RTL compile failed (iverilog): \ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_03",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_03/src/counter_03.sv",
+              "counter_03.sv"
+            ],
+            "return_code": 2,
+            "stdout": "",
+            "stderr": "counter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_03.sv:1: error: 'counter_03' has already been declared in this scope.\ncounter_03/src/counter_03.sv:1:      : It was declared here as a module.\ncounter_03.sv:37: error: Module counter_03 was already declared here: counter_03/src/counter_03.sv:1\n\n",
+            "file": "counter_03.sv",
+            "line": 1,
+            "column": 1,
+            "source_context": "1: module counter_03 (\n2:   input clk,\n3:   input rst_n,"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "failure_category": "SYNTAX_ERROR",
+    "passed": false
+  },
+  "timestamp": 1791188962.6674767,
+  "duration_seconds": 29.261,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "93f5520b6790c0b70738b81a1629efffbe09216fcc4744047663f0b03d8cf67f"
+  }
+}

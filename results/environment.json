@@ -1,0 +1,7 @@
+{
+  "platform": "Darwin",
+  "machine": "arm64",
+  "python": "3.14.7",
+  "all_core_tools_passed": true,
+  "summary": "yosys: OK; verilator: OK; sby: OK; opensta: MISSING; openroad: MISSING"
+}

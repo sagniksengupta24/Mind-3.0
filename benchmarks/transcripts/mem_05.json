@@ -1,0 +1,97 @@
+{
+  "task_id": "mem_05",
+  "category": "Memory Controller",
+  "name": "pseudo_lru_replacement_4way",
+  "natural_language_spec": "Tree-based pseudo-LRU replacement policy tracker updating 3 decision bits across 4 cache ways.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "mem_05",
+    "functional_spec": "Tree-based pseudo-LRU replacement policy tracker updating 3 decision bits across 4 cache ways.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "access_way",
+        "direction": "input",
+        "width": 2,
+        "description": ""
+      },
+      {
+        "name": "access_valid",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "victim_way",
+        "direction": "output",
+        "width": 2,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge clk) !rst_n |-> victim_way == 2'd0);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) access_valid |=> victim_way != $past(access_way));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule mem_05 (\n  input wire clk,\n  input wire rst_n,\n  input wire [1:0] access_way,\n  input wire access_valid,\n  output wire [1:0] victim_way\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": "TIMING_SLACK_VIOLATION",
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": false,
+    "status": "REPAIR_EXHAUSTED",
+    "turns_taken": 10,
+    "silicon_verified": false,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Timing",
+        "passed": false,
+        "details": "WNS violation: -0.150ns"
+      }
+    ]
+  },
+  "timestamp": 1790037074.029702
+}

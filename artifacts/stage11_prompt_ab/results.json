@@ -1,0 +1,272 @@
+{
+  "counter_02_A": {
+    "task": "counter_02",
+    "variant": "A",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "CLOCK_RESET_ERROR",
+    "failure_reason": "Structural contract validation failed: Clocked contract requires an posedge clk sequential block, but none was found.",
+    "gates": [
+      [
+        "Gate 1",
+        false
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_02_B": {
+    "task": "counter_02",
+    "variant": "B",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "failure_reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_02.sv:27:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   27 | endmodule\n      |          ^\n                     ... For warning description see https://ve",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_02_C": {
+    "task": "counter_02",
+    "variant": "C",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "failure_reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_02.sv:27:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   27 | endmodule\n      |          ^\n                     ... For warning description see https://ve",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_05_A": {
+    "task": "counter_05",
+    "variant": "A",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "SYNTAX_ERROR",
+    "failure_reason": "RTL compile failed (iverilog): \ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:30: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n2 error(s) during ",
+    "gates": [
+      [
+        "Gate 1",
+        false
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_05_B": {
+    "task": "counter_05",
+    "variant": "B",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "failure_reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_05.sv:24:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   24 | endmodule\n      |          ^\n                     ... For warning description see https://ve",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_05_C": {
+    "task": "counter_05",
+    "variant": "C",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "failure_reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_05.sv:18:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   18 | endmodule\n      |          ^\n                     ... For warning description see https://ve",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_10_A": {
+    "task": "counter_10",
+    "variant": "A",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "SYNTHESIS_ELABORATION_ERROR",
+    "failure_reason": "Yosys elaboration failed.",
+    "gates": [
+      [
+        "Gate 1",
+        false
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_10_B": {
+    "task": "counter_10",
+    "variant": "B",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "failure_reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_10.sv:24:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   24 | endmodule\n      |          ^\n                     ... For warning description see https://ve",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_10_C": {
+    "task": "counter_10",
+    "variant": "C",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "failure_reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_10.sv:18:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   18 | endmodule\n      |          ^\n                     ... For warning description see https://ve",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  }
+}

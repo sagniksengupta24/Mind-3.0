@@ -1,0 +1,115 @@
+{
+  "task_id": "mem_08",
+  "category": "Memory Controller",
+  "name": "lifo_stack_controller_16depth",
+  "natural_language_spec": "16-word Last-In-First-Out hardware stack with push, pop, stack-overflow, and stack-underflow alarms.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "mem_08",
+    "functional_spec": "16-word Last-In-First-Out hardware stack with push, pop, stack-overflow, and stack-underflow alarms.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "push",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "pop",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "din",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "dout",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "overflow_err",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "underflow_err",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge clk) !rst_n |-> (!overflow_err && !underflow_err));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) !(push && pop));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule mem_08 (\n  input wire clk,\n  input wire rst_n,\n  input wire push,\n  input wire pop,\n  input wire [7:0] din,\n  output wire [7:0] dout,\n  output wire overflow_err,\n  output wire underflow_err\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": "TIMING_SLACK_VIOLATION",
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": false,
+    "status": "REPAIR_EXHAUSTED",
+    "turns_taken": 10,
+    "silicon_verified": false,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Timing",
+        "passed": false,
+        "details": "WNS violation: -0.150ns"
+      }
+    ]
+  },
+  "timestamp": 1790037074.029963
+}

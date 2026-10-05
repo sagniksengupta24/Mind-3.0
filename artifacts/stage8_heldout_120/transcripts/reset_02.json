@@ -1,0 +1,140 @@
+{
+  "task_id": "reset_02",
+  "category": "reset-heavy designs",
+  "name": "glitch_free_reset_mux",
+  "natural_language_spec": "Glitch-free reset multiplexer switching between test and mission resets",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "reset_02",
+    "functional_spec": "Glitch-free reset multiplexer switching between test and mission resets",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "in_data",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "out_data",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Glitch-free reset multiplexer switching between test and mission resets"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "out_data == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "out_data == out_data",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 2,
+      "guidance": "Repair model invocation failed: timed out. Return the complete SystemVerilog module only.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    },
+    {
+      "turn": 3,
+      "guidance": "The previous repair response could not be parsed: Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module..\nReturn ONLY the complete SystemVerilog module, including its module declaration and endmodule.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791187103.191589,
+  "duration_seconds": 322.207,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {},
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "d7e56335d2b3a700174dbb1a283b5928bfb38a0eeb111a834532760517743929"
+  }
+}

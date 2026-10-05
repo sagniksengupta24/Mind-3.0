@@ -1,0 +1,27 @@
+{
+  "task_id": "pipelined_adder",
+  "turn": 3,
+  "provider": "Ollama (local)",
+  "model": "qwen2.5-coder:30b",
+  "endpoint": "http://127.0.0.1:11434",
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "seed": 42,
+  "max_tokens": 2048,
+  "system_prompt_hash": "0eb373634b2e0351a0f21c9b5615d8466f41c554c01aa842bd774fe9100ab95d",
+  "task_prompt_hash": "55c1d8a36818e9be5df13514e05bf06ca5f0fa4a45bf747517c7d5098787b689",
+  "request_timestamp": "2026-09-28T00:31:15.905847+00:00",
+  "response_timestamp": "2026-09-28T00:31:35.516955+00:00",
+  "latency_seconds": 19.611,
+  "bmc_depth": 25,
+  "verification": {
+    "syntax": "PASS",
+    "lint": "PASS",
+    "simulation": "FAIL",
+    "bmc": "NOT_RUN",
+    "bmc_depth": 25,
+    "passed": false,
+    "failure_gate": "Functional",
+    "failure_reason": "Testbench simulation failed (exit code 1):\nFAIL: valid_out not asserted for item 0\nFATAL: /home/mind/Desktop/AI/Mind-3.0/artifacts/step1/pipelined_adder/turn_3/tb_pipelined_adder.sv:66: \n       Time: 556000  Scope: tb_pipelined_adder.$unm_blk_7\n\n"
+  }
+}

@@ -1,0 +1,6 @@
+
+/home/mind/Desktop/AI/benchmark_scratch/verilog-eval/dataset_spec-to-rtl/Prob026_alwaysblock1_test.sv:94: error: Unknown module type: TopModule
+2 error(s) during elaboration.
+*** These modules were missing:
+        TopModule referenced 1 times.
+***

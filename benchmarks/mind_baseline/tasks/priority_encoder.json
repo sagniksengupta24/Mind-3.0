@@ -1,0 +1,34 @@
+{
+  "task_id": "priority_encoder",
+  "task_name": "8-to-3 Priority Encoder",
+  "category": "Basic combinational/sequential logic",
+  "module_name": "priority_encoder",
+  "functional_spec": "Implement a synthesizable 8-to-3 priority encoder in SystemVerilog.\nPorts:\n  input  wire [7:0] in\n  output reg  [2:0] out\n  output reg        valid\nBehavior:\n  The module inspects the 8-bit input 'in'. Bit 7 has the highest priority and bit 0 has the lowest priority.\n  'out' must encode the index of the highest-order '1' bit present in 'in'.\n  'valid' must be 1 whenever at least one bit of 'in' is 1.\n  If 'in' is all zeros (8'b00000000), 'valid' must be 0 and 'out' must be 3'b000.\n  The design must be purely combinational with zero inferred latches.",
+  "interface": {
+    "ports": [
+      {
+        "name": "in",
+        "direction": "input",
+        "width": 8
+      },
+      {
+        "name": "out",
+        "direction": "output",
+        "width": 3
+      },
+      {
+        "name": "valid",
+        "direction": "output",
+        "width": 1
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Pure combinational logic; no clock or reset required.",
+  "expected_behavior": "out matches MSB index of in; valid is high iff in != 0.",
+  "verification_strategy": "Exhaustive 256-vector simulation + Yosys latch check + SymbiYosys BMC.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_priority_encoder;\n    reg [7:0] in;\n    wire [2:0] out;\n    wire valid;\n    priority_encoder dut (.in(in), .out(out), .valid(valid));\n\n    integer i;\n    reg exp_valid;\n    reg [2:0] exp_out;\n\n    initial begin\n        for (i = 0; i < 256; i = i + 1) begin\n            in = i[7:0];\n            #5;\n            exp_valid = (in != 0);\n            exp_out = 3'd0;\n            if (in[7]) exp_out = 3'd7;\n            else if (in[6]) exp_out = 3'd6;\n            else if (in[5]) exp_out = 3'd5;\n            else if (in[4]) exp_out = 3'd4;\n            else if (in[3]) exp_out = 3'd3;\n            else if (in[2]) exp_out = 3'd2;\n            else if (in[1]) exp_out = 3'd1;\n            else if (in[0]) exp_out = 3'd0;\n\n            if (valid !== exp_valid || out !== exp_out) begin\n                $display(\"FAIL: in=%b got valid=%b out=%b expected valid=%b out=%b\",\n                         in, valid, out, exp_valid, exp_out);\n                $fatal(1);\n            end\n        end\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module priority_encoder_formal(\n    input wire [7:0] in\n);\n    wire [2:0] out;\n    wire valid;\n    priority_encoder dut (.in(in), .out(out), .valid(valid));\n\n    always @(*) begin\n        if (in == 8'b0) begin\n            assert(!valid);\n            assert(out == 3'b000);\n        end else begin\n            assert(valid);\n        end\n        if (in[7]) assert(out == 3'd7);\n        else if (in[6]) assert(out == 3'd6);\n        else if (in[5]) assert(out == 3'd5);\n        else if (in[4]) assert(out == 3'd4);\n        else if (in[3]) assert(out == 3'd3);\n        else if (in[2]) assert(out == 3'd2);\n        else if (in[1]) assert(out == 3'd1);\n        else if (in[0]) assert(out == 3'd0);\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable 8-to-3 priority encoder in SystemVerilog.\nModule name: priority_encoder\nPorts:\n  input  wire [7:0] in,\n  output reg  [2:0] out,\n  output reg        valid\nRequirements:\n- Bit 7 has highest priority, bit 0 lowest priority.\n- 'out' encodes the index of the highest 1-bit.\n- 'valid' is 1 if any bit in 'in' is 1, otherwise 0.\n- When in == 8'b0, out must be 3'b000 and valid must be 1'b0.\n- Must be synthesizable with zero latches.\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

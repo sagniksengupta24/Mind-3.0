@@ -1,0 +1,44 @@
+{
+  "task_id": "traffic_light_controller",
+  "task_name": "Traffic Light Controller FSM",
+  "category": "FSM/control",
+  "module_name": "traffic_light_controller",
+  "functional_spec": "Implement a synthesizable traffic light controller FSM in SystemVerilog.\nPorts:\n  input  wire       clk\n  input  wire       rst_n\n  input  wire       car_side\n  output reg  [1:0] light_main\n  output reg  [1:0] light_side\nLight Encoding:\n  2'b00: RED\n  2'b01: YELLOW\n  2'b10: GREEN\nFSM Specification:\n  State S_MAIN_GREEN (0): Main is GREEN (2'b10), Side is RED (2'b00). Must stay at least 4 cycles. If car_side=1 after 4 cycles, transition to S_MAIN_YELLOW.\n  State S_MAIN_YELLOW (1): Main is YELLOW (2'b01), Side is RED (2'b00). Stays exactly 2 cycles, then transitions to S_SIDE_GREEN.\n  State S_SIDE_GREEN (2): Main is RED (2'b00), Side is GREEN (2'b10). Stays for 4 cycles (or transitions early after min 2 cycles if car_side=0), then transitions to S_SIDE_YELLOW.\n  State S_SIDE_YELLOW (3): Main is RED (2'b00), Side is YELLOW (2'b01). Stays exactly 2 cycles, then transitions to S_MAIN_GREEN.\n  Safety Invariant: light_main and light_side must NEVER both be GREEN or YELLOW simultaneously. When one is GREEN or YELLOW, the other MUST be RED.",
+  "interface": {
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "car_side",
+        "direction": "input",
+        "width": 1
+      },
+      {
+        "name": "light_main",
+        "direction": "output",
+        "width": 2
+      },
+      {
+        "name": "light_side",
+        "direction": "output",
+        "width": 2
+      }
+    ]
+  },
+  "clock_reset_assumptions": "Clock clk; active-low reset rst_n.",
+  "expected_behavior": "FSM sequences lights without collision; respects minimum green/yellow timers.",
+  "verification_strategy": "Cycle simulation through multiple sensor scenarios + SBY BMC mutual exclusion check.",
+  "testbench_code": "`timescale 1ns/1ps\nmodule tb_traffic_light_controller;\n    reg clk;\n    reg rst_n;\n    reg car_side;\n    wire [1:0] light_main;\n    wire [1:0] light_side;\n\n    traffic_light_controller dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .car_side(car_side),\n        .light_main(light_main),\n        .light_side(light_side)\n    );\n\n    always #5 clk = ~clk;\n\n    initial begin\n        #10000;\n        $display(\"FAIL: Simulation watchdog timeout (DUT hung in FSM state)\");\n        $fatal(1);\n    end\n\n    integer cycle;\n\n    always @(posedge clk) begin\n        if (rst_n) begin\n            if (light_main != 2'b00 && light_side != 2'b00) begin\n                $display(\"FAIL: Mutual exclusion breached: main=%b, side=%b at cycle %0d\",\n                         light_main, light_side, cycle);\n                $fatal(1);\n            end\n        end\n    end\n\n    initial begin\n        clk = 0;\n        rst_n = 0;\n        car_side = 0;\n        cycle = 0;\n        #20;\n        rst_n = 1;\n\n        for (cycle = 0; cycle < 10; cycle = cycle + 1) begin\n            @(posedge clk);\n            #1;\n            if (light_main !== 2'b10 || light_side !== 2'b00) begin\n                $display(\"FAIL: Expected Main GREEN, Side RED with no car, got main=%b, side=%b\",\n                         light_main, light_side);\n                $fatal(1);\n            end\n        end\n\n        car_side = 1;\n        while (light_main == 2'b10) @(posedge clk);\n        #1;\n        if (light_main !== 2'b01 || light_side !== 2'b00) begin\n            $display(\"FAIL: Expected Main YELLOW, Side RED, got main=%b, side=%b\", light_main, light_side);\n            $fatal(1);\n        end\n\n        while (light_main == 2'b01) @(posedge clk);\n        #1;\n        if (light_main !== 2'b00 || light_side !== 2'b10) begin\n            $display(\"FAIL: Expected Main RED, Side GREEN, got main=%b, side=%b\", light_main, light_side);\n            $fatal(1);\n        end\n\n        while (light_side == 2'b10) @(posedge clk);\n        #1;\n        if (light_main !== 2'b00 || light_side !== 2'b01) begin\n            $display(\"FAIL: Expected Main RED, Side YELLOW, got main=%b, side=%b\", light_main, light_side);\n            $fatal(1);\n        end\n\n        while (light_side == 2'b01) @(posedge clk);\n        #1;\n        if (light_main !== 2'b10 || light_side !== 2'b00) begin\n            $display(\"FAIL: Expected return to Main GREEN, got main=%b, side=%b\", light_main, light_side);\n            $fatal(1);\n        end\n\n        $display(\"ALL_TESTS_PASSED\");\n        $finish;\n    end\nendmodule\n",
+  "sva_code": "module traffic_light_controller_formal(\n    input wire clk,\n    input wire rst_n,\n    input wire car_side\n);\n    wire [1:0] light_main;\n    wire [1:0] light_side;\n\n    traffic_light_controller dut (\n        .clk(clk),\n        .rst_n(rst_n),\n        .car_side(car_side),\n        .light_main(light_main),\n        .light_side(light_side)\n    );\n\n    always @(posedge clk) begin\n        if (rst_n) begin\n            assert(!(light_main != 2'b00 && light_side != 2'b00));\n        end\n    end\nendmodule\n",
+  "generation_prompt": "Write a synthesizable traffic light controller FSM in SystemVerilog.\nModule name: traffic_light_controller\nPorts:\n  input  wire       clk,\n  input  wire       rst_n,\n  input  wire       car_side,\n  output reg  [1:0] light_main,\n  output reg  [1:0] light_side\nLight encodings: 2'b00=RED, 2'b01=YELLOW, 2'b10=GREEN.\nStates:\n1. S_MAIN_GREEN: Main=GREEN, Side=RED. Minimum 4 cycles. If car_side=1 after 4 cycles, goto S_MAIN_YELLOW.\n2. S_MAIN_YELLOW: Main=YELLOW, Side=RED. Exactly 2 cycles. Then goto S_SIDE_GREEN.\n3. S_SIDE_GREEN: Main=RED, Side=GREEN. Stays 4 cycles (or exits if car_side=0 after 2 cycles). Then goto S_SIDE_YELLOW.\n4. S_SIDE_YELLOW: Main=RED, Side=YELLOW. Exactly 2 cycles. Then goto S_MAIN_GREEN.\nSafety rule: light_main and light_side must NEVER both be non-red simultaneously!\nOutput only SystemVerilog code inside ```systemverilog ... ```.",
+  "repair_policy": "Maximum 3 repair turns; inject raw compiler/simulator diagnostics into prompt.",
+  "timeout": 60
+}

@@ -1,0 +1,109 @@
+{
+  "task_id": "bus_06",
+  "category": "Bus Protocol",
+  "name": "i2c_master_bit_controller",
+  "natural_language_spec": "I2C open-drain bus controller driving START, STOP, ACK, and data bit phases over SCL and SDA.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "bus_06",
+    "functional_spec": "I2C open-drain bus controller driving START, STOP, ACK, and data bit phases over SCL and SDA.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "cmd_start",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "cmd_stop",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "scl_oen",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "sda_oen",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "busy",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge clk) !rst_n |-> (!busy && scl_oen && sda_oen));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) cmd_start |=> busy);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule bus_06 (\n  input wire clk,\n  input wire rst_n,\n  input wire cmd_start,\n  input wire cmd_stop,\n  output wire scl_oen,\n  output wire sda_oen,\n  output wire busy\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": "TIMING_SLACK_VIOLATION",
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": false,
+    "status": "REPAIR_EXHAUSTED",
+    "turns_taken": 10,
+    "silicon_verified": false,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Timing",
+        "passed": false,
+        "details": "WNS violation: -0.150ns"
+      }
+    ]
+  },
+  "timestamp": 1790037074.028784
+}

@@ -1,0 +1,20 @@
+{
+  "task_id": "arbiter_06",
+  "baseline": "Mind 3.0 (Contract-guided fail-closed)",
+  "compile_pass": false,
+  "simulation_pass": false,
+  "formal_pass": false,
+  "timing_pass": false,
+  "full_verified_pass": false,
+  "repair_success": false,
+  "repair_attempts": 0,
+  "runtime_sec": 0.032,
+  "token_usage": 2500,
+  "estimated_cost_usd": 0.007,
+  "failure_category": "FORMAL_FAILURE",
+  "tool_versions": {},
+  "model_version": "gemini-1.5-pro",
+  "benchmark_version": "heldout-v1",
+  "task_hash": "3449bca1ca016ca9912cac9251adf7fdf109b72378d0915d0244cf494c67d5b5",
+  "run_hash": "0ce07397fdf097b2c6d09bd85984e525ec65037fc7305445b63f5da3c40d37ef"
+}

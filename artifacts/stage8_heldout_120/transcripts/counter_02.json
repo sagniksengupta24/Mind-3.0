@@ -1,0 +1,135 @@
+{
+  "task_id": "counter_02",
+  "category": "counters",
+  "name": "gray_counter_4b",
+  "natural_language_spec": "4-bit synchronous Gray code counter incrementing by 1 Gray step each active cycle",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_02",
+    "functional_spec": "4-bit synchronous Gray code counter incrementing by 1 Gray step each active cycle",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "gray",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "4-bit synchronous Gray code counter incrementing by 1 Gray step each active cycle"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> gray == 4'b0000);",
+      "assert property (@(posedge clk) disable iff (!rst_n) en |=> $onehot(gray ^ $past(gray)));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> gray == 4'b0000);",
+      "assert property (@(posedge clk) disable iff (!rst_n) en |=> $onehot(gray ^ $past(gray)));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "gray == 4'b0000",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "contract_property_2",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) en |=> $onehot(gray ^ $past(gray)));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Held-out evaluator property preserved verbatim for bounded classification at formal stage."
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 2,
+      "guidance": "Repair model invocation failed: timed out. Return the complete SystemVerilog module only.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    },
+    {
+      "turn": 3,
+      "guidance": "The previous repair response could not be parsed: Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module..\nReturn ONLY the complete SystemVerilog module, including its module declaration and endmodule.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791128526.5511475,
+  "duration_seconds": 302.082,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {},
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "ae10afcc8ef168a6eaece809bd6f26b89d72fa91016cb289c7c9cf2de43bc855"
+  }
+}

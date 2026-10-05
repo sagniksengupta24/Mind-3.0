@@ -1,0 +1,2 @@
+[console_scripts]
+mind3 = mind3.cli:main

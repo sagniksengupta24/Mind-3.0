@@ -1,0 +1,13 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/mind/Desktop/AI/Mind-3.0
+configfile: pytest.ini
+plugins: anyio-4.15.1, mock-3.16.0
+collecting ... collected 3 items
+
+tests/test_p5_coverage.py::test_p5_valid_fixture_pass PASSED             [ 33%]
+tests/test_p5_coverage.py::test_p5_broken_fixture_fail PASSED            [ 66%]
+tests/test_p5_coverage.py::test_p5_below_threshold_fail PASSED           [100%]
+
+============================== 3 passed in 12.48s ==============================

@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 15
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -formal -sv off_by_one_counter.sv off_by_one_counter_formal_top.sv
+prep -top off_by_one_counter_formal_top
+
+[files]
+off_by_one_counter.sv
+off_by_one_counter_formal_top.sv

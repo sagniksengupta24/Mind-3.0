@@ -1,0 +1,141 @@
+{
+  "task_id": "arbiter_06",
+  "category": "arbiters",
+  "name": "lockable_burst_arbiter",
+  "natural_language_spec": "Arbiter supporting multi-cycle bus locked transactions using lock signal",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "arbiter_06",
+    "functional_spec": "Arbiter supporting multi-cycle bus locked transactions using lock signal",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "req",
+        "direction": "input",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "lock",
+        "direction": "input",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "gnt",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Arbiter supporting multi-cycle bus locked transactions using lock signal"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));",
+      "assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));",
+      "assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_2",
+        "kind": "onehot0",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": null,
+        "signal": "gnt",
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "contract_property_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Held-out evaluator property preserved verbatim for bounded classification at formal stage."
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 2,
+      "guidance": "Repair model invocation failed: timed out. Return the complete SystemVerilog module only.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    },
+    {
+      "turn": 3,
+      "guidance": "The previous repair response could not be parsed: Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module..\nReturn ONLY the complete SystemVerilog module, including its module declaration and endmodule.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791130088.4069028,
+  "duration_seconds": 310.704,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {},
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "1a3708ad5b06ca0f3cb69dab2bb96677382f20c905d27803af5194e40dfa7120"
+  }
+}

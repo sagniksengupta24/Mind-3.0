@@ -1,0 +1,10 @@
+{
+  "syntax": "PASS",
+  "lint": "PASS",
+  "simulation": "PASS",
+  "bmc": "FAIL",
+  "bmc_depth": 25,
+  "passed": false,
+  "failure_gate": "Functional",
+  "failure_reason": "SymbiYosys formal BMC failed:\nSBY  5:59:37 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/gray_counter/turn_1/formal] Removing directory '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/gray_counter/turn_1/formal'.\nSBY  5:59:37 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/gray_counter/turn_1/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/gray_counter/turn_1/gray_counter.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/gray_counter/turn_1/formal/src/gray_counter.sv'.\nSBY  5:59:37 [/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/gray_counter/turn_1/formal] Copy '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/gray_counter/turn_1/sva.sv' to '/home/mind/Desktop/AI/Mind-3.0/artifacts/step1/gray_counter/turn_1/formal/src/sva.sv'.\n"
+}

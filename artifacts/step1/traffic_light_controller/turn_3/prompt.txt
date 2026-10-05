@@ -1,0 +1,119 @@
+Your previously generated SystemVerilog implementation for module 'traffic_light_controller' FAILED verification at the Functional gate.
+
+### Previous Implementation:
+```systemverilog
+module traffic_light_controller (
+    input  wire       clk,
+    input  wire       rst_n,
+    input  wire       car_side,
+    output reg  [1:0] light_main,
+    output reg  [1:0] light_side
+);
+
+    // State encoding
+    localparam S_MAIN_GREEN   = 2'b00;
+    localparam S_MAIN_YELLOW  = 2'b01;
+    localparam S_SIDE_GREEN   = 2'b10;
+    localparam S_SIDE_YELLOW  = 2'b11;
+
+    // Internal signals
+    reg [1:0] current_state, next_state;
+    reg [2:0] counter;
+    reg car_detected;
+
+    // State transition and output logic
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            current_state <= S_MAIN_GREEN;
+            counter <= 3'd0;
+            light_main <= 2'b00;  // RED
+            light_side <= 2'b00;  // RED
+            car_detected <= 1'b0;
+        end else begin
+            current_state <= next_state;
+            counter <= counter + 1;
+            
+            // Update car detection
+            if (counter == 3'd0) begin
+                car_detected <= car_side;
+            end
+            
+            // Outputs
+            case (current_state)
+                S_MAIN_GREEN: begin
+                    light_main <= 2'b10;  // GREEN
+                    light_side <= 2'b00;  // RED
+                end
+                S_MAIN_YELLOW: begin
+                    light_main <= 2'b01;  // YELLOW
+                    light_side <= 2'b00;  // RED
+                end
+                S_SIDE_GREEN: begin
+                    light_main <= 2'b00;  // RED
+                    light_side <= 2'b10;  // GREEN
+                end
+                S_SIDE_YELLOW: begin
+                    light_main <= 2'b00;  // RED
+                    light_side <= 2'b01;  // YELLOW
+                end
+                default: begin
+                    light_main <= 2'b00;  // RED
+                    light_side <= 2'b00;  // RED
+                end
+            endcase
+        end
+    end
+
+    // State transition logic
+    always @(*) begin
+        case (current_state)
+            S_MAIN_GREEN: begin
+                if (counter < 3'd4) begin
+                    next_state = S_MAIN_GREEN;
+                end else if (car_side) begin
+                    next_state = S_MAIN_YELLOW;
+                end else begin
+                    next_state = S_MAIN_GREEN;
+                end
+            end
+            
+            S_MAIN_YELLOW: begin
+                if (counter < 3'd2) begin
+                    next_state = S_MAIN_YELLOW;
+                end else begin
+                    next_state = S_SIDE_GREEN;
+                end
+            end
+            
+            S_SIDE_GREEN: begin
+                if (counter < 3'd4) begin
+                    next_state = S_SIDE_GREEN;
+                end else begin
+                    next_state = S_SIDE_YELLOW;
+                end
+            end
+            
+            S_SIDE_YELLOW: begin
+                if (counter < 3'd2) begin
+                    next_state = S_SIDE_YELLOW;
+                end else begin
+                    next_state = S_MAIN_GREEN;
+                end
+            end
+            
+            default: next_state = S_MAIN_GREEN;
+        endcase
+    end
+
+endmodule
+```
+
+### Verification Diagnostic Feedback:
+Testbench simulation failed (exit code 1):
+FAIL: Expected Main YELLOW, Side RED, got main=00, side=10
+FATAL: /home/mind/Desktop/AI/Mind-3.0/artifacts/step1/traffic_light_controller/turn_2/tb_traffic_light_controller.sv:60: 
+       Time: 166000  Scope: tb_traffic_light_controller
+
+
+
+Please analyze the failure reason carefully, correct the bug in the SystemVerilog logic, and return ONLY the complete corrected synthesizable module enclosed in ```systemverilog ... ```.

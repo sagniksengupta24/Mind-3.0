@@ -1,0 +1,106 @@
+{
+  "task_id": "arith_01",
+  "category": "Arithmetic",
+  "name": "ripple_carry_adder_8bit",
+  "natural_language_spec": "8-bit signed/unsigned ripple-carry adder with carry-in and carry-out flags.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "arith_01",
+    "functional_spec": "8-bit signed/unsigned ripple-carry adder with carry-in and carry-out flags.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "a",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "b",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "cin",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "sum",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "cout",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(*) {cout, sum} == a + b + cin);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(*) (a == 8'hFF && b == 8'h00 && cin == 1'b1) |-> (sum == 8'h00 && cout == 1'b1));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule arith_01 (\n  input wire [7:0] a,\n  input wire [7:0] b,\n  input wire cin,\n  output wire [7:0] sum,\n  output wire cout\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": null,
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 1,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.0269299
+}

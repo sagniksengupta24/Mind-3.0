@@ -1,0 +1,115 @@
+{
+  "task_id": "bus_03",
+  "category": "Bus Protocol",
+  "name": "spi_master_controller",
+  "natural_language_spec": "SPI mode 0 master transmitting 8-bit byte frames over MOSI with SCK clock and CS_N select.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "bus_03",
+    "functional_spec": "SPI mode 0 master transmitting 8-bit byte frames over MOSI with SCK clock and CS_N select.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "start",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "tx_data",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "sck",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "cs_n",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "mosi",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "busy",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(posedge clk) !rst_n |-> (cs_n == 1 && !busy));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) busy |-> !cs_n);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule bus_03 (\n  input wire clk,\n  input wire rst_n,\n  input wire start,\n  input wire [7:0] tx_data,\n  output wire sck,\n  output wire cs_n,\n  output wire mosi,\n  output wire busy\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": "TIMING_SLACK_VIOLATION",
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": false,
+    "status": "REPAIR_EXHAUSTED",
+    "turns_taken": 10,
+    "silicon_verified": false,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Timing",
+        "passed": false,
+        "details": "WNS violation: -0.150ns"
+      }
+    ]
+  },
+  "timestamp": 1790037074.0284932
+}

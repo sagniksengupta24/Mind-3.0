@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind 3.0 Real Benchmark Evaluation Report</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --border: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+        }
+        h1 { margin: 0 0 8px 0; font-size: 2rem; color: var(--primary); }
+        .badge {
+            display: inline-block;
+            background: #0284c7;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .metric-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 4px;
+            color: var(--text);
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            color: var(--text);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: #0f172a80;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        pre {
+            background: #090d16;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <h1>Mind 3.0 RTL Benchmark Report</h1>
+            <span class="badge">Suite: development-20</span>
+        </div>
+        <p style="color: var(--text-muted); margin: 4px 0 0 0;">
+            Evaluated at: <strong>2026-09-30T11:39:58Z</strong> | Commit: <code>UNKNOWN_</code> | Seed: <code>42</code>
+        </p>
+    </header>
+
+    <h2>1. Overall Results</h2>
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-label">Tasks Attempted / Done</div>
+            <div class="metric-value">20 / 20</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Compile Pass Rate</div>
+            <div class="metric-value" style="color: #38bdf8;">0.0%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Simulation Pass Rate</div>
+            <div class="metric-value" style="color: #818cf8;">0.0%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Formal BMC Pass Rate</div>
+            <div class="metric-value" style="color: #a78bfa;">0.0%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Full Verified Pass Rate</div>
+            <div class="metric-value" style="color: #10b981;">0.0%</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">95% CI: [0.0%, 16.1%]</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Repair Success Rate</div>
+            <div class="metric-value" style="color: #fbbf24;">0.0%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Average Runtime</div>
+            <div class="metric-value">108.90s</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Average Cost</div>
+            <div class="metric-value">$0.0000</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2. Baseline Comparison</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Architecture</th>
+                    <th>Tasks</th>
+                    <th>Compile</th>
+                    <th>Simulation</th>
+                    <th>Formal</th>
+                    <th>Full Verified (95% CI)</th>
+                    <th>Repair Rate</th>
+                    <th>Avg Repairs</th>
+                    <th>Avg Cost</th>
+                    <th>Avg Runtime</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td style="font-weight: 600;">Baseline A (Direct 1-shot)</td>
+            <td>20</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td style="font-weight: bold; color: #10b981;">0.0% [0.0%, 16.1%]</td>
+            <td>0.0%</td>
+            <td>0.0</td>
+            <td>$0.0000</td>
+            <td>30.15s</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight: 600;">Baseline B (Naive repair)</td>
+            <td>20</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td style="font-weight: bold; color: #10b981;">0.0% [0.0%, 16.1%]</td>
+            <td>0.0%</td>
+            <td>0.3</td>
+            <td>$0.0000</td>
+            <td>27.34s</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight: 600;">Mind 3.0 (Contract-guided fail-closed)</td>
+            <td>20</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td>0.0%</td>
+            <td style="font-weight: bold; color: #10b981;">0.0% [0.0%, 16.1%]</td>
+            <td>0.0%</td>
+            <td>2.9</td>
+            <td>$0.0000</td>
+            <td>108.90s</td>
+        </tr>
+        
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>3. Failure Analysis (Deterministic Taxonomy)</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+            
+        <div style="background: #1e293b; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span style="font-family: monospace; color: #f87171;">RTL_SYNTAX_ERROR</span>
+            <span style="font-weight: 600; color: #f1f5f9;">12</span>
+        </div>
+        
+        <div style="background: #1e293b; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span style="font-family: monospace; color: #f87171;">SPECIFICATION_ERROR</span>
+            <span style="font-weight: 600; color: #f1f5f9;">1</span>
+        </div>
+        
+        <div style="background: #1e293b; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span style="font-family: monospace; color: #f87171;">UNKNOWN</span>
+            <span style="font-weight: 600; color: #f1f5f9;">7</span>
+        </div>
+        
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>4. Individual Task Evidence & Diagnostics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Task ID</th>
+                    <th>Failure Category</th>
+                    <th>Failing Gate</th>
+                    <th>Deterministic Tool Evidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td style="font-family: monospace;">counter_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 360ad3db059b286f</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">arbiter_02</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">SPECIFICATION_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 3b34209aaa85463e</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_01</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash f3b721152144a785</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fsm_heldout_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash cc0364228787d519</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">uart_01</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">UNKNOWN</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 3a1069756a6972ad</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">reg_if_01</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash adad17dcb8b46ec5</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">apb_01</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">UNKNOWN</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 81dbc6e5691a047b</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">UNKNOWN</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 2a76826107f26c66</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">spi_02</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">UNKNOWN</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 217ba5fb7b391baa</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">axi_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 5d3c75082c6dc770</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">dma_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash a7a80099d9412cef</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">cdc_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">UNKNOWN</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 8dce938a6f069c12</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">reset_02</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash bbe7cce44863e734</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">adapters_03</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 6aa0265cff33e2cd</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">fifo_03</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash af0ce834d333fec5</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">arbiter_03</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">UNKNOWN</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash f3a8479013cfc36e</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">axi_05</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash bdfce72f7a724daa</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">cdc_05</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash df66292f775a6c9e</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">reset_04</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">UNKNOWN</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash 07c738cbdaa15c58</td>
+        </tr>
+        
+        <tr>
+            <td style="font-family: monospace;">adapters_09</td>
+            <td><span style="background: #ef444420; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85em;">RTL_SYNTAX_ERROR</span></td>
+            <td>SiliconSignoffVerifier</td>
+            <td style="font-size: 0.85em; color: #94a3b8;">Run failed verification with run_hash ec203a4d524664ac</td>
+        </tr>
+        
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>5. Provenance & Cryptographic Manifest</h2>
+        <pre><code>{
+  "benchmark_suite": "development-20",
+  "task_set_sha256": "539e79afaf6fa445a95ad82c2337ff70f60d60d4e912f114dd9a3cf402f59c8c",
+  "task_count": 20,
+  "real_task_count": 20,
+  "requested_task_count": 20,
+  "execution_status": "COMPLETED",
+  "model_version": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "performance_claim_valid": true,
+  "seed": 42,
+  "git_commit_sha": "UNKNOWN_COMMIT",
+  "environment": {
+    "platform": "Darwin",
+    "python": "3.14.7",
+    "tool_versions": {
+      "yosys": "Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)",
+      "verilator": "Verilator 5.052 2026-09-05 rev vUNKNOWN-built20260905",
+      "sby": "SBY v0.69",
+      "opensta": "3.1.0",
+      "openroad": "missing"
+    }
+  },
+  "summary_sha256": "81ac6668ae8c1b9d0cb5af09403b51f57fb037464adeec8ece4ef3b53bf48f26",
+  "baseline_comparison_sha256": "66838350db371485e7d2f064f57832c5d4d2318510473e0fbde29ecdeb145b0a",
+  "failures_sha256": "1a2f01d0ddce65d3af41093504dd8466eeb6fca8917b1c9aaeec68f08d10ade4",
+  "created_at": "2026-09-30T11:39:58Z"
+}</code></pre>
+    </div>
+</div>
+</body>
+</html>

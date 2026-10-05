@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal cdc_08.sv
+read -formal cdc_08_sva.sv
+read -formal cdc_08_formal_top.sv
+prep -top cdc_08_formal_top
+
+[files]
+cdc_08.sv
+cdc_08_formal_top.sv
+cdc_08_sva.sv

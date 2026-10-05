@@ -1,0 +1,636 @@
+{
+  "creator": "Yosys 0.33 (git sha1 2584903a060)",
+  "modules": {
+    "counter_03": {
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "counter_03.sv:1.1-42.10"
+      },
+      "ports": {
+        "clk": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "rst_n": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "en": {
+          "direction": "input",
+          "bits": [ 4 ]
+        },
+        "bcd_ones": {
+          "direction": "output",
+          "bits": [ 5, 6, 7, 8 ]
+        },
+        "bcd_tens": {
+          "direction": "output",
+          "bits": [ 9, 10, 11, 12 ]
+        },
+        "carry_out": {
+          "direction": "output",
+          "bits": [ 13 ]
+        }
+      },
+      "cells": {
+        "$abc$282$auto$blifparse.cc:386:parse_blif$283": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__xor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 5 ],
+            "B": [ 4 ],
+            "X": [ 14 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$284": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__and3_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 5 ],
+            "B": [ 4 ],
+            "C": [ 8 ],
+            "X": [ 15 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$285": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 6 ],
+            "B": [ 7 ],
+            "Y": [ 16 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$286": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__and2_0",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 15 ],
+            "B": [ 16 ],
+            "X": [ 17 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$287": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__a21oi_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 5 ],
+            "A2": [ 4 ],
+            "B1": [ 6 ],
+            "Y": [ 18 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$288": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand3_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 5 ],
+            "B": [ 4 ],
+            "C": [ 6 ],
+            "Y": [ 19 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$289": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor3b_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 17 ],
+            "B": [ 18 ],
+            "C_N": [ 19 ],
+            "Y": [ 20 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$290": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__xor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 7 ],
+            "B": [ 19 ],
+            "X": [ 21 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$291": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__clkinv_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 21 ],
+            "Y": [ 22 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$292": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__a41oi_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 5 ],
+            "A2": [ 4 ],
+            "A3": [ 6 ],
+            "A4": [ 7 ],
+            "B1": [ 8 ],
+            "Y": [ 23 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$293": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__a21oi_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 15 ],
+            "A2": [ 21 ],
+            "B1": [ 23 ],
+            "Y": [ 24 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$294": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__xor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 9 ],
+            "B": [ 17 ],
+            "X": [ 25 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$295": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand4_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 9 ],
+            "B": [ 12 ],
+            "C": [ 15 ],
+            "D": [ 16 ],
+            "Y": [ 26 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$296": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor3_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 10 ],
+            "B": [ 11 ],
+            "C": [ 26 ],
+            "Y": [ 27 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$297": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__a21oi_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 9 ],
+            "A2": [ 17 ],
+            "B1": [ 10 ],
+            "Y": [ 28 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$298": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand4_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 9 ],
+            "B": [ 10 ],
+            "C": [ 15 ],
+            "D": [ 16 ],
+            "Y": [ 29 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$299": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor3b_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 27 ],
+            "B": [ 28 ],
+            "C_N": [ 29 ],
+            "Y": [ 30 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$300": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__lpflow_isobufsrc_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 11 ],
+            "SLEEP": [ 29 ],
+            "X": [ 31 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$301": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__xnor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 11 ],
+            "B": [ 29 ],
+            "Y": [ 32 ]
+          }
+        },
+        "$abc$282$auto$blifparse.cc:386:parse_blif$302": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__o22a_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 12 ],
+            "A2": [ 31 ],
+            "B1": [ 32 ],
+            "B2": [ 26 ],
+            "X": [ 33 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$115": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 14 ],
+            "Q": [ 5 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$116": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 20 ],
+            "Q": [ 6 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$117": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 22 ],
+            "Q": [ 7 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$118": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 24 ],
+            "Q": [ 8 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$163": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 25 ],
+            "Q": [ 9 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$164": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 30 ],
+            "Q": [ 10 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$165": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 32 ],
+            "Q": [ 11 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$166": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 33 ],
+            "Q": [ 12 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$167": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 27 ],
+            "Q": [ 13 ],
+            "RESET_B": [ 3 ]
+          }
+        }
+      },
+      "netnames": {
+        "$0\\carry_out_reg[0:0]": {
+          "hide_name": 1,
+          "bits": [ 27 ],
+          "attributes": {
+            "src": "counter_03.sv:14.3-36.6"
+          }
+        },
+        "$abc$282$auto$rtlil.cc:2609:MuxGate$267": {
+          "hide_name": 1,
+          "bits": [ 14 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$auto$rtlil.cc:2609:MuxGate$269": {
+          "hide_name": 1,
+          "bits": [ 20 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$auto$rtlil.cc:2609:MuxGate$271": {
+          "hide_name": 1,
+          "bits": [ 22 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$auto$rtlil.cc:2609:MuxGate$273": {
+          "hide_name": 1,
+          "bits": [ 24 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$auto$rtlil.cc:2609:MuxGate$275": {
+          "hide_name": 1,
+          "bits": [ 25 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$auto$rtlil.cc:2609:MuxGate$277": {
+          "hide_name": 1,
+          "bits": [ 30 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$auto$rtlil.cc:2609:MuxGate$279": {
+          "hide_name": 1,
+          "bits": [ 32 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$auto$rtlil.cc:2609:MuxGate$281": {
+          "hide_name": 1,
+          "bits": [ 33 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n20_": {
+          "hide_name": 1,
+          "bits": [ 15 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n21_": {
+          "hide_name": 1,
+          "bits": [ 16 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n22_": {
+          "hide_name": 1,
+          "bits": [ 17 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n23_": {
+          "hide_name": 1,
+          "bits": [ 18 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n24_": {
+          "hide_name": 1,
+          "bits": [ 19 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n26_": {
+          "hide_name": 1,
+          "bits": [ 21 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n28_": {
+          "hide_name": 1,
+          "bits": [ 23 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n31_": {
+          "hide_name": 1,
+          "bits": [ 26 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n33_": {
+          "hide_name": 1,
+          "bits": [ 28 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n34_": {
+          "hide_name": 1,
+          "bits": [ 29 ],
+          "attributes": {
+          }
+        },
+        "$abc$282$new_n36_": {
+          "hide_name": 1,
+          "bits": [ 31 ],
+          "attributes": {
+          }
+        },
+        "bcd_ones": {
+          "hide_name": 0,
+          "bits": [ 5, 6, 7, 8 ],
+          "attributes": {
+            "src": "counter_03.sv:5.16-5.24"
+          }
+        },
+        "bcd_ones_reg": {
+          "hide_name": 0,
+          "bits": [ 5, 6, 7, 8 ],
+          "attributes": {
+            "src": "counter_03.sv:10.13-10.25"
+          }
+        },
+        "bcd_tens": {
+          "hide_name": 0,
+          "bits": [ 9, 10, 11, 12 ],
+          "attributes": {
+            "src": "counter_03.sv:6.16-6.24"
+          }
+        },
+        "bcd_tens_reg": {
+          "hide_name": 0,
+          "bits": [ 9, 10, 11, 12 ],
+          "attributes": {
+            "src": "counter_03.sv:11.13-11.25"
+          }
+        },
+        "carry_out": {
+          "hide_name": 0,
+          "bits": [ 13 ],
+          "attributes": {
+            "src": "counter_03.sv:7.10-7.19"
+          }
+        },
+        "carry_out_reg": {
+          "hide_name": 0,
+          "bits": [ 13 ],
+          "attributes": {
+            "src": "counter_03.sv:12.7-12.20"
+          }
+        },
+        "clk": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "counter_03.sv:2.9-2.12"
+          }
+        },
+        "en": {
+          "hide_name": 0,
+          "bits": [ 4 ],
+          "attributes": {
+            "src": "counter_03.sv:4.9-4.11"
+          }
+        },
+        "rst_n": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "counter_03.sv:3.9-3.14"
+          }
+        }
+      }
+    }
+  }
+}

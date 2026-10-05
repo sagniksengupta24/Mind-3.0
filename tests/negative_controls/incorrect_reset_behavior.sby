@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 5
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -formal -sv incorrect_reset_behavior.sv incorrect_reset_behavior_formal_top.sv
+prep -top incorrect_reset_behavior_formal_top
+
+[files]
+incorrect_reset_behavior.sv
+incorrect_reset_behavior_formal_top.sv

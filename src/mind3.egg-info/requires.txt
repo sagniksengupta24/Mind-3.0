@@ -1,0 +1,7 @@
+httpx<1,>=0.27
+pydantic<3,>=2.7
+PyYAML<7,>=6
+
+[dev]
+pytest<9,>=8
+pyright>=1.1.390

@@ -1,0 +1,7 @@
+{
+  "platform": "Linux",
+  "machine": "x86_64",
+  "python": "3.13.5",
+  "all_core_tools_passed": false,
+  "summary": "yosys: MISSING; verilator: MISSING; sby: MISSING; opensta: MISSING; openroad: MISSING"
+}

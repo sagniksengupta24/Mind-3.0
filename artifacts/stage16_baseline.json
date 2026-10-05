@@ -1,0 +1,26 @@
+{
+  "counter_04": {
+    "spec": "8-bit twisted-ring Johnson counter, 16-phase sequences",
+    "header": "module counter_04 (input clk, input rst_n, output [7:0] q)",
+    "init_rtl_summary": "plain rotate {q[6:0],q[7]}, reset to 0 (stuck at 0)",
+    "first_failure": "COVERAGE_DEFICIT (branch 100/toggle 11.1)",
+    "semantic_defect": "wrong state sequence: missing inversion of feedback bit; reset state not in Johnson cycle",
+    "final_state": "ROLLED_BACK after 3 coverage-deficit repairs"
+  },
+  "counter_03": {
+    "spec": "2-digit BCD 0-99 counter with carry on wrap",
+    "header": "module counter_03 (input clk, input rst_n, input en, output [3:0] bcd_ones, output [3:0] bcd_tens, output carry_out)",
+    "init_rtl_summary": "decade counting correct; tens uses stale read, no wrap guard at 99 in this sample",
+    "first_failure": "COVERAGE_DEFICIT (branch 75/toggle 90.5)",
+    "semantic_defect": "tens-digit increment reads pre-clock value; sim never reaches 99 so wrap path uncovered",
+    "final_state": "ROLLED_BACK after 3 coverage-deficit repairs"
+  },
+  "counter_05": {
+    "spec": "window watchdog: kick only inside allowed window",
+    "header": "module counter_05 (input clk, input rst_n, input kick, output fault)",
+    "init_rtl_summary": "fault follows ~kick; no window counter/timing whatsoever",
+    "first_failure": "FORMAL_INVARIANT_BREACH",
+    "semantic_defect": "wrong algorithm: required window-timing logic entirely absent",
+    "final_state": "repaired to COVERAGE_DEFICIT x3 then ROLLED_BACK"
+  }
+}

@@ -1,0 +1,272 @@
+{
+  "counter_02_A": {
+    "task": "counter_02",
+    "variant": "A",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "LATCH_INFERRED",
+    "reason": "Incomplete if-branch infers storage latch in counter_02.sv.",
+    "gates": [
+      [
+        "Gate 1",
+        false
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_02_B": {
+    "task": "counter_02",
+    "variant": "B",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_02.sv:18:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   18 | endmodule\n      |          ^\n             ",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_02_C": {
+    "task": "counter_02",
+    "variant": "C",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "LATCH_INFERRED",
+    "reason": "Incomplete if-branch infers storage latch in counter_02.sv.",
+    "gates": [
+      [
+        "Gate 1",
+        false
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_04_A": {
+    "task": "counter_04",
+    "variant": "A",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_04.sv:19:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   19 | endmodule\n      |          ^\n             ",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_04_B": {
+    "task": "counter_04",
+    "variant": "B",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_04.sv:19:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   19 | endmodule\n      |          ^\n             ",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_04_C": {
+    "task": "counter_04",
+    "variant": "C",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_04.sv:19:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   19 | endmodule\n      |          ^\n             ",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_05_A": {
+    "task": "counter_05",
+    "variant": "A",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_05.sv:20:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   20 | endmodule\n      |          ^\n             ",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_05_B": {
+    "task": "counter_05",
+    "variant": "B",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_05.sv:20:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   20 | endmodule\n      |          ^\n             ",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  },
+  "counter_05_C": {
+    "task": "counter_05",
+    "variant": "C",
+    "parse": "OK",
+    "passed": false,
+    "error_category": "COVERAGE_BUILD_FAILURE",
+    "reason": "Verilator simulation/coverage build failed: \n%Warning-EOFNEWLINE: counter_05.sv:20:10: Missing newline at end of file (POSIX 3.206).\n                                        : ... Suggest add newline.\n   20 | endmodule\n      |          ^\n             ",
+    "gates": [
+      [
+        "Gate 1",
+        true
+      ],
+      [
+        "Gate 3",
+        false
+      ],
+      [
+        "Gate 2",
+        false
+      ],
+      [
+        "Gate 4",
+        false
+      ],
+      [
+        "DFT Scan Audit (Advisory)",
+        false
+      ]
+    ]
+  }
+}

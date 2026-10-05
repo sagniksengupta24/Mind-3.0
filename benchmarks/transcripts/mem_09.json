@@ -1,0 +1,88 @@
+{
+  "task_id": "mem_09",
+  "category": "Memory Controller",
+  "name": "ecc_hamming_sec_ded_generator",
+  "natural_language_spec": "Single-Error-Correction Double-Error-Detection (SEC-DED) (12,8) Hamming code generator.",
+  "is_schema_validation_fixture": true,
+  "label": "schema-validation fixture, not real generation output",
+  "model": "mock-fixture-generator",
+  "provider": "mock",
+  "max_repairs": 10,
+  "contract": {
+    "module_name": "mem_09",
+    "functional_spec": "Single-Error-Correction Double-Error-Detection (SEC-DED) (12,8) Hamming code generator.",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "data_in",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "code_out",
+        "direction": "output",
+        "width": 12,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "chk_prop_0",
+        "property_expr": "assert property (@(*) code_out[11:4] == data_in);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 0"
+      },
+      {
+        "name": "chk_prop_1",
+        "property_expr": "assert property (@(*) data_in == 8'h00 |-> code_out == 12'h000);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Formal property 1"
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    }
+  },
+  "generated_rtl": "// [SCHEMA-VALIDATION FIXTURE - NOT REAL GENERATION OUTPUT]\nmodule mem_09 (\n  input wire [7:0] data_in,\n  output wire [11:0] code_out\n);\n  // Synthesizable logic placeholder for schema validation\nendmodule\n",
+  "gate_failure_category": null,
+  "repair_attempts": [],
+  "final_outcome": {
+    "passed": true,
+    "status": "SILICON_VERIFIED",
+    "turns_taken": 1,
+    "silicon_verified": true,
+    "gate_reports": [
+      {
+        "gate": 1,
+        "name": "Yosys Elaboration",
+        "passed": true
+      },
+      {
+        "gate": 2,
+        "name": "SymbiYosys Formal BMC",
+        "passed": true
+      },
+      {
+        "gate": 3,
+        "name": "Verilator LFSR Simulation",
+        "passed": true
+      },
+      {
+        "gate": 4,
+        "name": "OpenSTA Multi-Corner Timing",
+        "passed": true
+      }
+    ]
+  },
+  "timestamp": 1790037074.0300438
+}

@@ -1,0 +1,14 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal priority_encoder.sv sva.sv
+prep -top priority_encoder_formal
+
+[files]
+priority_encoder.sv
+sva.sv

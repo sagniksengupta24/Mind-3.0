@@ -1,0 +1,20 @@
+# SYNTHETIC/REPRESENTATIVE PLACEHOLDER (NOT REAL CAPTURED EDA TOOL OUTPUT)
+# Constructed from known Yosys CDC analysis conventions for parser testing pending live tool execution.
+# TODO: Regenerate with real tool execution using:
+#   yosys -p "read_verilog -sv async_bridge.sv; hierarchy -check -top async_bridge; proc; cdc -verbose" > tests/fixtures/eda_outputs/yosys_cdc_violation.log 2>&1
+-- Yosys 0.36 (git sha1 c850be45, clang++ 14.0.0)
+1. Executing Verilog-2005 frontend: async_bridge.sv
+Parsing SystemVerilog input `async_bridge.sv' to AST representation.
+Generating RTLIL representation for module `\async_bridge'.
+Successfully finished Verilog frontend.
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+Top module:  \async_bridge
+
+3. Executing CDC pass (clock-domain crossing analysis).
+Checking clock domain crossings in \async_bridge...
+Found 2 unique clock domains: \clk_tx, \clk_rx
+CDC WARNING: Flip-flop \tx_data_reg clocked by \clk_tx drives input of \rx_data_reg clocked by \clk_rx without synchronizer.
+[cdc] issue: Unsynchronized crossing on net '\data_bus[0]' from domain '\clk_tx' to domain '\clk_rx'.
+Found CDC violation: 2 unregistered cross-domain nets detected.
+Logged 2 warnings, 0 errors.

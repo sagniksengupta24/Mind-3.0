@@ -1,0 +1,62 @@
+# REAL CAPTURED EDA TOOL OUTPUT
+# Captured from live Yosys 0.69 running: yosys -p "read_verilog -sv loop.sv; proc; check"
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)
+
+-- Running command `read_verilog -sv loop.sv; proc; check' --
+
+1. Executing Verilog-2005 frontend: loop.sv
+Parsing SystemVerilog input from `loop.sv' to AST representation.
+Generating RTLIL representation for module `\loop'.
+Successfully finished Verilog frontend.
+
+2. Executing PROC pass (convert processes to netlists).
+
+2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module loop.
+Couldn't topologically sort cells, optimizing module loop may take a longer time.
+
+3. Executing CHECK pass (checking for obvious problems).
+Checking module loop...
+Warning: found logic loop in module loop:
+    cell $xor$loop.sv:6$1 ($xor) source: loop.sv:6.16-6.22
+      A[0] --> Y[0]
+Found and reported 1 problems.
+
+Warnings: 1 unique messages, 1 total
+End of script. Logfile hash: 2b2d515b3a, time: 0.00s, user: 0.00s, system: 0.00s, MEM: 13.47 MB peak
+Yosys 0.69+post (git sha1 143eb14f9cc55d6f8927e68523b0c9d2166ed02c, Release, AppleClang clang++ 21.0.0.21000101)
+Time spent: 53% 2x read_verilog (0 sec), 13% 1x proc_dlatch (0 sec), ...

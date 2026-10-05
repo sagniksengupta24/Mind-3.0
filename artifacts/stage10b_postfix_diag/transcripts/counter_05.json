@@ -1,0 +1,459 @@
+{
+  "task_id": "counter_05",
+  "category": "counters",
+  "name": "window_watchdog_counter",
+  "natural_language_spec": "Window watchdog counter requiring kick pulses only within an allowed time window",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:7b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_05",
+    "functional_spec": "Window watchdog counter requiring kick pulses only within an allowed time window",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "kick",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "fault",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Window watchdog counter requiring kick pulses only within an allowed time window"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "fault == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "next_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "fault",
+        "consequent": "fault",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module counter_05 (\n  input clk,\n  input rst_n,\n  input kick,\n  output fault\n);\n\n  // Define the time window duration\n  localparam int TIME_WINDOW = 10; // Example time window in clock cycles\n\n  // Register to store the current count\n  reg [3:0] count;\n\n  // Register to indicate if a kick pulse was received within the time window\n  reg kick_received;\n\n  // Combinational block to update the fault signal\n  always @(*) begin\n    fault = 0;\n    if (rst_n == 0) begin\n      fault = 1;\n    end else if (kick_received) begin\n      kick_received = 0;\n    end else if (count == TIME_WINDOW) begin\n      fault = 1;\n    end\n  end\n\n  // Sequential block to update the count\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      count <= 0;\n      kick_received <= 0;\n    end else begin\n      if (kick) begin\n        if (count < TIME_WINDOW) begin\n          count <= count + 1;\n        end else begin\n          kick_received <= 1;\n        end\n      end else begin\n        count <= 0;\n        kick_received <= 0;\n      end\n    end\n  end\n\nendmodule",
+  "gate_failure_category": "SYNTAX_ERROR",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Window watchdog counter requiring kick pulses only within an allowed time window\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"fault == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": \"fault\",\n      \"clock\": \"clk\",\n      \"consequent\": \"fault\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"next_cycle_implication\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Window watchdog counter requiring kick pulses only within an allowed time window\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n  ],\n  \"module_name\": \"counter_05\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"kick\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"fault\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Window watchdog counter requiring kick pulses only within an allowed time window\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"fault == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": \"fault\",\n        \"clock\": \"clk\",\n        \"consequent\": \"fault\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"next_cycle_implication\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Window watchdog counter requiring kick pulses only within an allowed time window\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n    ],\n    \"module_name\": \"counter_05\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"kick\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"fault\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"counter_05.sv:19: error: fault is not a valid l-value in counter_05.\\ncounter_05.sv:5:      : fault is declared here as wire.\\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\\ncounter_05.sv:5:      : fault is declared here as wire.\\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\\ncounter_05.sv:5:      : fault is declared here as wire.\\n3 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_05 (\n  input clk,\n  input rst_n,\n  input kick,\n  output fault\n);\n\n  // Define the time window duration\n  localparam int TIME_WINDOW = 10; // Example time window in clock cycles\n\n  // Register to store the current count\n  reg [3:0] count;\n\n  // Register to indicate if a kick pulse was received within the time window\n  reg kick_received;\n\n  // Combinational block to update the fault signal\n  always @(*) begin\n    fault = 0;\n    if (rst_n == 0) begin\n      fault = 1;\n    end else if (kick_received) begin\n      kick_received = 0;\n    end else if (count == TIME_WINDOW) begin\n      fault = 1;\n    end\n  end\n\n  // Sequential block to update the count\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      count <= 0;\n      kick_received <= 0;\n    end else begin\n      if (kick) begin\n        if (count < TIME_WINDOW) begin\n          count <= count + 1;\n        end else begin\n          kick_received <= 1;\n        end\n      end else begin\n        count <= 0;\n        kick_received <= 0;\n      end\n    end\n  end\n\nendmodule\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_05 (\n  input clk,\n  input rst_n,\n  input kick,\n  output fault\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "counter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \ncounter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_05",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_05.sv"
+            ],
+            "return_code": 3,
+            "stdout": "",
+            "stderr": "counter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+            "file": "counter_05.sv",
+            "line": 19,
+            "column": 1,
+            "source_context": "17:   // Combinational block to update the fault signal\n18:   always @(*) begin\n19:     fault = 0;\n20:     if (rst_n == 0) begin\n21:       fault = 1;"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Window watchdog counter requiring kick pulses only within an allowed time window\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"fault == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": \"fault\",\n      \"clock\": \"clk\",\n      \"consequent\": \"fault\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"next_cycle_implication\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Window watchdog counter requiring kick pulses only within an allowed time window\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n  ],\n  \"module_name\": \"counter_05\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"kick\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"fault\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 2,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Window watchdog counter requiring kick pulses only within an allowed time window\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"fault == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": \"fault\",\n        \"clock\": \"clk\",\n        \"consequent\": \"fault\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"next_cycle_implication\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Window watchdog counter requiring kick pulses only within an allowed time window\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n    ],\n    \"module_name\": \"counter_05\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"kick\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"fault\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"SYNTAX_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"counter_05.sv:19: error: fault is not a valid l-value in counter_05.\\ncounter_05.sv:5:      : fault is declared here as wire.\\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\\ncounter_05.sv:5:      : fault is declared here as wire.\\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\\ncounter_05.sv:5:      : fault is declared here as wire.\\n3 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_05 (\n  input clk,\n  input rst_n,\n  input kick,\n  output fault\n);\n\n  // Define the time window duration\n  localparam int TIME_WINDOW = 10; // Example time window in clock cycles\n\n  // Register to store the current count\n  reg [3:0] count;\n\n  // Register to indicate if a kick pulse was received within the time window\n  reg kick_received;\n\n  // Combinational block to update the fault signal\n  always @(*) begin\n    fault = 0;\n    if (rst_n == 0) begin\n      fault = 1;\n    end else if (kick_received) begin\n      kick_received = 0;\n    end else if (count == TIME_WINDOW) begin\n      fault = 1;\n    end\n  end\n\n  // Sequential block to update the count\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      count <= 0;\n      kick_received <= 0;\n    end else begin\n      if (kick) begin\n        if (count < TIME_WINDOW) begin\n          count <= count + 1;\n        end else begin\n          kick_received <= 1;\n        end\n      end else begin\n        count <= 0;\n        kick_received <= 0;\n      end\n    end\n  end\n\nendmodule\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_05 (\n  input clk,\n  input rst_n,\n  input kick,\n  output fault\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_05.sv:37: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:49: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n2 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 2,
+          "stdout": "",
+          "stderr": "counter_05.sv:37: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:49: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n2 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \ncounter_05.sv:37: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:49: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n2 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_05",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_05.sv"
+            ],
+            "return_code": 2,
+            "stdout": "",
+            "stderr": "counter_05.sv:37: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:49: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n2 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_05.sv:37: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:49: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n2 error(s) during elaboration.\n",
+            "file": "counter_05.sv",
+            "line": 37,
+            "column": 1,
+            "source_context": "35:       count <= 0;\n36:       kick_received <= 0;\n37:       fault <= 1;\n38:     end else begin\n39:       if (kick) begin"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Window watchdog counter requiring kick pulses only within an allowed time window\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"fault == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": \"fault\",\n      \"clock\": \"clk\",\n      \"consequent\": \"fault\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"next_cycle_implication\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Window watchdog counter requiring kick pulses only within an allowed time window\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n  ],\n  \"module_name\": \"counter_05\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"kick\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"fault\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 3,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Window watchdog counter requiring kick pulses only within an allowed time window\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"fault == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": \"fault\",\n        \"clock\": \"clk\",\n        \"consequent\": \"fault\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"next_cycle_implication\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Window watchdog counter requiring kick pulses only within an allowed time window\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n    ],\n    \"module_name\": \"counter_05\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"kick\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"fault\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"SYNTAX_ERROR\",\n    \"SYNTAX_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"counter_05.sv:37: error: fault is not a valid l-value in counter_05.\\ncounter_05.sv:5:      : fault is declared here as wire.\\ncounter_05.sv:49: error: fault is not a valid l-value in counter_05.\\ncounter_05.sv:5:      : fault is declared here as wire.\\n2 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_05 (\n  input clk,\n  input rst_n,\n  input kick,\n  output fault\n);\n\n  // Define the time window duration\n  localparam int TIME_WINDOW = 10; // Example time window in clock cycles\n\n  // Register to store the current count\n  reg [3:0] count;\n\n  // Register to indicate if a kick pulse was received within the time window\n  reg kick_received;\n\n  // Combinational block to update the fault signal\n  always @(*) begin\n    fault = 0;\n    if (rst_n == 0) begin\n      fault = 1;\n    end else if (kick_received) begin\n      kick_received <= 0; // Fix: change this to an assignment\n    end else if (count == TIME_WINDOW) begin\n      fault = 1;\n    end\n  end\n\n  // Sequential block to update the count\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      count <= 0;\n      kick_received <= 0;\n    end else begin\n      if (kick) begin\n        if (count < TIME_WINDOW) begin\n          count <= count + 1;\n        end else begin\n          kick_received <= 1;\n        end\n      end else begin\n        count <= 0;\n        kick_received <= 0;\n      end\n    end\n  end\n\nendmodule\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_05 (\n  input clk,\n  input rst_n,\n  input kick,\n  output fault\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "counter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \ncounter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_05",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_05.sv"
+            ],
+            "return_code": 3,
+            "stdout": "",
+            "stderr": "counter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_05.sv:19: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:21: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\ncounter_05.sv:25: error: fault is not a valid l-value in counter_05.\ncounter_05.sv:5:      : fault is declared here as wire.\n3 error(s) during elaboration.\n",
+            "file": "counter_05.sv",
+            "line": 19,
+            "column": 1,
+            "source_context": "17:   // Combinational block to update the fault signal\n18:   always @(*) begin\n19:     fault = 0;\n20:     if (rst_n == 0) begin\n21:       fault = 1;"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "failure_category": "SYNTAX_ERROR",
+    "passed": false
+  },
+  "timestamp": 1791188492.6457493,
+  "duration_seconds": 24.801,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "238bd3d681e786caddc3cc23747c51665958c246384ffc1c52bcd92d725ebb06"
+  }
+}

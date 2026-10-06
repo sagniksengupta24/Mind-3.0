@@ -21,6 +21,10 @@ class _StubVerifier:
     pass
 
 
+class _SandboxStub:
+    pass
+
+
 class _RecordingClient:
     def __init__(self, content: str) -> None:
         self.payloads: list[dict] = []
@@ -48,6 +52,7 @@ def _driver(tmp_path: Path, content: str) -> tuple[PhaseDriver, _RecordingClient
         session_id="rtl-format",
         workspace=tmp_path,
         verifier=_StubVerifier(),  # type: ignore[arg-type]
+        sandbox=_SandboxStub(),  # type: ignore[arg-type]
         model="qwen2.5-coder:7b",
         provider="ollama",
     )

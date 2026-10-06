@@ -131,9 +131,12 @@ def test_write_path_preserves_terminated_content_byte_identical(tmp_path) -> Non
     class _StubVerifier:
         pass
 
+    class _SandboxStub:
+        pass
+
     ws = tmp_path / "ws"
     ws.mkdir()
-    driver = PhaseDriver(session_id="nl", workspace=ws, verifier=_StubVerifier())  # type: ignore[arg-type]
+    driver = PhaseDriver(session_id="nl", workspace=ws, verifier=_StubVerifier(), sandbox=_SandboxStub())  # type: ignore[arg-type]
     content = "module m;\nendmodule\n"
     rec = driver._execute_action(WriteFileAction(path="m.sv", content=content))
     assert (ws / "m.sv").read_text(encoding="utf-8") == content
@@ -147,9 +150,12 @@ def test_write_path_terminates_unterminated_file(tmp_path) -> None:
     class _StubVerifier:
         pass
 
+    class _SandboxStub:
+        pass
+
     ws = tmp_path / "ws"
     ws.mkdir()
-    driver = PhaseDriver(session_id="nl", workspace=ws, verifier=_StubVerifier())  # type: ignore[arg-type]
+    driver = PhaseDriver(session_id="nl", workspace=ws, verifier=_StubVerifier(), sandbox=_SandboxStub())  # type: ignore[arg-type]
     rec = driver._execute_action(WriteFileAction(path="m.sv", content="module m;\nendmodule"))
     assert (ws / "m.sv").read_text(encoding="utf-8") == "module m;\nendmodule\n"
     assert rec["bytes_written"] == len("module m;\nendmodule\n".encode("utf-8"))

@@ -732,7 +732,8 @@ def parse_rbcdc_report(report: dict[str, Any]) -> dict[str, Any]:
         rule_id = str(entry.get("rule_id", "CDC-?"))
         severity = str(entry.get("severity", "error")).lower()
         message = str(entry.get("message", "")).strip()
-        location = entry.get("location") if isinstance(entry.get("location"), dict) else {}
+        raw_location = entry.get("location")
+        location = raw_location if isinstance(raw_location, dict) else {}
         where = str(location.get("file", ""))
         line = location.get("line")
         if line is not None:

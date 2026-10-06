@@ -85,6 +85,7 @@ _FINE_GRAINED_MAP: dict[str, FailureCategory] = {
     "HOLD_SLACK_VIOLATION": FailureCategory.TIMING_FAILURE,
     "TIMING_ANALYSIS_FAILED": FailureCategory.TIMING_FAILURE,
     "TIMING_REPORT_UNPARSEABLE": FailureCategory.TIMING_FAILURE,
+    "TIMING_NO_PATHS": FailureCategory.TIMING_FAILURE,
     # CDC violations
     "CDC_VIOLATION": FailureCategory.CDC_FAILURE,
     "UNSYNCHRONIZED_CROSSING": FailureCategory.CDC_FAILURE,

@@ -1,0 +1,173 @@
+{
+  "task_id": "fifo_08",
+  "category": "FIFOs",
+  "name": "first_word_fall_through_fifo",
+  "natural_language_spec": "FWFT FIFO presenting front element on rd_data immediately without rd_en latency",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:30b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "fifo_08",
+    "functional_spec": "FWFT FIFO presenting front element on rd_data immediately without rd_en latency",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "wr_en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "wr_data",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "rd_ack",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rd_data",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "data_valid",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "FWFT FIFO presenting front element on rd_data immediately without rd_en latency"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> !data_valid);",
+      "assert property (@(posedge clk) disable iff (!rst_n) data_valid && !rd_ack |=> data_valid);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> !data_valid);",
+      "assert property (@(posedge clk) disable iff (!rst_n) data_valid && !rd_ack |=> data_valid);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "!data_valid",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "next_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "data_valid && !rd_ack",
+        "consequent": "data_valid",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module fifo_08 (\n  input clk,\n  input rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_ack,\n  output [7:0] rd_data,\n  output data_valid\n);\n\n  // FIFO parameters\n  localparam DEPTH = 2;\n  localparam ADDR_WIDTH = 1;\n\n  // FIFO storage\n  reg [7:0] fifo_mem [0:DEPTH-1];\n  \n  // Read and write pointers\n  reg [ADDR_WIDTH-1:0] wr_ptr;\n  reg [ADDR_WIDTH-1:0] rd_ptr;\n  \n  // FIFO status signals\n  reg empty;\n  reg full;\n  reg [ADDR_WIDTH:0] count;\n\n  // Output signals\n  assign rd_data = fifo_mem[rd_ptr];\n  assign data_valid = !empty;\n\n  // Write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      wr_ptr <= '0;\n      count <= '0;\n      empty <= 1'b1;\n      full <= 1'b0;\n    end else begin\n      if (wr_en && !full) begin\n        fifo_mem[wr_ptr] <= wr_data;\n        wr_ptr <= wr_ptr + 1'b1;\n        count <= count + 1'b1;\n        empty <= 1'b0;\n        if (count == DEPTH - 1)\n          full <= 1'b1;\n      end\n    end\n  end\n\n  // Read logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      rd_ptr <= '0;\n      count <= '0;\n      empty <= 1'b1;\n      full <= 1'b0;\n    end else begin\n      if (rd_ack && !empty) begin\n        rd_ptr <= rd_ptr + 1'b1;\n        count <= count - 1'b1;\n        full <= 1'b0;\n        if (count == 1)\n          empty <= 1'b1;\n      end\n    end\n  end\n\nendmodule",
+  "gate_failure_category": "FORMAL_INVARIANT_BREACH",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"FWFT FIFO presenting front element on rd_data immediately without rd_en latency\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"!data_valid\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": \"data_valid && !rd_ack\",\n      \"clock\": \"clk\",\n      \"consequent\": \"data_valid\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"next_cycle_implication\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"FWFT FIFO presenting front element on rd_data immediately without rd_en latency\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> !data_valid);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) data_valid && !rd_ack |=> data_valid);\"\n  ],\n  \"module_name\": \"fifo_08\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_ack\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"rd_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"data_valid\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> !data_valid);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) data_valid && !rd_ack |=> data_valid);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"FORMAL_INVARIANT_BREACH\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"FWFT FIFO presenting front element on rd_data immediately without rd_en latency\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"!data_valid\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": \"data_valid && !rd_ack\",\n        \"clock\": \"clk\",\n        \"consequent\": \"data_valid\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"next_cycle_implication\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"FWFT FIFO presenting front element on rd_data immediately without rd_en latency\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> !data_valid);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) data_valid && !rd_ack |=> data_valid);\"\n    ],\n    \"module_name\": \"fifo_08\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_ack\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"rd_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"data_valid\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> !data_valid);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) data_valid && !rd_ack |=> data_valid);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 2: SymbiYosys Formal Property Verification)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"formal\",\n  \"stderr_tail\": \"\",\n  \"stdout_tail\": \"_08] base: Warning: Wire fifo_08_formal_top.\\\\wr_data [5] is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: Warning: Wire fifo_08_formal_top.\\\\wr_data [4] is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: Warning: Wire fifo_08_formal_top.\\\\wr_data [3] is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: Warning: Wire fifo_08_formal_top.\\\\wr_data [2] is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: Warning: Wire fifo_08_formal_top.\\\\wr_data [1] is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: Warning: Wire fifo_08_formal_top.\\\\wr_data [0] is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: Warning: Wire fifo_08_formal_top.\\\\rst_n is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: Warning: Wire fifo_08_formal_top.\\\\rd_ack is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: Warning: Wire fifo_08_formal_top.\\\\clk is used but has no driver.\\nSBY  1:46:00 [fifo_08] base: finished (returncode=0)\\nSBY  1:46:00 [fifo_08] prep: starting process \\\"cd fifo_08/model; yosys -ql design_prep.log design_prep.ys\\\"\\nSBY  1:46:00 [fifo_08] prep: Warning: multiple conflicting drivers for fifo_08.\\\\empty:\\nSBY  1:46:00 [fifo_08] prep: port Y[0] of cell $auto$async2sync.cc:180:execute$153 ($mux)\\nSBY  1:46:00 [fifo_08] prep: port Y[0] of cell $auto$async2sync.cc:180:execute$161 ($mux)\\nSBY  1:46:00 [fifo_08] prep: Warning: multiple conflicting drivers for fifo_08.\\\\full:\\nSBY  1:46:00 [fifo_08] prep: port Y[0] of cell $auto$async2sync.cc:180:execute$151 ($mux)\\nSBY  1:46:00 [fifo_08] prep: port Y[0] of cell $auto$async2sync.cc:180:execute$159 ($mux)\\nSBY  1:46:00 [fifo_08] prep: Warning: multiple conflicting drivers for fifo_08.\\\\count [1]:\\nSBY  1:46:00 [fifo_08] prep: port Y[1] of cell $auto$async2sync.cc:180:execute$149 ($mux)\\nSBY  1:46:00 [fifo_08] prep: port Y[1] of cell $auto$async2sync.cc:180:execute$157 ($mux)\\nSBY  1:46:00 [fifo_08] prep: Warning: multiple conflicting drivers for fifo_08.\\\\count [0]:\\nSBY  1:46:00 [fifo_08] prep: port Y[0] of cell $auto$async2sync.cc:180:execute$149 ($mux)\\nSBY  1:46:00 [fifo_08] prep: port Y[0] of cell $auto$async2sync.cc:180:execute$157 ($mux)\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_en is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_data [7] is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_data [6] is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_data [5] is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_data [4] is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_data [3] is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_data [2] is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_data [1] is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\wr_data [0] is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\rst_n is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\rd_ack is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: Warning: Wire fifo_08_formal_top.\\\\clk is used but has no driver.\\nSBY  1:46:00 [fifo_08] prep: finished (returncode=0)\\nSBY  1:46:00 [fifo_08] smt2: starting process \\\"cd fifo_08/model; yosys -ql design_smt2.log design_smt2.ys\\\"\\nSBY  1:46:00 [fifo_08] smt2: ERROR: Found multiple drivers for \\\\empty.\\nSBY  1:46:00 [fifo_08] smt2: finished (returncode=1)\\nSBY  1:46:00 [fifo_08] smt2: task failed. ERROR.\\nSBY  1:46:00 [fifo_08] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\\nSBY  1:46:00 [fifo_08] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\\nSBY  1:46:00 [fifo_08] summary: engine_0 (smtbmc z3) did not return a status\\nSBY  1:46:00 [fifo_08] summary: engine_0 did not produce any traces\\nSBY  1:46:00 [fifo_08] DONE (ERROR, rc=16)\\n\",\n  \"tool\": \"sby\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule fifo_08 (\n  input clk,\n  input rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_ack,\n  output [7:0] rd_data,\n  output data_valid\n);\n\n  // FIFO parameters\n  localparam DEPTH = 2;\n  localparam ADDR_WIDTH = 1;\n\n  // FIFO storage\n  reg [7:0] fifo_mem [0:DEPTH-1];\n  \n  // Read and write pointers\n  reg [ADDR_WIDTH-1:0] wr_ptr;\n  reg [ADDR_WIDTH-1:0] rd_ptr;\n  \n  // FIFO status signals\n  reg empty;\n  reg full;\n  reg [ADDR_WIDTH:0] count;\n\n  // Output signals\n  assign rd_data = fifo_mem[rd_ptr];\n  assign data_valid = !empty;\n\n  // Write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      wr_ptr <= '0;\n      count <= '0;\n      empty <= 1'b1;\n      full <= 1'b0;\n    end else begin\n      if (wr_en && !full) begin\n        fifo_mem[wr_ptr] <= wr_data;\n        wr_ptr <= wr_ptr + 1'b1;\n        count <= count + 1'b1;\n        empty <= 1'b0;\n        if (count == DEPTH - 1)\n          full <= 1'b1;\n      end\n    end\n  end\n\n  // Read logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      rd_ptr <= '0;\n      count <= '0;\n      empty <= 1'b1;\n      full <= 1'b0;\n    end else begin\n      if (rd_ack && !empty) begin\n        rd_ptr <= rd_ptr + 1'b1;\n        count <= count - 1'b1;\n        full <= 1'b0;\n        if (count == 1)\n          empty <= 1'b1;\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule fifo_08 (\n  input clk,\n  input rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_ack,\n  output [7:0] rd_data,\n  output data_valid\n);\n\nRepair strategy: Formal repair strategy: the cited assertion, failure cycle, and counterexample trace describe required behavior, not suggestions. Diagnose the mathematical/state error first (boundary values, comparison widths and signedness, saturation bounds, degenerate inputs such as zero); then make the smallest valid correction. Change the state/output/next-state logic so the property holds; do not alter the property, the interface, or unrelated behavior.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    },
+    {
+      "turn": 2,
+      "guidance": "The previous repair response could not be parsed: Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module..\nReturn ONLY the complete SystemVerilog module, including its module declaration and endmodule.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "REPAIR_PATCH_TOO_LARGE",
+      "failure_reason": "Repair patch exceeded bounded change budget.",
+      "gate_reports": []
+    },
+    {
+      "turn": 3,
+      "guidance": "Your last repair was rejected because it exceeded the bounded change budget. Keep changed lines <= 65% of current RTL and growth <= 3.0x.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791231407.9948308,
+  "duration_seconds": 66.311,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "e7467fc165511f83d375523aeb01ad3766a06068d999a7fe64bbdcd95d0448eb"
+  }
+}

@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal arbiter_05.sv
+read -formal arbiter_05_sva.sv
+read -formal arbiter_05_formal_top.sv
+prep -top arbiter_05_formal_top
+
+[files]
+arbiter_05.sv
+arbiter_05_formal_top.sv
+arbiter_05_sva.sv

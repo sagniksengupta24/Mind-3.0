@@ -1,0 +1,310 @@
+{
+  "task_id": "counter_01",
+  "category": "counters",
+  "name": "up_down_saturating_8b",
+  "natural_language_spec": "8-bit saturating up/down counter with load enable and overflow/underflow clamp",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "provider": "openrouter",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_01",
+    "functional_spec": "8-bit saturating up/down counter with load enable and overflow/underflow clamp",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "up",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "down",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "count",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "8-bit saturating up/down counter with load enable and overflow/underflow clamp"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) count == 8'hFF && up && !down |=> count == 8'hFF);",
+      "assert property (@(posedge clk) disable iff (!rst_n) count == 8'h00 && !up && down |=> count == 8'h00);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) count == 8'hFF && up && !down |=> count == 8'hFF);",
+      "assert property (@(posedge clk) disable iff (!rst_n) count == 8'h00 && !up && down |=> count == 8'h00);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "next_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "count == 8'hFF && up && !down",
+        "consequent": "count == 8'hFF",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "next_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "count == 8'h00 && !up && down",
+        "consequent": "count == 8'h00",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 2,
+      "guidance": "Repair model invocation failed: OpenRouter response contained no choices: {'id': 'gen-1791202166-nTD8bSHPD88gMFB5QjBV', 'error': {'message': 'Upstream error from Nvidia: Service temporarily overloaded', 'code': 503, 'metadata': {'error_type': 'provider_overloaded'}}}. Return the complete SystemVerilog module only.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "INTERFACE_ERROR",
+      "failure_reason": "Structural contract validation failed: Required port 'clk' is missing.\nRequired port 'rst_n' is missing.\nRequired port 'up' is missing.\nRequired port 'down' is missing.\nRequired port 'count' is missing.\nUnexpected port 'in' is not present in the contract.\nUnexpected port 'out' is not present in the contract.\nUnexpected port 'valid' is not present in the contract.\nClocked contract requires an posedge clk sequential block, but none was found.\nReset 'rst_n' is declared by the contract but is not referenced in the RTL.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Required port 'clk' is missing.\nRequired port 'rst_n' is missing.\nRequired port 'up' is missing.\nRequired port 'down' is missing.\nRequired port 'count' is missing.\nUnexpected port 'in' is not present in the contract.\nUnexpected port 'out' is not present in the contract.\nUnexpected port 'valid' is not present in the contract.\nClocked contract requires an posedge clk sequential block, but none was found.\nReset 'rst_n' is declared by the contract but is not referenced in the RTL.",
+          "details": "Structural contract validation failed: Required port 'clk' is missing.\nRequired port 'rst_n' is missing.\nRequired port 'up' is missing.\nRequired port 'down' is missing.\nRequired port 'count' is missing.\nUnexpected port 'in' is not present in the contract.\nUnexpected port 'out' is not present in the contract.\nUnexpected port 'valid' is not present in the contract.\nClocked contract requires an posedge clk sequential block, but none was found.\nReset 'rst_n' is declared by the contract but is not referenced in the RTL.",
+          "error_category": "INTERFACE_ERROR",
+          "diagnostic": {
+            "category": "INTERFACE_ERROR",
+            "message": "Required port 'clk' is missing.",
+            "file": "counter_01.sv",
+            "line": 1,
+            "column": null,
+            "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+          },
+          "structural_violations": [
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'clk' is missing.",
+              "file": "counter_01.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'rst_n' is missing.",
+              "file": "counter_01.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'up' is missing.",
+              "file": "counter_01.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'down' is missing.",
+              "file": "counter_01.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'count' is missing.",
+              "file": "counter_01.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Unexpected port 'in' is not present in the contract.",
+              "file": "counter_01.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Unexpected port 'out' is not present in the contract.",
+              "file": "counter_01.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Unexpected port 'valid' is not present in the contract.",
+              "file": "counter_01.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "CLOCK_RESET_ERROR",
+              "message": "Clocked contract requires an posedge clk sequential block, but none was found.",
+              "file": "counter_01.sv",
+              "line": null,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            },
+            {
+              "category": "CLOCK_RESET_ERROR",
+              "message": "Reset 'rst_n' is declared by the contract but is not referenced in the RTL.",
+              "file": "counter_01.sv",
+              "line": null,
+              "column": null,
+              "source_context": "1: module counter_01 (\n2:   input  logic [3:0] in,\n3:   output logic [1:0] out,"
+            }
+          ],
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791202181.8632023,
+  "duration_seconds": 15.998,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "a41a524e73a5dec8e22879100b8d08faeb30b7780f0c23fb1fa72b51c16d7e3c"
+  }
+}

@@ -1,0 +1,80 @@
+{
+ "module_name": "counter_04",
+ "functional_spec": "8-bit twisted-ring Johnson counter producing 16-phase sequences",
+ "parameters": {},
+ "ports": [
+  {
+   "name": "clk",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "rst_n",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "q",
+   "direction": "output",
+   "width": 8,
+   "description": ""
+  }
+ ],
+ "clock": {
+  "name": "clk",
+  "edge": "posedge"
+ },
+ "reset": {
+  "name": "rst_n",
+  "polarity": "active_low",
+  "synchronous": true
+ },
+ "behavior": [
+  "8-bit twisted-ring Johnson counter producing 16-phase sequences"
+ ],
+ "invariants": [
+  "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> q == 8'h00);",
+  "assert property (@(posedge clk) disable iff (!rst_n) q[7:1] == $past(q[6:0]));"
+ ],
+ "protocol_requirements": [
+  "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> q == 8'h00);",
+  "assert property (@(posedge clk) disable iff (!rst_n) q[7:1] == $past(q[6:0]));"
+ ],
+ "formal_properties": [
+  {
+   "name": "contract_property_1",
+   "kind": "same_cycle_implication",
+   "clock": "clk",
+   "reset": "rst_n:active_low",
+   "antecedent": "!rst_n",
+   "consequent": "q == 8'h00",
+   "expression": null,
+   "signal": null,
+   "value": null,
+   "cycles": 1,
+   "description": "Classified deterministically from the bounded legacy SVA subset."
+  }
+ ],
+ "sva_properties": [
+  {
+   "name": "contract_property_2",
+   "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) q[7:1] == $past(q[6:0]));",
+   "clock": "clk",
+   "reset": "rst_n",
+   "description": "Held-out evaluator property preserved verbatim for bounded classification at formal stage."
+  }
+ ],
+ "timing": {
+  "clock_name": "clk",
+  "period_ns": 10.0,
+  "pvt_corners": [
+   "tt_025c_1v80",
+   "ff_n40c_1v95",
+   "ss_125c_1v60"
+  ],
+  "lef_path": null
+ },
+ "async_inputs": null
+}

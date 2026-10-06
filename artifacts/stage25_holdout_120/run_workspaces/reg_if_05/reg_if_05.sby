@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal reg_if_05.sv
+read -formal reg_if_05_sva.sv
+read -formal reg_if_05_formal_top.sv
+prep -top reg_if_05_formal_top
+
+[files]
+reg_if_05.sv
+reg_if_05_formal_top.sv
+reg_if_05_sva.sv

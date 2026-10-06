@@ -1,0 +1,121 @@
+{
+  "task_id": "counter_05",
+  "category": "counters",
+  "name": "window_watchdog_counter",
+  "natural_language_spec": "Window watchdog counter requiring kick pulses only within an allowed time window",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen/qwen3-coder:free",
+  "provider": "openrouter",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_05",
+    "functional_spec": "Window watchdog counter requiring kick pulses only within an allowed time window",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "kick",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "fault",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Window watchdog counter requiring kick pulses only within an allowed time window"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "fault == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "next_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "fault",
+        "consequent": "fault",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791202136.802982,
+  "duration_seconds": 0.294,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {},
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "3f863f1e4127f1fefefe79ec2f6139152b07cb95f8782b26c8f719a96daff7cf"
+  }
+}

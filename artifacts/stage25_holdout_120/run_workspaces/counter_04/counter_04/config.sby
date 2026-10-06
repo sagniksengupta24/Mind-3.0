@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal counter_04.sv
+read -formal counter_04_sva.sv
+read -formal counter_04_formal_top.sv
+prep -top counter_04_formal_top
+
+[files]
+counter_04.sv
+counter_04_formal_top.sv
+counter_04_sva.sv

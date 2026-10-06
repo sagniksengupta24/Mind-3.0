@@ -1,0 +1,188 @@
+{
+  "creator": "Yosys 0.33 (git sha1 2584903a060)",
+  "modules": {
+    "reg_if_04": {
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "reg_if_04.sv:1.1-20.10"
+      },
+      "ports": {
+        "clk": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "rst_n": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "in_data": {
+          "direction": "input",
+          "bits": [ 4, 5, 6, 7, 8, 9, 10, 11 ]
+        },
+        "out_data": {
+          "direction": "output",
+          "bits": [ 12, 13, 14, 15, 16, 17, 18, 19 ]
+        }
+      },
+      "cells": {
+        "$auto$ff.cc:266:slice$81": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "reg_if_04.sv:10.3-16.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 4 ],
+            "Q": [ 12 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$82": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "reg_if_04.sv:10.3-16.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 5 ],
+            "Q": [ 13 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$83": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "reg_if_04.sv:10.3-16.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 6 ],
+            "Q": [ 14 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$84": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "reg_if_04.sv:10.3-16.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 7 ],
+            "Q": [ 15 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$85": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "reg_if_04.sv:10.3-16.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 8 ],
+            "Q": [ 16 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$86": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "reg_if_04.sv:10.3-16.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 9 ],
+            "Q": [ 17 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$87": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "reg_if_04.sv:10.3-16.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 10 ],
+            "Q": [ 18 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$88": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "reg_if_04.sv:10.3-16.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 11 ],
+            "Q": [ 19 ],
+            "RESET_B": [ 3 ]
+          }
+        }
+      },
+      "netnames": {
+        "clk": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "reg_if_04.sv:2.9-2.12"
+          }
+        },
+        "in_data": {
+          "hide_name": 0,
+          "bits": [ 4, 5, 6, 7, 8, 9, 10, 11 ],
+          "attributes": {
+            "src": "reg_if_04.sv:4.15-4.22"
+          }
+        },
+        "out_data": {
+          "hide_name": 0,
+          "bits": [ 12, 13, 14, 15, 16, 17, 18, 19 ],
+          "attributes": {
+            "src": "reg_if_04.sv:5.16-5.24"
+          }
+        },
+        "ram_reg": {
+          "hide_name": 0,
+          "bits": [ 12, 13, 14, 15, 16, 17, 18, 19 ],
+          "attributes": {
+            "src": "reg_if_04.sv:8.13-8.20"
+          }
+        },
+        "rst_n": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "reg_if_04.sv:3.9-3.14"
+          }
+        }
+      }
+    }
+  }
+}

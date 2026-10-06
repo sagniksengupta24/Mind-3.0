@@ -1,0 +1,129 @@
+{
+ "tool": {
+  "name": "rtl-buddy-cdc",
+  "version": "0.5.0"
+ },
+ "module": "cdc_violation",
+ "summary": {
+  "ports": 5,
+  "cells": 4,
+  "flops": 2,
+  "crossings": 4,
+  "async_crossings": 4,
+  "violations": 3,
+  "suppressed": 0,
+  "baseline_carryover": 0,
+  "scan_mode_suppressed": 0,
+  "domain_unknown": 0
+ },
+ "domain_unknown_flops": [],
+ "inferred_clock_candidates": [],
+ "by_instance": [
+  {
+   "instance_path": [],
+   "violations": 3,
+   "rules": {
+    "CDC-001": 1,
+    "CDC-011": 2
+   }
+  }
+ ],
+ "domains": [
+  {
+   "flop": "$procdff$11",
+   "clock": "clk_b"
+  },
+  {
+   "flop": "$procdff$12",
+   "clock": "clk_a"
+  }
+ ],
+ "crossings": [
+  {
+   "src_clock": "clk_a",
+   "dst_clock": "clk_b",
+   "dst_flop": "$procdff$11",
+   "width": 1,
+   "min_hops": 1,
+   "src_flop": "$procdff$12"
+  },
+  {
+   "src_clock": "<unconstrained>",
+   "dst_clock": "clk_b",
+   "dst_flop": "$procdff$11",
+   "width": 1,
+   "min_hops": 1,
+   "src_port": "rst_n"
+  },
+  {
+   "src_clock": "<unconstrained>",
+   "dst_clock": "clk_a",
+   "dst_flop": "$procdff$12",
+   "width": 1,
+   "min_hops": 1,
+   "src_port": "rst_n"
+  },
+  {
+   "src_clock": "<unconstrained>",
+   "dst_clock": "clk_a",
+   "dst_flop": "$procdff$12",
+   "width": 1,
+   "min_hops": 1,
+   "src_port": "data_a"
+  }
+ ],
+ "violations": [
+  {
+   "rule_id": "CDC-001",
+   "severity": "error",
+   "message": "unsynchronized control crossing clk_a \u2192 clk_b (src: flop $procdff$12): destination flop $procdff$11 has no second-stage synchronizer (chain depth = 1)",
+   "cell_name": "$procdff$11",
+   "instance_path": [],
+   "crossing": {
+    "src_clock": "clk_a",
+    "dst_clock": "clk_b",
+    "dst_flop": "$procdff$11",
+    "width": 1,
+    "min_hops": 1,
+    "src_flop": "$procdff$12"
+   },
+   "location": {
+    "file": "cdc_violation.sv",
+    "start_line": 18,
+    "start_column": 5,
+    "end_line": 23,
+    "end_column": 8
+   }
+  },
+  {
+   "rule_id": "CDC-011",
+   "severity": "warning",
+   "message": "unconstrained primary input 'data_a' has no set_input_delay -clock typing in the SDC but is captured in domain 'clk_a'; add set_input_delay -clock clk_a [get_ports data_a] (or declare the port's true source clock and add a synchronizer)",
+   "cell_name": "$procdff$12",
+   "instance_path": [],
+   "location": {
+    "file": "cdc_violation.sv",
+    "start_line": 10,
+    "start_column": 5,
+    "end_line": 15,
+    "end_column": 8
+   }
+  },
+  {
+   "rule_id": "CDC-011",
+   "severity": "error",
+   "message": "unconstrained primary input 'rst_n' is captured in multiple clock domains (['clk_a', 'clk_b']); a single port cannot be synchronous to more than one clock \u2014 add set_input_delay -clock <name> and a synchronizer on at least one destination",
+   "cell_name": "$procdff$11",
+   "instance_path": [],
+   "location": {
+    "file": "cdc_violation.sv",
+    "start_line": 18,
+    "start_column": 5,
+    "end_line": 23,
+    "end_column": 8
+   }
+  }
+ ],
+ "suppressed": [],
+ "baseline_carryover": []
+}

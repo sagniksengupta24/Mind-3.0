@@ -1,0 +1,388 @@
+{
+  "task_id": "arbiter_06",
+  "category": "arbiters",
+  "name": "lockable_burst_arbiter",
+  "natural_language_spec": "Arbiter supporting multi-cycle bus locked transactions using lock signal",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:30b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "arbiter_06",
+    "functional_spec": "Arbiter supporting multi-cycle bus locked transactions using lock signal",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "req",
+        "direction": "input",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "lock",
+        "direction": "input",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "gnt",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Arbiter supporting multi-cycle bus locked transactions using lock signal"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));",
+      "assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));",
+      "assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_2",
+        "kind": "onehot0",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": null,
+        "signal": "gnt",
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "contract_property_1",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Held-out evaluator property preserved verbatim for bounded classification at formal stage."
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module arbiter_06 (\n  input clk,\n  input rst_n,\n  input [3:0] req,\n  input [3:0] lock,\n  output [3:0] gnt\n);\n\n  reg [3:0] grant_reg;\n  reg [3:0] grant_next;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      grant_reg <= 4'd0;\n    end else begin\n      grant_reg <= grant_next;\n    end\n  end\n\n  assign gnt = grant_reg;\n\n  always @(*) begin\n    // Default assignment: no grant\n    grant_next = 4'd0;\n\n    // If any request is high and no lock is active, grant the first request\n    if (req != 4'd0) begin\n      if (grant_reg == 4'd0) begin\n        // Grant the lowest priority request that is not locked\n        if (req[0] && !lock[0]) begin\n          grant_next = 4'd1;\n        end else if (req[1] && !lock[1]) begin\n          grant_next = 4'd2;\n        end else if (req[2] && !lock[2]) begin\n          grant_next = 4'd4;\n        end else if (req[3] && !lock[3]) begin\n          grant_next = 4'd8;\n        end\n      end else begin\n        // If already granted, maintain the grant as long as the lock is active\n        if ((grant_reg & lock) != 0) begin\n          grant_next = grant_reg;\n        end\n      end\n    end\n  end\n\nendmodule",
+  "gate_failure_category": "LATCH_INFERRED",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Arbiter supporting multi-cycle bus locked transactions using lock signal\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": null,\n      \"kind\": \"onehot0\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": \"gnt\",\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Arbiter supporting multi-cycle bus locked transactions using lock signal\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n  ],\n  \"module_name\": \"arbiter_06\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"req\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"lock\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"gnt\",\n      \"width\": 4\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [\n    {\n      \"clock\": \"clk\",\n      \"description\": \"Held-out evaluator property preserved verbatim for bounded classification at formal stage.\",\n      \"name\": \"contract_property_1\",\n      \"property_expr\": \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"reset\": \"rst_n\"\n    }\n  ],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"LATCH_INFERRED\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Arbiter supporting multi-cycle bus locked transactions using lock signal\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": null,\n        \"kind\": \"onehot0\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": \"gnt\",\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Arbiter supporting multi-cycle bus locked transactions using lock signal\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n    ],\n    \"module_name\": \"arbiter_06\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"req\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"lock\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"gnt\",\n        \"width\": 4\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [\n      {\n        \"clock\": \"clk\",\n        \"description\": \"Held-out evaluator property preserved verbatim for bounded classification at formal stage.\",\n        \"name\": \"contract_property_1\",\n        \"property_expr\": \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n        \"reset\": \"rst_n\"\n      }\n    ],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"Latch pattern in arbiter_06.sv: combinational 'if' missing explicit 'else' branch.\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule arbiter_06 (\n  input clk,\n  input rst_n,\n  input [3:0] req,\n  input [3:0] lock,\n  output [3:0] gnt\n);\n\n  reg [3:0] grant_reg;\n  reg [3:0] grant_next;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      grant_reg <= 4'd0;\n    end else begin\n      grant_reg <= grant_next;\n    end\n  end\n\n  assign gnt = grant_reg;\n\n  always @(*) begin\n    // Default assignment: no grant\n    grant_next = 4'd0;\n\n    // If any request is high and no lock is active, grant the first request\n    if (req != 4'd0) begin\n      if (grant_reg == 4'd0) begin\n        // Grant the lowest priority request that is not locked\n        if (req[0] && !lock[0]) begin\n          grant_next = 4'd1;\n        end else if (req[1] && !lock[1]) begin\n          grant_next = 4'd2;\n        end else if (req[2] && !lock[2]) begin\n          grant_next = 4'd4;\n        end else if (req[3] && !lock[3]) begin\n          grant_next = 4'd8;\n        end\n      end else begin\n        // If already granted, maintain the grant as long as the lock is active\n        if ((grant_reg & lock) != 0) begin\n          grant_next = grant_reg;\n        end\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule arbiter_06 (\n  input clk,\n  input rst_n,\n  input [3:0] req,\n  input [3:0] lock,\n  output [3:0] gnt\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "LATCH_INFERRED",
+      "failure_reason": "Incomplete if-branch infers storage latch in arbiter_06.sv.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Latch pattern in arbiter_06.sv: combinational 'if' missing explicit 'else' branch.",
+          "details": "Incomplete if-branch infers storage latch in arbiter_06.sv.",
+          "error_category": "LATCH_INFERRED",
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Arbiter supporting multi-cycle bus locked transactions using lock signal\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": null,\n      \"kind\": \"onehot0\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": \"gnt\",\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Arbiter supporting multi-cycle bus locked transactions using lock signal\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n  ],\n  \"module_name\": \"arbiter_06\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"req\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"lock\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"gnt\",\n      \"width\": 4\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [\n    {\n      \"clock\": \"clk\",\n      \"description\": \"Held-out evaluator property preserved verbatim for bounded classification at formal stage.\",\n      \"name\": \"contract_property_1\",\n      \"property_expr\": \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"reset\": \"rst_n\"\n    }\n  ],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 2,\n  \"category\": \"LATCH_INFERRED\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Arbiter supporting multi-cycle bus locked transactions using lock signal\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": null,\n        \"kind\": \"onehot0\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": \"gnt\",\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Arbiter supporting multi-cycle bus locked transactions using lock signal\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n    ],\n    \"module_name\": \"arbiter_06\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"req\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"lock\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"gnt\",\n        \"width\": 4\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [\n      {\n        \"clock\": \"clk\",\n        \"description\": \"Held-out evaluator property preserved verbatim for bounded classification at formal stage.\",\n        \"name\": \"contract_property_1\",\n        \"property_expr\": \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n        \"reset\": \"rst_n\"\n      }\n    ],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"LATCH_INFERRED\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"Latch pattern in arbiter_06.sv: combinational 'if' missing explicit 'else' branch.\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule arbiter_06 (\n  input clk,\n  input rst_n,\n  input [3:0] req,\n  input [3:0] lock,\n  output [3:0] gnt\n);\n\n  reg [3:0] grant_reg;\n  reg [3:0] grant_next;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      grant_reg <= 4'd0;\n    end else begin\n      grant_reg <= grant_next;\n    end\n  end\n\n  assign gnt = grant_reg;\n\n  always @(*) begin\n    // Default assignment: no grant\n    grant_next = 4'd0;\n\n    // If any request is high and no lock is active, grant the first request\n    if (req != 4'd0) begin\n      if (grant_reg == 4'd0) begin\n        // Grant the lowest priority request that is not locked\n        if (req[0] && !lock[0]) begin\n          grant_next = 4'd1;\n        end else if (req[1] && !lock[1]) begin\n          grant_next = 4'd2;\n        end else if (req[2] && !lock[2]) begin\n          grant_next = 4'd4;\n        end else if (req[3] && !lock[3]) begin\n          grant_next = 4'd8;\n        end\n      end else begin\n        // If already granted, maintain the grant as long as the lock is active\n        if ((grant_reg & lock) != 0) begin\n          grant_next = grant_reg;\n        end\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule arbiter_06 (\n  input clk,\n  input rst_n,\n  input [3:0] req,\n  input [3:0] lock,\n  output [3:0] gnt\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "LATCH_INFERRED",
+      "failure_reason": "Incomplete if-branch infers storage latch in arbiter_06.sv.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Latch pattern in arbiter_06.sv: combinational 'if' missing explicit 'else' branch.",
+          "details": "Incomplete if-branch infers storage latch in arbiter_06.sv.",
+          "error_category": "LATCH_INFERRED",
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Arbiter supporting multi-cycle bus locked transactions using lock signal\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": null,\n      \"kind\": \"onehot0\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": \"gnt\",\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Arbiter supporting multi-cycle bus locked transactions using lock signal\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n  ],\n  \"module_name\": \"arbiter_06\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"req\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"lock\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"gnt\",\n      \"width\": 4\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [\n    {\n      \"clock\": \"clk\",\n      \"description\": \"Held-out evaluator property preserved verbatim for bounded classification at formal stage.\",\n      \"name\": \"contract_property_1\",\n      \"property_expr\": \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"reset\": \"rst_n\"\n    }\n  ],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 3,\n  \"category\": \"LATCH_INFERRED\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Arbiter supporting multi-cycle bus locked transactions using lock signal\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": null,\n        \"kind\": \"onehot0\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": \"gnt\",\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Arbiter supporting multi-cycle bus locked transactions using lock signal\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n    ],\n    \"module_name\": \"arbiter_06\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"req\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"lock\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"gnt\",\n        \"width\": 4\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) $onehot0(gnt));\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [\n      {\n        \"clock\": \"clk\",\n        \"description\": \"Held-out evaluator property preserved verbatim for bounded classification at formal stage.\",\n        \"name\": \"contract_property_1\",\n        \"property_expr\": \"assert property (@(posedge clk) disable iff (!rst_n) (gnt & lock) != 0 |=> gnt == $past(gnt));\",\n        \"reset\": \"rst_n\"\n      }\n    ],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"LATCH_INFERRED\",\n    \"LATCH_INFERRED\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"Latch pattern in arbiter_06.sv: combinational 'if' missing explicit 'else' branch.\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule arbiter_06 (\n  input clk,\n  input rst_n,\n  input [3:0] req,\n  input [3:0] lock,\n  output [3:0] gnt\n);\n\n  reg [3:0] grant_reg;\n  reg [3:0] grant_next;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      grant_reg <= 4'd0;\n    end else begin\n      grant_reg <= grant_next;\n    end\n  end\n\n  assign gnt = grant_reg;\n\n  always @(*) begin\n    // Default assignment: no grant\n    grant_next = 4'd0;\n\n    // If any request is high and no lock is active, grant the first request\n    if (req != 4'd0) begin\n      if (grant_reg == 4'd0) begin\n        // Grant the lowest priority request that is not locked\n        if (req[0] && !lock[0]) begin\n          grant_next = 4'd1;\n        end else if (req[1] && !lock[1]) begin\n          grant_next = 4'd2;\n        end else if (req[2] && !lock[2]) begin\n          grant_next = 4'd4;\n        end else if (req[3] && !lock[3]) begin\n          grant_next = 4'd8;\n        end\n      end else begin\n        // If already granted, maintain the grant as long as the lock is active\n        if ((grant_reg & lock) != 0) begin\n          grant_next = grant_reg;\n        end\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule arbiter_06 (\n  input clk,\n  input rst_n,\n  input [3:0] req,\n  input [3:0] lock,\n  output [3:0] gnt\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "LATCH_INFERRED",
+      "failure_reason": "Incomplete if-branch infers storage latch in arbiter_06.sv.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Latch pattern in arbiter_06.sv: combinational 'if' missing explicit 'else' branch.",
+          "details": "Incomplete if-branch infers storage latch in arbiter_06.sv.",
+          "error_category": "LATCH_INFERRED",
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "failure_category": "LATCH_INFERRED",
+    "passed": false
+  },
+  "timestamp": 1791231786.8837554,
+  "duration_seconds": 51.112,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "427e42b9326b5b6a16ddc8d2260b05d414494b354bc43ba8d81dca7098715729"
+  }
+}

@@ -95,3 +95,37 @@ def test_lossy_ast_dict_still_rejected_strict() -> None:
     except ModelResponseParseError:
         return
     raise AssertionError("strict parser must stay fail-closed on AST-shaped dicts")
+
+
+def test_repair_hint_cdc_names_crossings() -> None:
+    from mind3.core.driver import _repair_strategy_hint
+
+    hint = _repair_strategy_hint(
+        "CDC_VIOLATION",
+        {"cdc_violations": ["CDC-001 error f.sv unsynchronized crossing clk_a → clk_b"]},
+        False,
+    )
+    assert "synchronizer" in hint
+    assert "clk_a" in hint
+    assert "Do not change port names" in hint
+
+
+def test_repair_hint_formal_points_at_evidence() -> None:
+    from mind3.core.driver import _repair_strategy_hint
+
+    hint = _repair_strategy_hint("FORMAL_INVARIANT_BREACH", {}, False)
+    assert "counterexample" in hint
+    assert "do not alter the property" in hint
+
+
+def test_repair_hint_repeated_demands_different_fix() -> None:
+    from mind3.core.driver import _repair_strategy_hint
+
+    hint = _repair_strategy_hint("COVERAGE_DEFICIT", {}, True)
+    assert "do not " in hint.lower() and "repeat the same edit" in hint
+
+
+def test_repair_hint_empty_for_unknown() -> None:
+    from mind3.core.driver import _repair_strategy_hint
+
+    assert _repair_strategy_hint("SOME_OTHER", {}, False) == ""

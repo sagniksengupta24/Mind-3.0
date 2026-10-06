@@ -1,0 +1,387 @@
+{
+  "task_id": "uart_02",
+  "category": "UART",
+  "name": "uart_rx_oversample",
+  "natural_language_spec": "UART receiver with 16x baud oversampling and majority vote noise filter",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:30b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "uart_02",
+    "functional_spec": "UART receiver with 16x baud oversampling and majority vote noise filter",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "in_data",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "out_data",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "UART receiver with 16x baud oversampling and majority vote noise filter"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "out_data == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "out_data == out_data",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module uart_02 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  // State definitions\n  localparam IDLE   = 3'd0;\n  localparam START  = 3'd1;\n  localparam DATA   = 3'd2;\n  localparam STOP   = 3'd3;\n\n  // Internal signals\n  reg [2:0] state, next_state;\n  reg [3:0] bit_cnt;\n  reg [7:0] rx_data;\n  reg [3:0] sample_cnt;\n  reg start_detected;\n  reg [15:0] baud_counter;\n  reg sample_bit;\n  reg [7:0] vote_buffer [0:15];\n  reg [2:0] majority_vote;\n  reg [7:0] out_data_reg;\n\n  // Synchronize input\n  reg in_sync;\n  reg in_sync_d;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      in_sync <= 1'b1;\n      in_sync_d <= 1'b1;\n    end else begin\n      in_sync_d <= in_data[0];\n      in_sync <= in_sync_d;\n    end\n  end\n\n  // Baud rate counter\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      baud_counter <= 16'd0;\n    end else begin\n      baud_counter <= baud_counter + 16'd1;\n    end\n  end\n\n  // Sample bit at 16x baud rate\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      sample_cnt <= 4'd0;\n      sample_bit <= 1'b1;\n    end else begin\n      if (baud_counter == 16'd0) begin\n        sample_cnt <= 4'd1;\n        sample_bit <= in_sync;\n      end else if (sample_cnt < 15) begin\n        sample_cnt <= sample_cnt + 4'd1;\n      end else begin\n        sample_cnt <= 4'd0;\n        sample_bit <= in_sync;\n      end\n    end\n  end\n\n  // Majority vote for noise filtering\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      vote_buffer[0] <= 8'd0;\n      vote_buffer[1] <= 8'd0;\n      vote_buffer[2] <= 8'd0;\n      vote_buffer[3] <= 8'd0;\n      vote_buffer[4] <= 8'd0;\n      vote_buffer[5] <= 8'd0;\n      vote_buffer[6] <= 8'd0;\n      vote_buffer[7] <= 8'd0;\n      vote_buffer[8] <= 8'd0;\n      vote_buffer[9] <= 8'd0;\n      vote_buffer[10] <= 8'd0;\n      vote_buffer[11] <= 8'd0;\n      vote_buffer[12] <= 8'd0;\n      vote_buffer[13] <= 8'd0;\n      vote_buffer[14] <= 8'd0;\n      vote_buffer[15] <= 8'd0;\n    end else begin\n      vote_buffer[15] <= vote_buffer[14];\n      vote_buffer[14] <= vote_buffer[13];\n      vote_buffer[13] <= vote_buffer[12];\n      vote_buffer[12] <= vote_buffer[11];\n      vote_buffer[11] <= vote_buffer[10];\n      vote_buffer[10] <= vote_buffer[9];\n      vote_buffer[9] <= vote_buffer[8];\n      vote_buffer[8] <= vote_buffer[7];\n      vote_buffer[7] <= vote_buffer[6];\n      vote_buffer[6] <= vote_buffer[5];\n      vote_buffer[5] <= vote_buffer[4];\n      vote_buffer[4] <= vote_buffer[3];\n      vote_buffer[3] <= vote_buffer[2];\n      vote_buffer[2] <= vote_buffer[1];\n      vote_buffer[1] <= vote_buffer[0];\n      vote_buffer[0] <= sample_bit;\n    end\n  end\n\n  // Majority vote calculation\n  always @(*) begin\n    reg [7:0] vote_0, vote_1;\n    vote_0 = 8'd0;\n    vote_1 = 8'd0;\n    for (int i = 0; i < 16; i = i + 1) begin\n      if (vote_buffer[i] == 1'b0) begin\n        vote_0 = vote_0 + 8'd1;\n      end else begin\n        vote_1 = vote_1 + 8'd1;\n      end\n    end\n    if (vote_0 > vote_1) begin\n      majority_vote = 3'd0;\n    end else begin\n      majority_vote = 3'd1;\n    end\n  end\n\n  // State machine\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      state <= IDLE;\n      bit_cnt <= 4'd0;\n      rx_data <= 8'd0;\n      start_detected <= 1'b0;\n    end else begin\n      state <= next_state;\n      case (state)\n        IDLE: begin\n          if (sample_bit == 1'b0) begin\n            // Start bit detected\n            start_detected <= 1'b1;\n            bit_cnt <= 4'd0;\n            rx_data <= 8'd0;\n          end else begin\n            start_detected <= 1'b0;\n          end\n        end\n        START: begin\n          if (bit_cnt == 7) begin\n            // Done with start bit\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n        DATA: begin\n          if (bit_cnt == 7) begin\n            // Done with data bits\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n        STOP: begin\n          if (bit_cnt == 7) begin\n            // Done with stop bit\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n      endcase\n    end\n  end\n\n  // Next state logic\n  always @(*) begin\n    next_state = state;\n    case (state)\n      IDLE: begin\n        if (start_detected) begin\n          next_state = START;\n        end\n      end\n      START: begin\n        if (bit_cnt == 7) begin\n          next_state = DATA;\n        end\n      end\n      DATA: begin\n        if (bit_cnt == 7) begin\n          next_state = STOP;\n        end\n      end\n      STOP: begin\n        if (bit_cnt == 7) begin\n          next_state = IDLE;\n        end\n      end\n    endcase\n  end\n\n  // Output logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data_reg <= 8'd0;\n    end else begin\n      if (state == STOP && bit_cnt == 7) begin\n        out_data_reg <= rx_data;\n      end\n    end\n  end\n\n  assign out_data = out_data_reg;\n\nendmodule",
+  "gate_failure_category": "LATCH_INFERRED",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"UART receiver with 16x baud oversampling and majority vote noise filter\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"UART receiver with 16x baud oversampling and majority vote noise filter\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"uart_02\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"LATCH_INFERRED\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"UART receiver with 16x baud oversampling and majority vote noise filter\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"UART receiver with 16x baud oversampling and majority vote noise filter\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"uart_02\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"Latch pattern in uart_02.sv: combinational 'if' missing explicit 'else' branch.\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule uart_02 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  // State definitions\n  localparam IDLE   = 3'd0;\n  localparam START  = 3'd1;\n  localparam DATA   = 3'd2;\n  localparam STOP   = 3'd3;\n\n  // Internal signals\n  reg [2:0] state, next_state;\n  reg [3:0] bit_cnt;\n  reg [7:0] rx_data;\n  reg [3:0] sample_cnt;\n  reg start_detected;\n  reg [15:0] baud_counter;\n  reg sample_bit;\n  reg [7:0] vote_buffer [0:15];\n  reg [2:0] majority_vote;\n  reg [7:0] out_data_reg;\n\n  // Synchronize input\n  reg in_sync;\n  reg in_sync_d;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      in_sync <= 1'b1;\n      in_sync_d <= 1'b1;\n    end else begin\n      in_sync_d <= in_data[0];\n      in_sync <= in_sync_d;\n    end\n  end\n\n  // Baud rate counter\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      baud_counter <= 16'd0;\n    end else begin\n      baud_counter <= baud_counter + 16'd1;\n    end\n  end\n\n  // Sample bit at 16x baud rate\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      sample_cnt <= 4'd0;\n      sample_bit <= 1'b1;\n    end else begin\n      if (baud_counter == 16'd0) begin\n        sample_cnt <= 4'd1;\n        sample_bit <= in_sync;\n      end else if (sample_cnt < 15) begin\n        sample_cnt <= sample_cnt + 4'd1;\n      end else begin\n        sample_cnt <= 4'd0;\n        sample_bit <= in_sync;\n      end\n    end\n  end\n\n  // Majority vote for noise filtering\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      vote_buffer[0] <= 8'd0;\n      vote_buffer[1] <= 8'd0;\n      vote_buffer[2] <= 8'd0;\n      vote_buffer[3] <= 8'd0;\n      vote_buffer[4] <= 8'd0;\n      vote_buffer[5] <= 8'd0;\n      vote_buffer[6] <= 8'd0;\n      vote_buffer[7] <= 8'd0;\n      vote_buffer[8] <= 8'd0;\n      vote_buffer[9] <= 8'd0;\n      vote_buffer[10] <= 8'd0;\n      vote_buffer[11] <= 8'd0;\n      vote_buffer[12] <= 8'd0;\n      vote_buffer[13] <= 8'd0;\n      vote_buffer[14] <= 8'd0;\n      vote_buffer[15] <= 8'd0;\n    end else begin\n      vote_buffer[15] <= vote_buffer[14];\n      vote_buffer[14] <= vote_buffer[13];\n      vote_buffer[13] <= vote_buffer[12];\n      vote_buffer[12] <= vote_buffer[11];\n      vote_buffer[11] <= vote_buffer[10];\n      vote_buffer[10] <= vote_buffer[9];\n      vote_buffer[9] <= vote_buffer[8];\n      vote_buffer[8] <= vote_buffer[7];\n      vote_buffer[7] <= vote_buffer[6];\n      vote_buffer[6] <= vote_buffer[5];\n      vote_buffer[5] <= vote_buffer[4];\n      vote_buffer[4] <= vote_buffer[3];\n      vote_buffer[3] <= vote_buffer[2];\n      vote_buffer[2] <= vote_buffer[1];\n      vote_buffer[1] <= vote_buffer[0];\n      vote_buffer[0] <= sample_bit;\n    end\n  end\n\n  // Majority vote calculation\n  always @(*) begin\n    reg [7:0] vote_0, vote_1;\n    vote_0 = 8'd0;\n    vote_1 = 8'd0;\n    for (int i = 0; i < 16; i = i + 1) begin\n      if (vote_buffer[i] == 1'b0) begin\n        vote_0 = vote_0 + 8'd1;\n      end else begin\n        vote_1 = vote_1 + 8'd1;\n      end\n    end\n    if (vote_0 > vote_1) begin\n      majority_vote = 3'd0;\n    end else begin\n      majority_vote = 3'd1;\n    end\n  end\n\n  // State machine\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      state <= IDLE;\n      bit_cnt <= 4'd0;\n      rx_data <= 8'd0;\n      start_detected <= 1'b0;\n    end else begin\n      state <= next_state;\n      case (state)\n        IDLE: begin\n          if (sample_bit == 1'b0) begin\n            // Start bit detected\n            start_detected <= 1'b1;\n            bit_cnt <= 4'd0;\n            rx_data <= 8'd0;\n          end else begin\n            start_detected <= 1'b0;\n          end\n        end\n        START: begin\n          if (bit_cnt == 7) begin\n            // Done with start bit\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n        DATA: begin\n          if (bit_cnt == 7) begin\n            // Done with data bits\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n        STOP: begin\n          if (bit_cnt == 7) begin\n            // Done with stop bit\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n      endcase\n    end\n  end\n\n  // Next state logic\n  always @(*) begin\n    next_state = state;\n    case (state)\n      IDLE: begin\n        if (start_detected) begin\n          next_state = START;\n        end\n      end\n      START: begin\n        if (bit_cnt == 7) begin\n          next_state = DATA;\n        end\n      end\n      DATA: begin\n        if (bit_cnt == 7) begin\n          next_state = STOP;\n        end\n      end\n      STOP: begin\n        if (bit_cnt == 7) begin\n          next_state = IDLE;\n        end\n      end\n    endcase\n  end\n\n  // Output logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data_reg <= 8'd0;\n    end else begin\n      if (state == STOP && bit_cnt == 7) begin\n        out_data_reg <= rx_data;\n      end\n    end\n  end\n\n  assign out_data = out_data_reg;\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule uart_02 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "LATCH_INFERRED",
+      "failure_reason": "Incomplete if-branch infers storage latch in uart_02.sv.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Latch pattern in uart_02.sv: combinational 'if' missing explicit 'else' branch.",
+          "details": "Incomplete if-branch infers storage latch in uart_02.sv.",
+          "error_category": "LATCH_INFERRED",
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"UART receiver with 16x baud oversampling and majority vote noise filter\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"UART receiver with 16x baud oversampling and majority vote noise filter\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"uart_02\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 2,\n  \"category\": \"LATCH_INFERRED\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"UART receiver with 16x baud oversampling and majority vote noise filter\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"UART receiver with 16x baud oversampling and majority vote noise filter\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"uart_02\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"LATCH_INFERRED\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"Latch pattern in uart_02.sv: combinational 'if' missing explicit 'else' branch.\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule uart_02 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  // State definitions\n  localparam IDLE   = 3'd0;\n  localparam START  = 3'd1;\n  localparam DATA   = 3'd2;\n  localparam STOP   = 3'd3;\n\n  // Internal signals\n  reg [2:0] state, next_state;\n  reg [3:0] bit_cnt;\n  reg [7:0] rx_data;\n  reg [3:0] sample_cnt;\n  reg start_detected;\n  reg [15:0] baud_counter;\n  reg sample_bit;\n  reg [7:0] vote_buffer [0:15];\n  reg [2:0] majority_vote;\n  reg [7:0] out_data_reg;\n\n  // Synchronize input\n  reg in_sync;\n  reg in_sync_d;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      in_sync <= 1'b1;\n      in_sync_d <= 1'b1;\n    end else begin\n      in_sync_d <= in_data[0];\n      in_sync <= in_sync_d;\n    end\n  end\n\n  // Baud rate counter\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      baud_counter <= 16'd0;\n    end else begin\n      baud_counter <= baud_counter + 16'd1;\n    end\n  end\n\n  // Sample bit at 16x baud rate\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      sample_cnt <= 4'd0;\n      sample_bit <= 1'b1;\n    end else begin\n      if (baud_counter == 16'd0) begin\n        sample_cnt <= 4'd1;\n        sample_bit <= in_sync;\n      end else if (sample_cnt < 15) begin\n        sample_cnt <= sample_cnt + 4'd1;\n      end else begin\n        sample_cnt <= 4'd0;\n        sample_bit <= in_sync;\n      end\n    end\n  end\n\n  // Majority vote for noise filtering\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      vote_buffer[0] <= 8'd0;\n      vote_buffer[1] <= 8'd0;\n      vote_buffer[2] <= 8'd0;\n      vote_buffer[3] <= 8'd0;\n      vote_buffer[4] <= 8'd0;\n      vote_buffer[5] <= 8'd0;\n      vote_buffer[6] <= 8'd0;\n      vote_buffer[7] <= 8'd0;\n      vote_buffer[8] <= 8'd0;\n      vote_buffer[9] <= 8'd0;\n      vote_buffer[10] <= 8'd0;\n      vote_buffer[11] <= 8'd0;\n      vote_buffer[12] <= 8'd0;\n      vote_buffer[13] <= 8'd0;\n      vote_buffer[14] <= 8'd0;\n      vote_buffer[15] <= 8'd0;\n    end else begin\n      vote_buffer[15] <= vote_buffer[14];\n      vote_buffer[14] <= vote_buffer[13];\n      vote_buffer[13] <= vote_buffer[12];\n      vote_buffer[12] <= vote_buffer[11];\n      vote_buffer[11] <= vote_buffer[10];\n      vote_buffer[10] <= vote_buffer[9];\n      vote_buffer[9] <= vote_buffer[8];\n      vote_buffer[8] <= vote_buffer[7];\n      vote_buffer[7] <= vote_buffer[6];\n      vote_buffer[6] <= vote_buffer[5];\n      vote_buffer[5] <= vote_buffer[4];\n      vote_buffer[4] <= vote_buffer[3];\n      vote_buffer[3] <= vote_buffer[2];\n      vote_buffer[2] <= vote_buffer[1];\n      vote_buffer[1] <= vote_buffer[0];\n      vote_buffer[0] <= sample_bit;\n    end\n  end\n\n  // Majority vote calculation\n  always @(*) begin\n    reg [7:0] vote_0, vote_1;\n    vote_0 = 8'd0;\n    vote_1 = 8'd0;\n    for (int i = 0; i < 16; i = i + 1) begin\n      if (vote_buffer[i] == 1'b0) begin\n        vote_0 = vote_0 + 8'd1;\n      end else begin\n        vote_1 = vote_1 + 8'd1;\n      end\n    end\n    if (vote_0 > vote_1) begin\n      majority_vote = 3'd0;\n    end else begin\n      majority_vote = 3'd1;\n    end\n  end\n\n  // State machine\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      state <= IDLE;\n      bit_cnt <= 4'd0;\n      rx_data <= 8'd0;\n      start_detected <= 1'b0;\n    end else begin\n      state <= next_state;\n      case (state)\n        IDLE: begin\n          if (sample_bit == 1'b0) begin\n            // Start bit detected\n            start_detected <= 1'b1;\n            bit_cnt <= 4'd0;\n            rx_data <= 8'd0;\n          end else begin\n            start_detected <= 1'b0;\n          end\n        end\n        START: begin\n          if (bit_cnt == 7) begin\n            // Done with start bit\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n        DATA: begin\n          if (bit_cnt == 7) begin\n            // Done with data bits\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n        STOP: begin\n          if (bit_cnt == 7) begin\n            // Done with stop bit\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n      endcase\n    end\n  end\n\n  // Next state logic\n  always @(*) begin\n    next_state = state;\n    case (state)\n      IDLE: begin\n        if (start_detected) begin\n          next_state = START;\n        end\n      end\n      START: begin\n        if (bit_cnt == 7) begin\n          next_state = DATA;\n        end\n      end\n      DATA: begin\n        if (bit_cnt == 7) begin\n          next_state = STOP;\n        end\n      end\n      STOP: begin\n        if (bit_cnt == 7) begin\n          next_state = IDLE;\n        end\n      end\n    endcase\n  end\n\n  // Output logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data_reg <= 8'd0;\n    end else begin\n      if (state == STOP && bit_cnt == 7) begin\n        out_data_reg <= rx_data;\n      end\n    end\n  end\n\n  assign out_data = out_data_reg;\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule uart_02 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "LATCH_INFERRED",
+      "failure_reason": "Incomplete if-branch infers storage latch in uart_02.sv.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Latch pattern in uart_02.sv: combinational 'if' missing explicit 'else' branch.",
+          "details": "Incomplete if-branch infers storage latch in uart_02.sv.",
+          "error_category": "LATCH_INFERRED",
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"UART receiver with 16x baud oversampling and majority vote noise filter\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"UART receiver with 16x baud oversampling and majority vote noise filter\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"uart_02\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 3,\n  \"category\": \"LATCH_INFERRED\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"UART receiver with 16x baud oversampling and majority vote noise filter\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"UART receiver with 16x baud oversampling and majority vote noise filter\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"uart_02\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"LATCH_INFERRED\",\n    \"LATCH_INFERRED\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"Latch pattern in uart_02.sv: combinational 'if' missing explicit 'else' branch.\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule uart_02 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  // State definitions\n  localparam IDLE   = 3'd0;\n  localparam START  = 3'd1;\n  localparam DATA   = 3'd2;\n  localparam STOP   = 3'd3;\n\n  // Internal signals\n  reg [2:0] state, next_state;\n  reg [3:0] bit_cnt;\n  reg [7:0] rx_data;\n  reg [3:0] sample_cnt;\n  reg start_detected;\n  reg [15:0] baud_counter;\n  reg sample_bit;\n  reg [7:0] vote_buffer [0:15];\n  reg [2:0] majority_vote;\n  reg [7:0] out_data_reg;\n\n  // Synchronize input\n  reg in_sync;\n  reg in_sync_d;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      in_sync <= 1'b1;\n      in_sync_d <= 1'b1;\n    end else begin\n      in_sync_d <= in_data[0];\n      in_sync <= in_sync_d;\n    end\n  end\n\n  // Baud rate counter\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      baud_counter <= 16'd0;\n    end else begin\n      baud_counter <= baud_counter + 16'd1;\n    end\n  end\n\n  // Sample bit at 16x baud rate\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      sample_cnt <= 4'd0;\n      sample_bit <= 1'b1;\n    end else begin\n      if (baud_counter == 16'd0) begin\n        sample_cnt <= 4'd1;\n        sample_bit <= in_sync;\n      end else if (sample_cnt < 15) begin\n        sample_cnt <= sample_cnt + 4'd1;\n      end else begin\n        sample_cnt <= 4'd0;\n        sample_bit <= in_sync;\n      end\n    end\n  end\n\n  // Majority vote for noise filtering\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      vote_buffer[0] <= 8'd0;\n      vote_buffer[1] <= 8'd0;\n      vote_buffer[2] <= 8'd0;\n      vote_buffer[3] <= 8'd0;\n      vote_buffer[4] <= 8'd0;\n      vote_buffer[5] <= 8'd0;\n      vote_buffer[6] <= 8'd0;\n      vote_buffer[7] <= 8'd0;\n      vote_buffer[8] <= 8'd0;\n      vote_buffer[9] <= 8'd0;\n      vote_buffer[10] <= 8'd0;\n      vote_buffer[11] <= 8'd0;\n      vote_buffer[12] <= 8'd0;\n      vote_buffer[13] <= 8'd0;\n      vote_buffer[14] <= 8'd0;\n      vote_buffer[15] <= 8'd0;\n    end else begin\n      vote_buffer[15] <= vote_buffer[14];\n      vote_buffer[14] <= vote_buffer[13];\n      vote_buffer[13] <= vote_buffer[12];\n      vote_buffer[12] <= vote_buffer[11];\n      vote_buffer[11] <= vote_buffer[10];\n      vote_buffer[10] <= vote_buffer[9];\n      vote_buffer[9] <= vote_buffer[8];\n      vote_buffer[8] <= vote_buffer[7];\n      vote_buffer[7] <= vote_buffer[6];\n      vote_buffer[6] <= vote_buffer[5];\n      vote_buffer[5] <= vote_buffer[4];\n      vote_buffer[4] <= vote_buffer[3];\n      vote_buffer[3] <= vote_buffer[2];\n      vote_buffer[2] <= vote_buffer[1];\n      vote_buffer[1] <= vote_buffer[0];\n      vote_buffer[0] <= sample_bit;\n    end\n  end\n\n  // Majority vote calculation\n  always @(*) begin\n    reg [7:0] vote_0, vote_1;\n    vote_0 = 8'd0;\n    vote_1 = 8'd0;\n    for (int i = 0; i < 16; i = i + 1) begin\n      if (vote_buffer[i] == 1'b0) begin\n        vote_0 = vote_0 + 8'd1;\n      end else begin\n        vote_1 = vote_1 + 8'd1;\n      end\n    end\n    if (vote_0 > vote_1) begin\n      majority_vote = 3'd0;\n    end else begin\n      majority_vote = 3'd1;\n    end\n  end\n\n  // State machine\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      state <= IDLE;\n      bit_cnt <= 4'd0;\n      rx_data <= 8'd0;\n      start_detected <= 1'b0;\n    end else begin\n      state <= next_state;\n      case (state)\n        IDLE: begin\n          if (sample_bit == 1'b0) begin\n            // Start bit detected\n            start_detected <= 1'b1;\n            bit_cnt <= 4'd0;\n            rx_data <= 8'd0;\n          end else begin\n            start_detected <= 1'b0;\n          end\n        end\n        START: begin\n          if (bit_cnt == 7) begin\n            // Done with start bit\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n        DATA: begin\n          if (bit_cnt == 7) begin\n            // Done with data bits\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n        STOP: begin\n          if (bit_cnt == 7) begin\n            // Done with stop bit\n            bit_cnt <= 4'd0;\n          end else begin\n            bit_cnt <= bit_cnt + 4'd1;\n          end\n        end\n      endcase\n    end\n  end\n\n  // Next state logic\n  always @(*) begin\n    next_state = state;\n    case (state)\n      IDLE: begin\n        if (start_detected) begin\n          next_state = START;\n        end\n      end\n      START: begin\n        if (bit_cnt == 7) begin\n          next_state = DATA;\n        end\n      end\n      DATA: begin\n        if (bit_cnt == 7) begin\n          next_state = STOP;\n        end\n      end\n      STOP: begin\n        if (bit_cnt == 7) begin\n          next_state = IDLE;\n        end\n      end\n    endcase\n  end\n\n  // Output logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data_reg <= 8'd0;\n    end else begin\n      if (state == STOP && bit_cnt == 7) begin\n        out_data_reg <= rx_data;\n      end\n    end\n  end\n\n  assign out_data = out_data_reg;\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule uart_02 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "LATCH_INFERRED",
+      "failure_reason": "Incomplete if-branch infers storage latch in uart_02.sv.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Latch pattern in uart_02.sv: combinational 'if' missing explicit 'else' branch.",
+          "details": "Incomplete if-branch infers storage latch in uart_02.sv.",
+          "error_category": "LATCH_INFERRED",
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "failure_category": "LATCH_INFERRED",
+    "passed": false
+  },
+  "timestamp": 1791232879.8314114,
+  "duration_seconds": 212.07,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "052d935aa91230d457bff561b1ba8859bbb56a707cea222423584d2654f90d78"
+  }
+}

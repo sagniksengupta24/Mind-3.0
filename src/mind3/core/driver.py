@@ -124,6 +124,60 @@ any-key/any-value scan.
 """
 
 
+def _repair_strategy_hint(category: str, last_report: dict[str, Any], repeated: bool) -> str:
+    """Build failure-specific repair strategy text for the repair prompt.
+
+    Presentation only: it names the failing evidence and the required class
+    of fix. It never weakens validation, never rewrites RTL, and never
+    permits interface mutation. Returns "" when no specific strategy applies.
+    """
+    parts: list[str] = []
+    if category == "CDC_VIOLATION":
+        crossings = last_report.get("cdc_violations") or []
+        names = "; ".join(str(c)[:200] for c in crossings[:4])
+        parts.append(
+            "CDC repair strategy: the crossings above are real findings. "
+            + (f"Reported crossings: {names}. " if names else "")
+            + "Insert a two-flop synchronizer for each asynchronous input in "
+            "its destination clock domain, drive all downstream logic from "
+            "the synchronized signal, and never use the raw asynchronous "
+            "input past the synchronizer head. Do not change port names, "
+            "directions, or widths."
+        )
+    elif "FORMAL" in category:
+        parts.append(
+            "Formal repair strategy: the cited assertion, failure cycle, and "
+            "counterexample trace describe required behavior, not suggestions. "
+            "Diagnose the mathematical/state error first (boundary values, "
+            "comparison widths and signedness, saturation bounds, degenerate "
+            "inputs such as zero); then make the smallest valid correction. "
+            "Change the state/output/next-state logic so the property holds; "
+            "do not alter the property, the interface, or unrelated behavior."
+        )
+    elif "COVERAGE" in category:
+        parts.append(
+            "Coverage repair strategy: add reachable logic exercising the "
+            "uncovered branches, or remove logic that is dead by construction. "
+            "Do not chase the metric by weakening thresholds or deleting "
+            "specified behavior."
+        )
+    elif category in ("TYPE_WIDTH_ERROR", "INTERFACE_ERROR"):
+        parts.append(
+            "Interface repair strategy: reproduce the immutable module header "
+            "exactly — names, directions, widths (1-bit ports are scalars), "
+            "signedness. Fix only the mismatched declarations."
+        )
+    if repeated:
+        parts.append(
+            "The previous repair failed with an identical failure: do not "
+            "repeat the same edit. Change a different part of the logic with "
+            "a structurally different fix."
+        )
+    if not parts:
+        return ""
+    return "\nRepair strategy: " + " ".join(parts)
+
+
 def _parse_model_code_response(
     raw_output: str,
     default_module_name: str | None = None,
@@ -1671,6 +1725,7 @@ class PhaseDriver:
 
         repair_guidance: str | None = locals().get("repair_guidance")
         repair_history: list[str] = []
+        last_repair_fingerprint: str | None = None
         current_rtl_path = self.workspace / f"{contract.module_name}.sv"
         current_rtl = current_rtl_path.read_text(encoding="utf-8") if current_rtl_path.exists() else ""
         stage_limits = {"compile": 3, "simulation": 3, "formal": 3, "timing": self.max_repairs, "other": self.max_repairs}
@@ -1859,6 +1914,14 @@ class PhaseDriver:
             repair_prompt = VerificationRepairer.build_prompt(contract, current_rtl, evidence)
             repair_system_instruction = repair_prompt["system"]
             repair_guidance = repair_prompt["user"]
+            fingerprint = hashlib.sha256(
+                f"{category}|{last_report.get('gate', '')}|{(v_result.failure_reason or '')[:200]}".encode()
+            ).hexdigest()[:16]
+            repeated = fingerprint == last_repair_fingerprint
+            last_repair_fingerprint = fingerprint
+            hint = _repair_strategy_hint(category, last_report if isinstance(last_report, dict) else {}, repeated)
+            if hint:
+                repair_guidance = f"{repair_guidance}{hint}"
             repair_history.append(category)
 
 

@@ -1,0 +1,244 @@
+{
+  "task_id": "counter_08",
+  "category": "counters",
+  "name": "adv_counter_signed_wrap",
+  "natural_language_spec": "Adversarial signed accumulator detecting overflow and saturation bounds",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "provider": "openrouter",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_08",
+    "functional_spec": "Adversarial signed accumulator detecting overflow and saturation bounds",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "incr",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "accum",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "overflow",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Adversarial signed accumulator detecting overflow and saturation bounds"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "accum == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "past_expression",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "(!(overflow) || ($past(accum[7]) == $past(incr[7])))",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Legacy SVA implication reduced to a bounded historical boolean expression."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Adversarial signed accumulator detecting overflow and saturation bounds\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"accum == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"Legacy SVA implication reduced to a bounded historical boolean expression.\",\n      \"expression\": \"(!(overflow) || ($past(accum[7]) == $past(incr[7])))\",\n      \"kind\": \"past_expression\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Adversarial signed accumulator detecting overflow and saturation bounds\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));\"\n  ],\n  \"module_name\": \"counter_08\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"incr\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"accum\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"overflow\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Adversarial signed accumulator detecting overflow and saturation bounds\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"accum == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"Legacy SVA implication reduced to a bounded historical boolean expression.\",\n        \"expression\": \"(!(overflow) || ($past(accum[7]) == $past(incr[7])))\",\n        \"kind\": \"past_expression\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Adversarial signed accumulator detecting overflow and saturation bounds\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));\"\n    ],\n    \"module_name\": \"counter_08\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"incr\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"accum\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"overflow\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"The model did not return a parseable synthesizable module.\",\n  \"error\": \"OpenRouter response contained no choices: {'id': 'gen-1791202501-JhCMuw6kLY1URT8keaP0', 'error': {'message': 'Upstream error from Nvidia: Service temporarily overloaded', 'code': 503, 'metadata': {'error_type': 'provider_overloaded'}}}\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"RTL generation/parser\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"model-response-parser\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_08 (\n  input clk,\n  input rst_n,\n  input [7:0] incr,\n  output [7:0] accum,\n  output overflow\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \ncounter_08.sv:28: syntax error\ncounter_08.sv:28: error: Error in property_spec of concurrent assertion item.\ncounter_08.sv:29: syntax error\ncounter_08.sv:29: error: Malformed statement\ncounter_08.sv:29: error: Error in property_spec of concurrent assertion item.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 5,
+          "stdout": "",
+          "stderr": "counter_08.sv:28: syntax error\ncounter_08.sv:28: error: Error in property_spec of concurrent assertion item.\ncounter_08.sv:29: syntax error\ncounter_08.sv:29: error: Malformed statement\ncounter_08.sv:29: error: Error in property_spec of concurrent assertion item.\n",
+          "details": "RTL compile failed (iverilog): \ncounter_08.sv:28: syntax error\ncounter_08.sv:28: error: Error in property_spec of concurrent assertion item.\ncounter_08.sv:29: syntax error\ncounter_08.sv:29: error: Malformed statement\ncounter_08.sv:29: error: Error in property_spec of concurrent assertion item.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "counter_08",
+              "-o",
+              ".mind_compile.vvp",
+              "counter_08.sv"
+            ],
+            "return_code": 5,
+            "stdout": "",
+            "stderr": "counter_08.sv:28: syntax error\ncounter_08.sv:28: error: Error in property_spec of concurrent assertion item.\ncounter_08.sv:29: syntax error\ncounter_08.sv:29: error: Malformed statement\ncounter_08.sv:29: error: Error in property_spec of concurrent assertion item.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\ncounter_08.sv:28: syntax error\ncounter_08.sv:28: error: Error in property_spec of concurrent assertion item.\ncounter_08.sv:29: syntax error\ncounter_08.sv:29: error: Malformed statement\ncounter_08.sv:29: error: Error in property_spec of concurrent assertion item.\n",
+            "file": "counter_08.sv",
+            "line": 28,
+            "column": 1,
+            "source_context": "26: \n27:   // Formal properties\n28:   assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);\n29:   assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));\n30: "
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791202521.673672,
+  "duration_seconds": 20.236,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "941c0a64ee53662e4c5c176c376073b41a2bb6f1f6fb8f1c73d7819f5488a187"
+  }
+}

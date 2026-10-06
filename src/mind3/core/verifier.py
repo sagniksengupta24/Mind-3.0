@@ -92,16 +92,18 @@ class RTLVerifier(BaseVerifier):
             )
 
         mind_dir = (resolved_ws / ".mind").resolve()
+        # Top-level scan only: tool-generated subdirectories must never inject
+        # duplicate modules into compilation (same rule as discover_rtl_sources).
         v_sources = [
             p
-            for p in sorted(resolved_ws.rglob("*.v"))
+            for p in sorted(resolved_ws.glob("*.v"))
             if p.resolve() != resolved_tb.resolve()
             and not p.resolve().is_relative_to(mind_dir)
             and not any(part.startswith(".") for part in p.relative_to(resolved_ws).parts)
         ]
         sv_sources = [
             p
-            for p in sorted(resolved_ws.rglob("*.sv"))
+            for p in sorted(resolved_ws.glob("*.sv"))
             if p.resolve() != resolved_tb.resolve()
             and not p.resolve().is_relative_to(mind_dir)
             and not any(part.startswith(".") for part in p.relative_to(resolved_ws).parts)
@@ -506,9 +508,9 @@ def parse_coverage_dat_file(cov_path: Path) -> dict[str, float | None]:
     for cat in ("toggle", "branch", "line"):
         if cat in counts and counts[cat][0] > 0:
             result[cat] = round(counts[cat][1] / counts[cat][0] * 100.0, 1)
-        elif cat == "branch" and "line" in counts and counts["line"][0] > 0:
-            result["branch"] = round(counts["line"][1] / counts["line"][0] * 100.0, 1)
         else:
+            # Missing data stays unavailable: line coverage must never stand
+            # in for branch coverage (fail-closed; Gate 3 defaults to 0.0).
             result[cat] = None
     return result
 
@@ -710,6 +712,102 @@ def parse_yosys_cdc(output: str) -> dict[str, Any]:
 
     passed = not tooling_unavailable and len(violations) == 0 and "CDC analysis failed" not in output
     return {"passed": passed, "violations": violations, "tooling_unavailable": tooling_unavailable}
+
+
+def parse_rbcdc_report(report: dict[str, Any]) -> dict[str, Any]:
+    """Parse an ``rtl-buddy-cdc`` JSON report into Gate 6 evidence.
+
+    Returns ``passed True`` only with zero error-severity findings: warnings
+    (unstyled notes such as untyped single-domain ports) are reported but
+    """
+    violations: list[str] = []
+    error_count = 0
+    warning_count = 0
+    entries = report.get("violations") if isinstance(report, dict) else None
+    if not isinstance(entries, list):
+        entries = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        rule_id = str(entry.get("rule_id", "CDC-?"))
+        severity = str(entry.get("severity", "error")).lower()
+        message = str(entry.get("message", "")).strip()
+        location = entry.get("location") if isinstance(entry.get("location"), dict) else {}
+        where = str(location.get("file", ""))
+        line = location.get("line")
+        if line is not None:
+            where = f"{where}:{line}" if where else str(line)
+        text = f"{rule_id} {severity} {where} {message}".strip()
+        if severity == "error":
+            error_count += 1
+            violations.append(text)
+        else:
+            warning_count += 1
+    return {
+        "passed": error_count == 0,
+        "violations": violations,
+        "error_count": error_count,
+        "warning_count": warning_count,
+    }
+
+
+def derive_cdc_clock_sdc(top_module: str, rtl_text: str, timing_sdc: str = "") -> str | None:
+    """Derive a CDC-usable SDC with explicit port lists.
+
+    The fallback SDC reader cannot evaluate Tcl bracket wildcards such as
+    ``[all_inputs]``, so workspace timing SDCs using them leave every input
+    unconstrained and single-clock designs fail spuriously. This builder
+    always emits explicit ``[get_ports <name>]`` lists: real clock periods
+    and async/false-path groups are preserved verbatim from the workspace
+    timing SDC when present, defaulting to 10 ns clocks declared pairwise
+    asynchronous. With exactly one clock, remaining inputs are typed to it
+    (the standard synchronous-input declaration); with several clocks no
+    input typing is assumed. Analysis setup, never a verdict.
+    """
+    clocks: list[str] = []
+    inputs: list[str] = []
+    header = re.search(r"module\s+\w+\s*\((.*?)\)\s*;", rtl_text, re.DOTALL)
+    scope = header.group(1) if header else rtl_text
+    for match in re.finditer(r"\b(input|output|inout)\b\s*(?:reg\s*signed|reg|wire\s*signed|wire|signed|logic)?\s*(?:\[[^\]]+\]\s*)?(\w+)", scope):
+        direction, name = match.group(1), match.group(2)
+        lowered = name.lower()
+        is_clock = (lowered == "clk" or lowered == "clock"
+                    or lowered.startswith(("clk_", "clock_"))
+                    or lowered.endswith(("_clk", "_clock")))
+        if is_clock:
+            if name not in clocks:
+                clocks.append(name)
+        elif direction == "input" and name not in inputs:
+            inputs.append(name)
+    if not clocks:
+        return None
+    periods: dict[str, float] = {}
+    for match in re.finditer(
+        r"create_clock\s+-name\s+(\S+)\s+-period\s+([0-9.]+)", timing_sdc
+    ):
+        try:
+            periods[match.group(1)] = float(match.group(2))
+        except ValueError:
+            continue
+    lines = [
+        f"create_clock -name {p} -period {periods.get(p, 10.0):.3f} [get_ports {p}]"
+        for p in clocks
+    ]
+    kept_groups = [
+        line.strip()
+        for line in timing_sdc.splitlines()
+        if re.match(r"\s*set_(clock_groups|false_path)\b", line.strip())
+    ]
+    if len(clocks) > 1:
+        if kept_groups:
+            lines.extend(kept_groups)
+        else:
+            groups = " ".join(f"-group {{{p}}}" for p in clocks)
+            lines.append(f"set_clock_groups -asynchronous {groups}")
+    if len(clocks) == 1:
+        for port in inputs:
+            lines.append(f"set_input_delay -clock {clocks[0]} 1.000 [get_ports {port}]")
+    return "\n".join(lines) + "\n"
 
 
 def parse_sby_cover(output: str, targets: list[dict[str, Any]]) -> dict[str, dict[str, Any | None]]:
@@ -2355,6 +2453,33 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "simulated": False,
             }
 
+        # Zero-path guard (fail-closed): an OpenSTA report with no timed paths
+        # is not evidence of closure. Structural signal first — a genuine
+        # report_checks body always prints path blocks (Startpoint/Endpoint
+        # or slack verdicts); the explicit "No paths found" banner is the
+        # direct signal. Either one without timed-path evidence is vacuous.
+        no_paths_banner = re.search(r"No paths found", combined, re.IGNORECASE)
+        path_block_evidence = re.search(
+            r"Startpoint:|Endpoint:|\bslack\s*\((?:MET|VIOLATED)\)",
+            combined, re.IGNORECASE,
+        )
+        if (no_paths_banner or not path_block_evidence) and "VIOLATED" not in combined:
+            return {
+                "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    "OpenSTA reported no timed paths; zero-path timing is not "
+                    "evidence of timing closure (vacuous, not MET)."
+                ),
+                "error_category": "TIMING_NO_PATHS",
+                "metrics": {"setup_wns": wns_val, "setup_tns": tns_val},
+                "vacuous": True,
+                "simulated": False,
+            }
+
         wns_ps = wns_val * (1000.0 if self.sta_time_unit == "ns" else 1.0)
         tns_ps = (tns_val * (1000.0 if self.sta_time_unit == "ns" else 1.0)) if tns_val is not None else None
         hold_wns_ps = (hold_wns_val * (1000.0 if self.sta_time_unit == "ns" else 1.0)) if hold_wns_val is not None else None
@@ -2665,6 +2790,97 @@ class SiliconSignoffVerifier(BaseVerifier):
             return True, "async_inputs_declared"
         return False, "contract_declares_no_cdc"
 
+    def _run_gate6_rbcdc_fallback(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any] | None:
+        """Run ``rtl-buddy-cdc lint`` when Yosys lacks the ``cdc`` command.
+
+        Returns a Gate 6 report, or None when the fallback itself is
+        unavailable (binary missing, no clock definitions possible). Never
+        simulated: absence still fails closed as CDC_TOOLING_UNAVAILABLE.
+        """
+        if shutil.which("rtl-buddy-cdc") is None:
+            return None
+        src_args = [str(s.relative_to(ws)) for s in sources]
+        sdc_files = sorted(ws.glob("*.sdc"))
+        generated_sdc = True
+        timing_sdc = ""
+        if sdc_files:
+            try:
+                timing_sdc = sdc_files[0].read_text(encoding="utf-8")
+            except OSError:
+                timing_sdc = ""
+        try:
+            rtl_text = sources[0].read_text(encoding="utf-8") if sources else ""
+        except OSError:
+            return None
+        derived = derive_cdc_clock_sdc(self.top_module, rtl_text, timing_sdc)
+        if derived is None:
+            return None
+        sdc_path = ws / f"{self.top_module}_cdc_clocks.sdc"
+        sdc_path.write_text(derived, encoding="utf-8")
+        sdc_arg = sdc_path.name
+        cmd = ["rtl-buddy-cdc", "lint", "--top", self.top_module, "--sdc", sdc_arg, "--format", "json", *src_args]
+        proc = runner.run(cmd, timeout_sec=120)
+        combined = f"{proc.stdout}\n{proc.stderr}"
+        if proc.returncode != 0 and _is_binary_missing(proc, "rtl-buddy-cdc"):
+            return None
+        payload = proc.stdout or ""
+        start = payload.find("{")
+        report: dict[str, Any] = {}
+        if start >= 0:
+            try:
+                report = json.loads(payload[start:])
+            except ValueError:
+                report = {}
+        parsed = parse_rbcdc_report(report)
+        violations = parsed["violations"]
+        if not parsed["passed"]:
+            return {
+                "gate": "Gate 6: Yosys CDC Static Analysis",
+                "passed": False,
+                "exit_code": 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    f"CDC analysis detected {len(violations)} unregistered clock-domain crossing(s) "
+                    f"(rtl-buddy-cdc engine{', derived clock definitions' if generated_sdc else ''})."
+                ),
+                "error_category": "CDC_VIOLATION",
+                "cdc_violations": violations,
+                "cdc_engine": "rtl-buddy-cdc",
+                "skipped": False,
+                "simulated": False,
+            }
+        if proc.returncode not in (0, 1):
+            return {
+                "gate": "Gate 6: Yosys CDC Static Analysis",
+                "passed": False,
+                "exit_code": proc.returncode,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": "CDC elaboration failed. Check RTL syntax or hierarchy errors.",
+                "error_category": "CDC_ANALYSIS_FAILED",
+                "cdc_violations": [],
+                "cdc_engine": "rtl-buddy-cdc",
+                "skipped": False,
+                "simulated": False,
+            }
+        return {
+            "gate": "Gate 6: Yosys CDC Static Analysis",
+            "passed": True,
+            "exit_code": 0,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "details": (
+                "CDC analysis clean: zero unregistered clock-domain crossings detected "
+                f"(rtl-buddy-cdc engine{', derived clock definitions' if generated_sdc else ''})."
+            ),
+            "error_category": None,
+            "cdc_violations": [],
+            "cdc_engine": "rtl-buddy-cdc",
+            "skipped": False,
+            "simulated": False,
+        }
+
     def _run_gate6_cdc_analysis(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
         """Execute Yosys CDC static analysis to detect unregistered clock-domain crossings."""
         if self.require_cdc:
@@ -2743,6 +2959,9 @@ class SiliconSignoffVerifier(BaseVerifier):
             or "no such command: cdc" in combined.lower()
         )
         if is_cdc_tooling_missing:
+            fallback = self._run_gate6_rbcdc_fallback(runner, sources, ws)
+            if fallback is not None:
+                return fallback
             if self.allow_mock_fallback:
                 return {
                     "gate": "Gate 6: Yosys CDC Static Analysis",

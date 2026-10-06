@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -892,7 +893,7 @@ def test_silicon_signoff_gate1_latch_trap() -> None:
         latch_v.unlink()
         (ws / "clean_unit.sby").write_text("[options]\nmode bmc\n", encoding="utf-8")
         (ws / "tb.cpp").write_text("int main() { return 0; }", encoding="utf-8")
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.18\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.18 slack (MET)\nwns 0.18\n"
 
         clean_verifier = SiliconSignoffVerifier(
             top_module="clean_unit",
@@ -937,7 +938,7 @@ def test_silicon_signoff_gate4_timing_slack_violation() -> None:
         ws = Path(tmpdir)
         mock_sb = MockSandbox(ws)
         mock_sb.mock_returncode = 0
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns -0.35\ntns -1.42\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n -0.35 slack (VIOLATED)\nwns -0.35\ntns -1.42\n"
         mock_sb.mock_stderr = ""
 
         (ws / "core.v").write_text("module core(); endmodule\n", encoding="utf-8")
@@ -980,7 +981,7 @@ def test_silicon_signoff_all_gates_clean() -> None:
         (ws / "tb.cpp").write_text("int main() { return 0; }", encoding="utf-8")
 
         mock_sb = MockSandbox(ws)
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n"
         verifier = SiliconSignoffVerifier(
             top_module="alu",
             liberty_path="sky130_fd_sc_hd__tt_025C_1v80.lib",
@@ -1003,7 +1004,7 @@ def test_phase_driver_silicon_signoff_integration(monkeypatch: pytest.MonkeyPatc
         (ws / "tb.cpp").write_text("int main() { return 0; }", encoding="utf-8")
 
         mock_sb = MockSandbox(ws)
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.18\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.18 slack (MET)\nwns 0.18\n"
 
         verifier = SiliconSignoffVerifier(
             top_module="shifter",
@@ -1229,7 +1230,7 @@ def test_acceptance_2_stop_silently_noop_passing_gates_2_and_3() -> None:
 
         mock_sb = MockSandbox(ws)
         mock_sb.mock_returncode = 0
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.20\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.20 slack (MET)\nwns 0.20\n"
 
         # Defaults: require_formal=True, require_coverage=True
         verifier = SiliconSignoffVerifier(
@@ -2519,7 +2520,7 @@ def test_gate4_timing_reads_synthesized_gate_netlist() -> None:
 
         mock_sb = MockSandbox(ws)
         mock_sb.mock_returncode = 0
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns max 0.42\nworst slack max 0.42\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.42 slack (MET)\nwns max 0.42\nworst slack max 0.42\n"
 
         verifier = SiliconSignoffVerifier(
             top_module="alu",
@@ -2577,7 +2578,7 @@ def test_run_silicon_pipeline_full_multi_agent_orchestration(monkeypatch: pytest
         ws = Path(tmpdir)
         mock_sb = MockSandbox(ws)
         mock_sb.mock_returncode = 0
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n"
 
         driver = PhaseDriver(
             session_id="multi-agent-silicon-test",
@@ -2652,7 +2653,7 @@ def test_silicon_pipeline_rtl_extraction_wrapped_json(monkeypatch: pytest.Monkey
         ws = Path(tmpdir)
         mock_sb = MockSandbox(ws)
         mock_sb.mock_returncode = 0
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n"
 
         driver = PhaseDriver(
             session_id="wrapped-json-test",
@@ -2705,7 +2706,7 @@ def test_silicon_pipeline_rtl_extraction_raw_rtl_with_content_comment(monkeypatc
         ws = Path(tmpdir)
         mock_sb = MockSandbox(ws)
         mock_sb.mock_returncode = 0
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n"
 
         driver = PhaseDriver(
             session_id="content-comment-test",
@@ -2760,7 +2761,7 @@ def test_silicon_pipeline_repair_loop_rtl_extraction(monkeypatch: pytest.MonkeyP
         ws = Path(tmpdir)
         mock_sb = MockSandbox(ws)
         mock_sb.mock_returncode = 0
-        mock_sb.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+        mock_sb.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n"
 
         call_verifier_count = 0
 
@@ -2991,7 +2992,7 @@ def test_gate6_cdc_clean() -> None:
         assert gate6_report["error_category"] is None
 
 
-def test_gate6_cdc_tooling_unavailable_distinction() -> None:
+def test_gate6_cdc_tooling_unavailable_distinction(monkeypatch: pytest.MonkeyPatch) -> None:
     """Gate 6 must distinguish missing CDC command from real CDC violations."""
     # 1. Parser-level assertion: 'No such command or cell type: cdc' must not report violations
     raw_missing_cmd_log = (
@@ -3004,7 +3005,10 @@ def test_gate6_cdc_tooling_unavailable_distinction() -> None:
     assert parsed["passed"] is False
     assert len(parsed["violations"]) == 0
 
-    # 2. Gate 6 execution assertion: fail-closed with CDC_TOOLING_UNAVAILABLE, not CDC_VIOLATION
+    # 2. Gate 6 execution assertion: with NO cdc-capable tooling anywhere
+    # (neither yosys cdc nor the rtl-buddy-cdc fallback), fail closed with
+    # CDC_TOOLING_UNAVAILABLE, not CDC_VIOLATION
+    monkeypatch.setattr(shutil, "which", lambda *args, **kwargs: None)
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
         mock_sb = MockSandbox(ws)
@@ -3613,7 +3617,7 @@ def test_gate_presentation_label_contradiction_detection() -> None:
         (ws / "top_tb.cpp").write_text("int main() { return 0; }", encoding="utf-8")
 
         mock_runner_present = MockSandbox(ws)
-        mock_runner_present.mock_stdout = "OpenSTA 2.6.0\nwns 0.25\n"
+        mock_runner_present.mock_stdout = "OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n"
 
         verifier_present = SiliconSignoffVerifier(
             top_module="top",
@@ -3983,7 +3987,7 @@ def test_all_gates_pass_full_verification() -> None:
                 return subprocess.CompletedProcess(
                     args=command,
                     returncode=0,
-                    stdout="OpenSTA 2.6.0\nwns 0.25\n",
+                    stdout="OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n",
                     stderr="",
                 )
 
@@ -4362,8 +4366,10 @@ def test_cdc_clock_count_never_decides() -> None:
     assert len(runner.commands) == 1
 
 
-def test_cdc_missing_tool_yields_tooling_unavailable() -> None:
+def test_cdc_missing_tool_yields_tooling_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     """Required CDC + absent 'cdc' command -> FAIL with CDC_TOOLING_UNAVAILABLE, never PASS."""
+    # No fallback engine either: fail-closed only when nothing can analyze.
+    monkeypatch.setattr(shutil, "which", lambda *args, **kwargs: None)
     contract = _stage4_contract(async_inputs=None)
     runner = _Stage4Runner(stdout="No such command or cell type: cdc\n", stderr="", returncode=0)
     _, res = _stage4_gate(contract, runner)
@@ -4431,7 +4437,7 @@ def test_cdc_gate_always_has_explicit_state_in_orchestration() -> None:
             if "verilator" in cmd and "--build" in cmd:
                 return subprocess.CompletedProcess(args=command, returncode=0, stdout="branch coverage 98.2%\ntoggle coverage 94.5%", stderr="")
             if "sta" in cmd or "opensta" in cmd:
-                return subprocess.CompletedProcess(args=command, returncode=0, stdout="OpenSTA 2.6.0\nwns 0.25\n", stderr="")
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n", stderr="")
             return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -4469,7 +4475,7 @@ def test_cdc_contract_skip_keeps_signoff_neutral() -> None:
             if "verilator" in cmd and "--build" in cmd:
                 return subprocess.CompletedProcess(args=command, returncode=0, stdout="branch coverage 98.2%\ntoggle coverage 94.5%", stderr="")
             if "sta" in cmd or "opensta" in cmd:
-                return subprocess.CompletedProcess(args=command, returncode=0, stdout="OpenSTA 2.6.0\nwns 0.25\n", stderr="")
+                return subprocess.CompletedProcess(args=command, returncode=0, stdout="OpenSTA 2.6.0\nStartpoint: u0/ff0\nEndpoint: u1/ff1\n 0.25 slack (MET)\nwns 0.25\n", stderr="")
             return subprocess.CompletedProcess(args=command, returncode=0, stdout="", stderr="")
 
     with tempfile.TemporaryDirectory() as tmpdir:

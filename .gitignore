@@ -9,3 +9,13 @@ artifacts/runs/
 dist/
 .DS_Store
 audit/manifest_*
+# Regenerable EDA build outputs — never commit
+**/obj_dir/
+*.o
+*.a
+*.d
+**/model/design*.log
+**/model/*.smt2
+**/engine_*/
+coverage.dat
+*.tar.gz

@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal spi_08.sv
+read -formal spi_08_sva.sv
+read -formal spi_08_formal_top.sv
+prep -top spi_08_formal_top
+
+[files]
+spi_08.sv
+spi_08_formal_top.sv
+spi_08_sva.sv

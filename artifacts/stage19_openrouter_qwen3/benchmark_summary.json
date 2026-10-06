@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-10-05T12:08:58Z",
+  "task_set_path": "/home/mind/Desktop/Mind-3.0-main/benchmarks/heldout/tasks.jsonl",
+  "task_set_sha256": "bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24",
+  "transcript_count": 10,
+  "real_transcript_count": 10,
+  "fixture_count": 0,
+  "live_provenance": true,
+  "required_min_tasks": 10,
+  "actual_real_transcripts": 10,
+  "evidence_tier": "diagnostic",
+  "caveat": "Diagnostic evidence only: run was explicitly executed in diagnostic mode with 10 real transcripts (required_min_tasks=10). Not eligible for release claims.",
+  "performance_claim_valid": false,
+  "initial_pass_count": 0,
+  "functional_pass_count": 0,
+  "full_verified_pass_count": 0,
+  "repair_success_count": 0,
+  "initial_pass_rate": 0.0,
+  "functional_pass_rate": 0.0,
+  "full_verified_pass_rate": 0.0,
+  "repair_success_rate": 0.0,
+  "initial_pass_ci95": [
+    0.0,
+    0.2775
+  ],
+  "functional_pass_ci95": [
+    0.0,
+    0.2775
+  ],
+  "full_verified_pass_ci95": [
+    0.0,
+    0.2775
+  ],
+  "mean_turns_taken": null,
+  "p50_turns_taken": null,
+  "failure_categories": {
+    "RESPONSE_PARSE_FAILURE": 10
+  },
+  "model_counts": {
+    "qwen/qwen3-coder:free": 10
+  },
+  "provider_counts": {
+    "openrouter": 10
+  },
+  "tool_versions": {},
+  "baseline_comparisons": [],
+  "methodology": {
+    "initial_pass": "final result passes on turn 0 without repair",
+    "functional_pass": "final Gate 3 coverage succeeds as part of the signoff chain",
+    "full_verified_pass": "final_outcome.passed and silicon_verified are both true",
+    "repair_success": "final success occurred after at least one repair turn",
+    "confidence_interval": "95% Wilson binomial interval",
+    "fixtures_excluded_from_metrics": true,
+    "minimum_claim_tasks": 100,
+    "specialist_thresholds": {
+      "functional": 0.7,
+      "full_verified": 0.4
+    },
+    "strong_thresholds": {
+      "functional": 0.8,
+      "full_verified": 0.6
+    },
+    "9_of_10_target_thresholds": {
+      "functional": 0.85,
+      "full_verified": 0.7
+    },
+    "parser_mode": "strict",
+    "parser_mode_note": "Benchmarks run with parser_mode='lenient' are not equivalent to parser_mode='strict' runs: lenient mode permits bounded recovery of malformed local-model output.",
+    "observed_parser_modes": [
+      "strict"
+    ]
+  }
+}

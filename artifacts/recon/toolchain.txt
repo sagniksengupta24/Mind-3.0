@@ -1,0 +1,58 @@
+===== python =====
+Python 3.12.3
+/usr/bin/python3
+
+===== ollama =====
+ollama version is 0.32.15
+NAME                          ID              SIZE      MODIFIED     
+qwen2.5-coder:7b              dae161e27b0e    4.7 GB    28 hours ago    
+qwen2.5-coder:30b             06c1097efce0    18 GB     4 weeks ago     
+Qwen3-Coder-30B-A3B:latest    06c1097efce0    18 GB     4 weeks ago     
+qwen3-coder:30b               06c1097efce0    18 GB     6 weeks ago     
+
+===== yosys =====
+Yosys 0.33 (git sha1 2584903a060)
+/usr/bin/yosys
+/bin/yosys
+-rwxr-xr-x 1 mind mind 540 Sep 21 11:20 /home/mind/oss-cad-suite/bin/yosys
+20260921
+===== sby =====
+SBY v0.69
+/home/mind/.local/bin/sby
+/home/mind/.local/bin/sby
+/home/mind/.local/bin/sby
+
+===== verilator =====
+Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+/usr/bin/verilator
+/bin/verilator
+
+===== iverilog/vvp =====
+Icarus Verilog version 12.0 (stable) ()
+
+Copyright (c) 2000-2021 Stephen Williams (steve@icarus.com)
+
+  This program is free software; you can redistribute it and/or modify
+/home/mind/.local/bin/iverilog
+/home/mind/.local/bin/iverilog
+/home/mind/.local/bin/iverilog
+/home/mind/.local/bin/vvp
+/home/mind/.local/bin/vvp
+/home/mind/.local/bin/vvp
+
+===== OSS CAD SUITE =====
+bin
+environment
+environment.fish
+etc
+examples
+include
+lib
+libexec
+license
+py3bin
+README
+share
+super_prove
+VERSION
+PATH=/home/mind/.opencode/bin:/home/mind/.local/bin:/home/mind/.local/bin:/home/mind/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin

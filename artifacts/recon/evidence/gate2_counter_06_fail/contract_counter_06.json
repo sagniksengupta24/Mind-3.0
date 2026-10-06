@@ -1,0 +1,91 @@
+{
+ "module_name": "counter_06",
+ "functional_spec": "Programmable integer frequency divider with 50 percent duty cycle output",
+ "parameters": {},
+ "ports": [
+  {
+   "name": "clk",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "rst_n",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "div_val",
+   "direction": "input",
+   "width": 8,
+   "description": ""
+  },
+  {
+   "name": "clk_out",
+   "direction": "output",
+   "width": 1,
+   "description": ""
+  }
+ ],
+ "clock": {
+  "name": "clk",
+  "edge": "posedge"
+ },
+ "reset": {
+  "name": "rst_n",
+  "polarity": "active_low",
+  "synchronous": true
+ },
+ "behavior": [
+  "Programmable integer frequency divider with 50 percent duty cycle output"
+ ],
+ "invariants": [
+  "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> clk_out == 0);",
+  "assert property (@(posedge clk) disable iff (!rst_n) div_val == 0 |-> clk_out == 0);"
+ ],
+ "protocol_requirements": [
+  "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> clk_out == 0);",
+  "assert property (@(posedge clk) disable iff (!rst_n) div_val == 0 |-> clk_out == 0);"
+ ],
+ "formal_properties": [
+  {
+   "name": "contract_property_1",
+   "kind": "same_cycle_implication",
+   "clock": "clk",
+   "reset": "rst_n:active_low",
+   "antecedent": "!rst_n",
+   "consequent": "clk_out == 0",
+   "expression": null,
+   "signal": null,
+   "value": null,
+   "cycles": 1,
+   "description": "Classified deterministically from the bounded legacy SVA subset."
+  },
+  {
+   "name": "contract_property_2",
+   "kind": "same_cycle_implication",
+   "clock": "clk",
+   "reset": "rst_n:active_low",
+   "antecedent": "div_val == 0",
+   "consequent": "clk_out == 0",
+   "expression": null,
+   "signal": null,
+   "value": null,
+   "cycles": 1,
+   "description": "Classified deterministically from the bounded legacy SVA subset."
+  }
+ ],
+ "sva_properties": [],
+ "timing": {
+  "clock_name": "clk",
+  "period_ns": 10.0,
+  "pvt_corners": [
+   "tt_025c_1v80",
+   "ff_n40c_1v95",
+   "ss_125c_1v60"
+  ],
+  "lef_path": null
+ },
+ "async_inputs": null
+}

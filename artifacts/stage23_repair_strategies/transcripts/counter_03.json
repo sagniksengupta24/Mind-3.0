@@ -1,0 +1,167 @@
+{
+  "task_id": "counter_03",
+  "category": "counters",
+  "name": "bcd_counter_2digit",
+  "natural_language_spec": "2-digit 0-99 BCD decimal counter with carry out on wrap",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:30b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_03",
+    "functional_spec": "2-digit 0-99 BCD decimal counter with carry out on wrap",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "bcd_ones",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "bcd_tens",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "carry_out",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "2-digit 0-99 BCD decimal counter with carry out on wrap"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);",
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);",
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "bcd_ones <= 4'd9",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "bcd_tens <= 4'd9",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n\n  reg [3:0] ones_reg;\n  reg [3:0] tens_reg;\n  reg carry_out_reg;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      ones_reg <= 4'd0;\n      tens_reg <= 4'd0;\n      carry_out_reg <= 1'b0;\n    end else if (en) begin\n      if (ones_reg == 4'd9) begin\n        ones_reg <= 4'd0;\n        if (tens_reg == 4'd9) begin\n          tens_reg <= 4'd0;\n          carry_out_reg <= 1'b1;\n        end else begin\n          tens_reg <= tens_reg + 4'd1;\n          carry_out_reg <= 1'b0;\n        end\n      end else begin\n        ones_reg <= ones_reg + 4'd1;\n        carry_out_reg <= 1'b0;\n      end\n    end\n  end\n\n  assign bcd_ones = ones_reg;\n  assign bcd_tens = tens_reg;\n  assign carry_out = carry_out_reg;\n\nendmodule",
+  "gate_failure_category": "CDC_VIOLATION",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"2-digit 0-99 BCD decimal counter with carry out on wrap\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"bcd_ones <= 4'd9\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"bcd_tens <= 4'd9\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"2-digit 0-99 BCD decimal counter with carry out on wrap\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n  ],\n  \"module_name\": \"counter_03\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"bcd_ones\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"bcd_tens\",\n      \"width\": 4\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"carry_out\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"CDC_VIOLATION\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"2-digit 0-99 BCD decimal counter with carry out on wrap\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"bcd_ones <= 4'd9\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"bcd_tens <= 4'd9\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"2-digit 0-99 BCD decimal counter with carry out on wrap\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n    ],\n    \"module_name\": \"counter_03\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"bcd_ones\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"bcd_tens\",\n        \"width\": 4\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"carry_out\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 6: Yosys CDC Static Analysis)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"other\",\n  \"stderr_tail\": \"sdc.tcl_unavailable: _tkinter is not importable, so the Tcl safe-interp SDC reader is unavailable and the word tokenizer is used instead ($var, expr and command substitution are not evaluated). Fix by running under a uv-managed Python (`uv python install 3.12`), or install the distro package `python3-tkinter` / `python3-tk`, or Homebrew's `python-tk@<X.Y>` matching your interpreter.\\nsdc.tokenizer_skipped: dropped unrecognised command 'set_clock_uncertainty'. The word-tokenizer backend does not evaluate $var, expr or command substitution, so constraints expressed through them are invisible to the CDC analysis. _tkinter is not importable, so the Tcl safe-interp SDC reader is unavailable and the word tokenizer is used instead ($var, expr and command substitution are not evaluated). Fix by running under a uv-managed Python (`uv python install 3.12`), or install the distro package `python3-tkinter` / `python3-tk`, or Homebrew's `python-tk@<X.Y>` matching your interpreter.\\n\",\n  \"stdout_tail\": \"{\\n  \\\"tool\\\": {\\n    \\\"name\\\": \\\"rtl-buddy-cdc\\\",\\n    \\\"version\\\": \\\"0.5.0\\\"\\n  },\\n  \\\"module\\\": \\\"counter_03\\\",\\n  \\\"summary\\\": {\\n    \\\"ports\\\": 6,\\n    \\\"cells\\\": 15,\\n    \\\"flops\\\": 3,\\n    \\\"crossings\\\": 3,\\n    \\\"async_crossings\\\": 3,\\n    \\\"violations\\\": 3,\\n    \\\"suppressed\\\": 0,\\n    \\\"baseline_carryover\\\": 0,\\n    \\\"scan_mode_suppressed\\\": 0,\\n    \\\"domain_unknown\\\": 0\\n  },\\n  \\\"domain_unknown_flops\\\": [],\\n  \\\"inferred_clock_candidates\\\": [],\\n  \\\"by_instance\\\": [\\n    {\\n      \\\"instance_path\\\": [],\\n      \\\"violations\\\": 3,\\n      \\\"rules\\\": {\\n        \\\"CDC-004\\\": 2,\\n        \\\"CDC-011\\\": 1\\n      }\\n    }\\n  ],\\n  \\\"domains\\\": [\\n    {\\n      \\\"flop\\\": \\\"$procdff$28\\\",\\n      \\\"clock\\\": \\\"clk\\\"\\n    },\\n    {\\n      \\\"flop\\\": \\\"$procdff$29\\\",\\n      \\\"clock\\\": \\\"clk\\\"\\n    },\\n    {\\n      \\\"flop\\\": \\\"$procdff$30\\\",\\n      \\\"clock\\\": \\\"clk\\\"\\n    }\\n  ],\\n  \\\"crossings\\\": [\\n    {\\n      \\\"src_clock\\\": \\\"<unconstrained>\\\",\\n      \\\"dst_clock\\\": \\\"clk\\\",\\n      \\\"dst_flop\\\": \\\"$procdff$30\\\",\\n      \\\"width\\\": 1,\\n      \\\"min_hops\\\": 1,\\n      \\\"src_port\\\": \\\"en\\\"\\n    },\\n    {\\n      \\\"src_clock\\\": \\\"<unconstrained>\\\",\\n      \\\"dst_clock\\\": \\\"clk\\\",\\n      \\\"dst_flop\\\": \\\"$procdff$29\\\",\\n      \\\"width\\\": 4,\\n      \\\"min_hops\\\": 1,\\n      \\\"src_port\\\": \\\"en\\\"\\n    },\\n    {\\n      \\\"src_clock\\\": \\\"<unconstrained>\\\",\\n      \\\"dst_clock\\\": \\\"clk\\\",\\n      \\\"dst_flop\\\": \\\"$procdff$28\\\",\\n      \\\"width\\\": 4,\\n      \\\"min_hops\\\": 1,\\n      \\\"src_port\\\": \\\"en\\\"\\n    }\\n  ],\\n  \\\"violations\\\": [\\n    {\\n      \\\"rule_id\\\": \\\"CDC-004\\\",\\n      \\\"severity\\\": \\\"error\\\",\\n      \\\"message\\\": \\\"unprotected bus crossing on <unconstrained> \\\\u2192 clk: 4-bit path with no recognized gating or gray-coding (src: port en, dst flop: $procdff$29)\\\",\\n      \\\"cell_name\\\": \\\"$procdff$29\\\",\\n      \\\"instance_path\\\": [],\\n      \\\"crossing\\\": {\\n        \\\"src_clock\\\": \\\"<unconstrained>\\\",\\n        \\\"dst_clock\\\": \\\"clk\\\",\\n        \\\"dst_flop\\\": \\\"$procdff$29\\\",\\n        \\\"width\\\": 4,\\n        \\\"min_hops\\\": 1,\\n        \\\"src_port\\\": \\\"en\\\"\\n      },\\n      \\\"location\\\": {\\n        \\\"file\\\": \\\"counter_03.sv\\\",\\n        \\\"start_line\\\": 14,\\n        \\\"start_column\\\": 3,\\n        \\\"end_line\\\": 34,\\n        \\\"end_column\\\": 6\\n      }\\n    },\\n    {\\n      \\\"rule_id\\\": \\\"CDC-004\\\",\\n      \\\"severity\\\": \\\"error\\\",\\n      \\\"message\\\": \\\"unprotected bus crossing on <unconstrained> \\\\u2192 clk: 4-bit path with no recognized gating or gray-coding (src: port en, dst flop: $procdff$28)\\\",\\n      \\\"cell_name\\\": \\\"$procdff$28\\\",\\n      \\\"instance_path\\\": [],\\n      \\\"crossing\\\": {\\n        \\\"src_clock\\\": \\\"<unconstrained>\\\",\\n        \\\"dst_clock\\\": \\\"clk\\\",\\n        \\\"dst_flop\\\": \\\"$procdff$28\\\",\\n        \\\"width\\\": 4,\\n        \\\"min_hops\\\": 1,\\n        \\\"src_port\\\": \\\"en\\\"\\n      },\\n      \\\"location\\\": {\\n        \\\"file\\\": \\\"counter_03.sv\\\",\\n        \\\"start_line\\\": 14,\\n        \\\"start_column\\\": 3,\\n        \\\"end_line\\\": 34,\\n        \\\"end_column\\\": 6\\n      }\\n    },\\n    {\\n      \\\"rule_id\\\": \\\"CDC-011\\\",\\n      \\\"severity\\\": \\\"warning\\\",\\n      \\\"message\\\": \\\"unconstrained primary input 'en' has no set_input_delay -clock typing in the SDC but is captured in domain 'clk'; add set_input_delay -clock clk [get_ports en] (or declare the port's true source clock and add a synchronizer)\\\",\\n      \\\"cell_name\\\": \\\"$procdff$28\\\",\\n      \\\"instance_path\\\": [],\\n      \\\"location\\\": {\\n        \\\"file\\\": \\\"counter_03.sv\\\",\\n        \\\"start_line\\\": 14,\\n        \\\"start_column\\\": 3,\\n        \\\"end_line\\\": 34,\\n        \\\"end_column\\\": 6\\n      }\\n    }\\n  ],\\n  \\\"suppressed\\\": [],\\n  \\\"baseline_carryover\\\": []\\n}\\n\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n\n  reg [3:0] ones_reg;\n  reg [3:0] tens_reg;\n  reg carry_out_reg;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      ones_reg <= 4'd0;\n      tens_reg <= 4'd0;\n      carry_out_reg <= 1'b0;\n    end else if (en) begin\n      if (ones_reg == 4'd9) begin\n        ones_reg <= 4'd0;\n        if (tens_reg == 4'd9) begin\n          tens_reg <= 4'd0;\n          carry_out_reg <= 1'b1;\n        end else begin\n          tens_reg <= tens_reg + 4'd1;\n          carry_out_reg <= 1'b0;\n        end\n      end else begin\n        ones_reg <= ones_reg + 4'd1;\n        carry_out_reg <= 1'b0;\n      end\n    end\n  end\n\n  assign bcd_ones = ones_reg;\n  assign bcd_tens = tens_reg;\n  assign carry_out = carry_out_reg;\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule counter_03 (\n  input clk,\n  input rst_n,\n  input en,\n  output [3:0] bcd_ones,\n  output [3:0] bcd_tens,\n  output carry_out\n);\n\nRepair strategy: CDC repair strategy: the crossings above are real findings. Insert a two-flop synchronizer for each asynchronous input in its destination clock domain, drive all downstream logic from the synchronized signal, and never use the raw asynchronous input past the synchronizer head. Do not change port names, directions, or widths.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "REPAIR_PATCH_TOO_LARGE",
+      "failure_reason": "Repair patch exceeded bounded change budget.",
+      "gate_reports": []
+    },
+    {
+      "turn": 2,
+      "guidance": "Your last repair was rejected because it exceeded the bounded change budget. Keep changed lines <= 65% of current RTL and growth <= 3.0x.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "RESPONSE_PARSE_FAILURE",
+      "failure_reason": "Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module.",
+      "gate_reports": []
+    },
+    {
+      "turn": 3,
+      "guidance": "The previous repair response could not be parsed: Strict parsing rejected the model response: it is not a WriteFileAction, a fenced Verilog block, a repair patch, or exactly one Verilog module..\nReturn ONLY the complete SystemVerilog module, including its module declaration and endmodule.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "REPAIR_PATCH_TOO_LARGE",
+      "failure_reason": "Repair patch exceeded bounded change budget.",
+      "gate_reports": []
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791227298.0861645,
+  "duration_seconds": 37.861,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "5938ac147c2e6956604196ebd3b7bc9ca59679b6d7c734c024191f65ea82e69c"
+  }
+}

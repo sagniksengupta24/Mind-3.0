@@ -63,6 +63,17 @@ Any of the three failure categories fails overall verification
 declaration and does not invalidate `silicon_verified`. Simulated
 (`allow_mock_fallback`) results never count as signoff.
 
+## Fallback engine: rtl-buddy-cdc (verified on Linux)
+
+When Yosys lacks the `cdc` command but the `rtl-buddy-cdc` binary is
+available, Gate 6 runs `rtl-buddy-cdc lint --top <top> --sdc <sdc>
+--format json <sources>` instead of failing closed. Only error-severity
+findings fail (`CDC_VIOLATION`); warnings are reported, never fatal. The SDC
+is taken from the workspace when present, otherwise derived minimally from
+clock-like port names (10 ns clocks, all pairs asynchronous) and labeled as
+derived in the report. Absence of both engines still fails closed as
+`CDC_TOOLING_UNAVAILABLE` — never a pass, never simulated.
+
 ## Current host limitations
 
 Stock Homebrew Yosys (observed: 0.69+post on macOS) does not bundle the

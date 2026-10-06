@@ -1,0 +1,127 @@
+{
+  "task_id": "counter_08",
+  "category": "counters",
+  "name": "adv_counter_signed_wrap",
+  "natural_language_spec": "Adversarial signed accumulator detecting overflow and saturation bounds",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen/qwen3-coder:free",
+  "provider": "openrouter",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_08",
+    "functional_spec": "Adversarial signed accumulator detecting overflow and saturation bounds",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "incr",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "accum",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "overflow",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Adversarial signed accumulator detecting overflow and saturation bounds"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "accum == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "past_expression",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "(!(overflow) || ($past(accum[7]) == $past(incr[7])))",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Legacy SVA implication reduced to a bounded historical boolean expression."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791202137.6830444,
+  "duration_seconds": 0.292,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {},
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "1c494ae55741a1e52a890609d9a05f4b7e3fcb4e711e4723f69dc47e428b80e4"
+  }
+}

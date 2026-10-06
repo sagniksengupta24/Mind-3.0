@@ -1,0 +1,301 @@
+{
+  "task_id": "counter_07",
+  "category": "counters",
+  "name": "adv_counter_boundary",
+  "natural_language_spec": "Adversarial boundary counter: rollover exactly at MAX-1 with simultaneous clear",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "provider": "openrouter",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_07",
+    "functional_spec": "Adversarial boundary counter: rollover exactly at MAX-1 with simultaneous clear",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "clear",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "count",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "max_pulse",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Adversarial boundary counter: rollover exactly at MAX-1 with simultaneous clear"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) clear |=> count == 8'd0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) count == 8'd255 |-> max_pulse == 1);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) clear |=> count == 8'd0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) count == 8'd255 |-> max_pulse == 1);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "next_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "clear",
+        "consequent": "count == 8'd0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "count == 8'd255",
+        "consequent": "max_pulse == 1",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 3,
+      "guidance": "Repair model invocation failed: OpenRouter response contained no choices: {'id': 'gen-1791202481-BhBpJfgW38Cr1W4Dj6BP', 'error': {'message': 'Upstream error from Nvidia: Service temporarily overloaded', 'code': 503, 'metadata': {'error_type': 'provider_overloaded'}}}. Return the complete SystemVerilog module only.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "INTERFACE_ERROR",
+      "failure_reason": "Structural contract validation failed: Required port 'rst_n' is missing.\nRequired port 'clear' is missing.\nRequired port 'en' is missing.\nPort 'count' width is 4, expected 8.\nRequired port 'max_pulse' is missing.\nUnexpected port 'enable' is not present in the contract.\nUnexpected port 'reset' is not present in the contract.\nReset 'rst_n' is declared by the contract but is not referenced in the RTL.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Required port 'rst_n' is missing.\nRequired port 'clear' is missing.\nRequired port 'en' is missing.\nPort 'count' width is 4, expected 8.\nRequired port 'max_pulse' is missing.\nUnexpected port 'enable' is not present in the contract.\nUnexpected port 'reset' is not present in the contract.\nReset 'rst_n' is declared by the contract but is not referenced in the RTL.",
+          "details": "Structural contract validation failed: Required port 'rst_n' is missing.\nRequired port 'clear' is missing.\nRequired port 'en' is missing.\nPort 'count' width is 4, expected 8.\nRequired port 'max_pulse' is missing.\nUnexpected port 'enable' is not present in the contract.\nUnexpected port 'reset' is not present in the contract.\nReset 'rst_n' is declared by the contract but is not referenced in the RTL.",
+          "error_category": "INTERFACE_ERROR",
+          "diagnostic": {
+            "category": "INTERFACE_ERROR",
+            "message": "Required port 'rst_n' is missing.",
+            "file": "counter_07.sv",
+            "line": 1,
+            "column": null,
+            "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+          },
+          "structural_violations": [
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'rst_n' is missing.",
+              "file": "counter_07.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'clear' is missing.",
+              "file": "counter_07.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'en' is missing.",
+              "file": "counter_07.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+            },
+            {
+              "category": "TYPE_WIDTH_ERROR",
+              "message": "Port 'count' width is 4, expected 8.",
+              "file": "counter_07.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'max_pulse' is missing.",
+              "file": "counter_07.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Unexpected port 'enable' is not present in the contract.",
+              "file": "counter_07.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Unexpected port 'reset' is not present in the contract.",
+              "file": "counter_07.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+            },
+            {
+              "category": "CLOCK_RESET_ERROR",
+              "message": "Reset 'rst_n' is declared by the contract but is not referenced in the RTL.",
+              "file": "counter_07.sv",
+              "line": null,
+              "column": null,
+              "source_context": "1: module counter_07 (\n2:     input  logic        clk,\n3:     input  logic        reset,"
+            }
+          ],
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "failure_category": "INTERFACE_ERROR",
+    "passed": false
+  },
+  "timestamp": 1791202501.437003,
+  "duration_seconds": 21.111,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "4a80f8d5e17585ce87d6f9d7f7370de18c8dbd2d621276323b190202895cffaa"
+  }
+}

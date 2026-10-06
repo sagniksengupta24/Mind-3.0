@@ -1,0 +1,56 @@
+SBY  0:46:11 [counter_06] Removing directory '/home/mind/Desktop/Mind-3.0-main/artifacts/recon/evidence/gate2_counter_06_fail/counter_06'.
+SBY  0:46:11 [counter_06] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/recon/evidence/gate2_counter_06_fail/counter_06.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/recon/evidence/gate2_counter_06_fail/counter_06/src/counter_06.sv'.
+SBY  0:46:11 [counter_06] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/recon/evidence/gate2_counter_06_fail/counter_06_formal_top.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/recon/evidence/gate2_counter_06_fail/counter_06/src/counter_06_formal_top.sv'.
+SBY  0:46:11 [counter_06] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/recon/evidence/gate2_counter_06_fail/counter_06_sva.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/recon/evidence/gate2_counter_06_fail/counter_06/src/counter_06_sva.sv'.
+SBY  0:46:11 [counter_06] engine_0: smtbmc z3
+SBY  0:46:11 [counter_06] base: starting process "cd counter_06/src; yosys -ql ../model/design.log ../model/design.ys"
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\rst_n is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\div_val [7] is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\div_val [6] is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\div_val [5] is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\div_val [4] is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\div_val [3] is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\div_val [2] is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\div_val [1] is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\div_val [0] is used but has no driver.
+SBY  0:46:11 [counter_06] base: Warning: Wire counter_06_formal_top.\clk is used but has no driver.
+SBY  0:46:11 [counter_06] base: finished (returncode=0)
+SBY  0:46:11 [counter_06] prep: starting process "cd counter_06/model; yosys -ql design_prep.log design_prep.ys"
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\rst_n is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\div_val [7] is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\div_val [6] is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\div_val [5] is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\div_val [4] is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\div_val [3] is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\div_val [2] is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\div_val [1] is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\div_val [0] is used but has no driver.
+SBY  0:46:11 [counter_06] prep: Warning: Wire counter_06_formal_top.\clk is used but has no driver.
+SBY  0:46:11 [counter_06] prep: finished (returncode=0)
+SBY  0:46:11 [counter_06] smt2: starting process "cd counter_06/model; yosys -ql design_smt2.log design_smt2.ys"
+SBY  0:46:11 [counter_06] smt2: finished (returncode=0)
+SBY  0:46:11 [counter_06] engine_0: starting process "cd counter_06; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2"
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Solver: z3
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Checking assumptions in step 0..
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Checking assertions in step 0..
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Checking assumptions in step 1..
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Checking assertions in step 1..
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Checking assumptions in step 2..
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Checking assertions in step 2..
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Checking assumptions in step 3..
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Checking assertions in step 3..
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  BMC failed!
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Assert failed in counter_06_formal_top.sva: counter_06_sva.sv:33.24-33.46 ($assert$counter_06_sva.sv:33$24)
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw
+SBY  0:46:11 [counter_06] engine_0: ##   0:00:00  Status: failed
+SBY  0:46:11 [counter_06] engine_0: finished (returncode=1)
+SBY  0:46:11 [counter_06] engine_0: Status returned by engine: FAIL
+SBY  0:46:11 [counter_06] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  0:46:11 [counter_06] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  0:46:11 [counter_06] summary: engine_0 (smtbmc z3) returned FAIL
+SBY  0:46:11 [counter_06] summary: counterexample trace: counter_06/engine_0/trace.vcd
+SBY  0:46:11 [counter_06] summary:   failed assertion counter_06_formal_top.sva.$assert$counter_06_sva.sv:33$24 at counter_06_sva.sv:33.24-33.46 step 3
+SBY  0:46:11 [counter_06] DONE (FAIL, rc=2)

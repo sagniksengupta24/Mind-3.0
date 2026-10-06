@@ -1,0 +1,251 @@
+{
+  "task_id": "counter_02",
+  "category": "counters",
+  "name": "gray_counter_4b",
+  "natural_language_spec": "4-bit synchronous Gray code counter incrementing by 1 Gray step each active cycle",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "provider": "openrouter",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_02",
+    "functional_spec": "4-bit synchronous Gray code counter incrementing by 1 Gray step each active cycle",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "gray",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "4-bit synchronous Gray code counter incrementing by 1 Gray step each active cycle"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> gray == 4'b0000);",
+      "assert property (@(posedge clk) disable iff (!rst_n) en |=> $onehot(gray ^ $past(gray)));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> gray == 4'b0000);",
+      "assert property (@(posedge clk) disable iff (!rst_n) en |=> $onehot(gray ^ $past(gray)));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "gray == 4'b0000",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "contract_property_2",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) en |=> $onehot(gray ^ $past(gray)));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Held-out evaluator property preserved verbatim for bounded classification at formal stage."
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [
+    {
+      "turn": 2,
+      "guidance": "Repair model invocation failed: OpenRouter response contained no choices: {'id': 'gen-1791202182-P31pbvfaZWapql27bIBY', 'error': {'message': 'Upstream error from Nvidia: Service temporarily overloaded', 'code': 503, 'metadata': {'error_type': 'provider_overloaded'}}}. Return the complete SystemVerilog module only.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "INTERFACE_ERROR",
+      "failure_reason": "Structural contract validation failed: Required port 'en' is missing.\nRequired port 'gray' is missing.\nUnexpected port 'valid_in' is not present in the contract.\nUnexpected port 'valid_out' is not present in the contract.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "Required port 'en' is missing.\nRequired port 'gray' is missing.\nUnexpected port 'valid_in' is not present in the contract.\nUnexpected port 'valid_out' is not present in the contract.",
+          "details": "Structural contract validation failed: Required port 'en' is missing.\nRequired port 'gray' is missing.\nUnexpected port 'valid_in' is not present in the contract.\nUnexpected port 'valid_out' is not present in the contract.",
+          "error_category": "INTERFACE_ERROR",
+          "diagnostic": {
+            "category": "INTERFACE_ERROR",
+            "message": "Required port 'en' is missing.",
+            "file": "counter_02.sv",
+            "line": 1,
+            "column": null,
+            "source_context": "1: module counter_02 (\n2:   input  logic        clk,\n3:   input  logic        rst_n,"
+          },
+          "structural_violations": [
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'en' is missing.",
+              "file": "counter_02.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_02 (\n2:   input  logic        clk,\n3:   input  logic        rst_n,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Required port 'gray' is missing.",
+              "file": "counter_02.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_02 (\n2:   input  logic        clk,\n3:   input  logic        rst_n,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Unexpected port 'valid_in' is not present in the contract.",
+              "file": "counter_02.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_02 (\n2:   input  logic        clk,\n3:   input  logic        rst_n,"
+            },
+            {
+              "category": "INTERFACE_ERROR",
+              "message": "Unexpected port 'valid_out' is not present in the contract.",
+              "file": "counter_02.sv",
+              "line": 1,
+              "column": null,
+              "source_context": "1: module counter_02 (\n2:   input  logic        clk,\n3:   input  logic        rst_n,"
+            }
+          ],
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791202217.693343,
+  "duration_seconds": 35.827,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "c4423a06be314c824ae93a5323d3f15ad2e55656b712897511a7d655ae7c4418"
+  }
+}

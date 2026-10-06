@@ -1,0 +1,97 @@
+{
+ "module_name": "counter_08",
+ "functional_spec": "Adversarial signed accumulator detecting overflow and saturation bounds",
+ "parameters": {},
+ "ports": [
+  {
+   "name": "clk",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "rst_n",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "incr",
+   "direction": "input",
+   "width": 8,
+   "description": ""
+  },
+  {
+   "name": "accum",
+   "direction": "output",
+   "width": 8,
+   "description": ""
+  },
+  {
+   "name": "overflow",
+   "direction": "output",
+   "width": 1,
+   "description": ""
+  }
+ ],
+ "clock": {
+  "name": "clk",
+  "edge": "posedge"
+ },
+ "reset": {
+  "name": "rst_n",
+  "polarity": "active_low",
+  "synchronous": true
+ },
+ "behavior": [
+  "Adversarial signed accumulator detecting overflow and saturation bounds"
+ ],
+ "invariants": [
+  "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);",
+  "assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));"
+ ],
+ "protocol_requirements": [
+  "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> accum == 0);",
+  "assert property (@(posedge clk) disable iff (!rst_n) overflow |-> $past(accum[7]) == $past(incr[7]));"
+ ],
+ "formal_properties": [
+  {
+   "name": "contract_property_1",
+   "kind": "same_cycle_implication",
+   "clock": "clk",
+   "reset": "rst_n:active_low",
+   "antecedent": "!rst_n",
+   "consequent": "accum == 0",
+   "expression": null,
+   "signal": null,
+   "value": null,
+   "cycles": 1,
+   "description": "Classified deterministically from the bounded legacy SVA subset."
+  },
+  {
+   "name": "contract_property_2",
+   "kind": "past_expression",
+   "clock": "clk",
+   "reset": "rst_n:active_low",
+   "antecedent": null,
+   "consequent": null,
+   "expression": "(!(overflow) || ($past(accum[7]) == $past(incr[7])))",
+   "signal": null,
+   "value": null,
+   "cycles": 1,
+   "description": "Legacy SVA implication reduced to a bounded historical boolean expression."
+  }
+ ],
+ "sva_properties": [],
+ "timing": {
+  "clock_name": "clk",
+  "period_ns": 10.0,
+  "pvt_corners": [
+   "tt_025c_1v80",
+   "ff_n40c_1v95",
+   "ss_125c_1v60"
+  ],
+  "lef_path": null
+ },
+ "async_inputs": null
+}

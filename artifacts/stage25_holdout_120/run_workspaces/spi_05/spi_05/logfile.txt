@@ -1,0 +1,91 @@
+SBY  2:18:02 [spi_05] Removing directory '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/spi_05/spi_05'.
+SBY  2:18:02 [spi_05] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/spi_05/spi_05.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/spi_05/spi_05/src/spi_05.sv'.
+SBY  2:18:02 [spi_05] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/spi_05/spi_05_formal_top.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/spi_05/spi_05/src/spi_05_formal_top.sv'.
+SBY  2:18:02 [spi_05] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/spi_05/spi_05_sva.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/spi_05/spi_05/src/spi_05_sva.sv'.
+SBY  2:18:02 [spi_05] engine_0: smtbmc z3
+SBY  2:18:02 [spi_05] base: starting process "cd spi_05/src; yosys -ql ../model/design.log ../model/design.ys"
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\rst_n is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\in_data [7] is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\in_data [6] is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\in_data [5] is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\in_data [4] is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\in_data [3] is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\in_data [2] is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\in_data [1] is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\in_data [0] is used but has no driver.
+SBY  2:18:02 [spi_05] base: Warning: Wire spi_05_formal_top.\clk is used but has no driver.
+SBY  2:18:02 [spi_05] base: finished (returncode=0)
+SBY  2:18:02 [spi_05] prep: starting process "cd spi_05/model; yosys -ql design_prep.log design_prep.ys"
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\rst_n is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\in_data [7] is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\in_data [6] is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\in_data [5] is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\in_data [4] is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\in_data [3] is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\in_data [2] is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\in_data [1] is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\in_data [0] is used but has no driver.
+SBY  2:18:02 [spi_05] prep: Warning: Wire spi_05_formal_top.\clk is used but has no driver.
+SBY  2:18:02 [spi_05] prep: finished (returncode=0)
+SBY  2:18:02 [spi_05] smt2: starting process "cd spi_05/model; yosys -ql design_smt2.log design_smt2.ys"
+SBY  2:18:02 [spi_05] smt2: finished (returncode=0)
+SBY  2:18:02 [spi_05] engine_0: starting process "cd spi_05; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2"
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Solver: z3
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 0..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 0..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 1..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 1..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 2..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 2..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 3..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 3..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 4..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 4..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 5..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 5..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 6..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 6..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 7..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 7..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 8..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 8..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 9..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 9..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 10..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 10..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 11..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 11..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 12..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 12..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 13..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 13..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 14..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 14..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 15..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 15..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 16..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 16..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 17..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 17..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 18..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 18..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 19..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 19..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 20..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 20..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 21..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 21..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 22..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 22..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 23..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 23..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assumptions in step 24..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Checking assertions in step 24..
+SBY  2:18:02 [spi_05] engine_0: ##   0:00:00  Status: passed
+SBY  2:18:02 [spi_05] engine_0: finished (returncode=0)
+SBY  2:18:02 [spi_05] engine_0: Status returned by engine: pass
+SBY  2:18:02 [spi_05] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  2:18:02 [spi_05] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  2:18:02 [spi_05] summary: engine_0 (smtbmc z3) returned pass
+SBY  2:18:02 [spi_05] summary: engine_0 did not produce any traces
+SBY  2:18:02 [spi_05] DONE (PASS, rc=0)

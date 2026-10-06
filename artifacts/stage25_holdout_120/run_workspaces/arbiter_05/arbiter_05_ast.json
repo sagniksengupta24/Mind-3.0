@@ -1,0 +1,177 @@
+{
+  "creator": "Yosys 0.33 (git sha1 2584903a060)",
+  "modules": {
+    "arbiter_05": {
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "arbiter_05.sv:1.1-32.10"
+      },
+      "ports": {
+        "clk": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "rst_n": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "req": {
+          "direction": "input",
+          "bits": [ 4, 5, 6, 7 ]
+        },
+        "gnt": {
+          "direction": "output",
+          "bits": [ 8, 9, 10, 11 ]
+        }
+      },
+      "cells": {
+        "$abc$113$auto$blifparse.cc:386:parse_blif$114": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__lpflow_isobufsrc_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 5 ],
+            "SLEEP": [ 4 ],
+            "X": [ 12 ]
+          }
+        },
+        "$abc$113$auto$blifparse.cc:386:parse_blif$115": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor3b_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 5 ],
+            "B": [ 4 ],
+            "C_N": [ 6 ],
+            "Y": [ 13 ]
+          }
+        },
+        "$abc$113$auto$blifparse.cc:386:parse_blif$116": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor4b_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 6 ],
+            "B": [ 5 ],
+            "C": [ 4 ],
+            "D_N": [ 7 ],
+            "Y": [ 14 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$109": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_05.sv:10.3-28.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 4 ],
+            "Q": [ 8 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$110": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_05.sv:10.3-28.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 12 ],
+            "Q": [ 9 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$111": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_05.sv:10.3-28.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 13 ],
+            "Q": [ 10 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$112": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_05.sv:10.3-28.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 14 ],
+            "Q": [ 11 ],
+            "RESET_B": [ 3 ]
+          }
+        }
+      },
+      "netnames": {
+        "$0\\gnt_reg[3:0]": {
+          "hide_name": 1,
+          "bits": [ 4, 12, 13, 14 ],
+          "attributes": {
+            "src": "arbiter_05.sv:10.3-28.6"
+          }
+        },
+        "clk": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "arbiter_05.sv:2.9-2.12"
+          }
+        },
+        "gnt": {
+          "hide_name": 0,
+          "bits": [ 8, 9, 10, 11 ],
+          "attributes": {
+            "src": "arbiter_05.sv:5.16-5.19"
+          }
+        },
+        "gnt_reg": {
+          "hide_name": 0,
+          "bits": [ 8, 9, 10, 11 ],
+          "attributes": {
+            "src": "arbiter_05.sv:8.13-8.20"
+          }
+        },
+        "req": {
+          "hide_name": 0,
+          "bits": [ 4, 5, 6, 7 ],
+          "attributes": {
+            "src": "arbiter_05.sv:4.15-4.18"
+          }
+        },
+        "rst_n": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "arbiter_05.sv:3.9-3.14"
+          }
+        }
+      }
+    }
+  }
+}

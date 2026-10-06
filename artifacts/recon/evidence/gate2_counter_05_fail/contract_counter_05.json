@@ -1,0 +1,91 @@
+{
+ "module_name": "counter_05",
+ "functional_spec": "Window watchdog counter requiring kick pulses only within an allowed time window",
+ "parameters": {},
+ "ports": [
+  {
+   "name": "clk",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "rst_n",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "kick",
+   "direction": "input",
+   "width": 1,
+   "description": ""
+  },
+  {
+   "name": "fault",
+   "direction": "output",
+   "width": 1,
+   "description": ""
+  }
+ ],
+ "clock": {
+  "name": "clk",
+  "edge": "posedge"
+ },
+ "reset": {
+  "name": "rst_n",
+  "polarity": "active_low",
+  "synchronous": true
+ },
+ "behavior": [
+  "Window watchdog counter requiring kick pulses only within an allowed time window"
+ ],
+ "invariants": [
+  "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);",
+  "assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);"
+ ],
+ "protocol_requirements": [
+  "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> fault == 0);",
+  "assert property (@(posedge clk) disable iff (!rst_n) fault |=> fault);"
+ ],
+ "formal_properties": [
+  {
+   "name": "contract_property_1",
+   "kind": "same_cycle_implication",
+   "clock": "clk",
+   "reset": "rst_n:active_low",
+   "antecedent": "!rst_n",
+   "consequent": "fault == 0",
+   "expression": null,
+   "signal": null,
+   "value": null,
+   "cycles": 1,
+   "description": "Classified deterministically from the bounded legacy SVA subset."
+  },
+  {
+   "name": "contract_property_2",
+   "kind": "next_cycle_implication",
+   "clock": "clk",
+   "reset": "rst_n:active_low",
+   "antecedent": "fault",
+   "consequent": "fault",
+   "expression": null,
+   "signal": null,
+   "value": null,
+   "cycles": 1,
+   "description": "Classified deterministically from the bounded legacy SVA subset."
+  }
+ ],
+ "sva_properties": [],
+ "timing": {
+  "clock_name": "clk",
+  "period_ns": 10.0,
+  "pvt_corners": [
+   "tt_025c_1v80",
+   "ff_n40c_1v95",
+   "ss_125c_1v60"
+  ],
+  "lef_path": null
+ },
+ "async_inputs": null
+}

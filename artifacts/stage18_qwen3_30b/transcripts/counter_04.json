@@ -1,0 +1,116 @@
+{
+  "task_id": "counter_04",
+  "category": "counters",
+  "name": "johnson_counter_8b",
+  "natural_language_spec": "8-bit twisted-ring Johnson counter producing 16-phase sequences",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "Qwen3-Coder-30B-A3B:latest",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_04",
+    "functional_spec": "8-bit twisted-ring Johnson counter producing 16-phase sequences",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "q",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "8-bit twisted-ring Johnson counter producing 16-phase sequences"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> q == 8'h00);",
+      "assert property (@(posedge clk) disable iff (!rst_n) q[7:1] == $past(q[6:0]));"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> q == 8'h00);",
+      "assert property (@(posedge clk) disable iff (!rst_n) q[7:1] == $past(q[6:0]));"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "q == 8'h00",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "contract_property_2",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) q[7:1] == $past(q[6:0]));",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Held-out evaluator property preserved verbatim for bounded classification at formal stage."
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module counter_04 (\n  input clk,\n  input rst_n,\n  output [7:0] q\n);\n\n  reg [7:0] q_reg;\n\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      q_reg <= 8'h00;\n    end else begin\n      q_reg <= {q_reg[6:0], ~q_reg[7]};\n    end\n  end\n\n  assign q = q_reg;\n\nendmodule",
+  "gate_failure_category": "CDC_TOOLING_UNAVAILABLE",
+  "repair_attempts": [],
+  "final_outcome": {
+    "status": "ABORTED_NON_REPAIRABLE",
+    "error_category": "CDC_TOOLING_UNAVAILABLE",
+    "passed": false
+  },
+  "timestamp": 1791201588.691349,
+  "duration_seconds": 9.046,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "7d2c7f6df24b5d1e464b86c4304405586706b56cf68a1f6a1fa17f5ed95fd06f"
+  }
+}

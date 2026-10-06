@@ -1,0 +1,346 @@
+{
+  "creator": "Yosys 0.33 (git sha1 2584903a060)",
+  "modules": {
+    "fifo_06": {
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "fifo_06.sv:1.1-45.10"
+      },
+      "ports": {
+        "clk": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "rst_n": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "valid_in": {
+          "direction": "input",
+          "bits": [ 4 ]
+        },
+        "ready_out": {
+          "direction": "output",
+          "bits": [ 5 ]
+        },
+        "valid_out": {
+          "direction": "output",
+          "bits": [ 6 ]
+        },
+        "ready_in": {
+          "direction": "input",
+          "bits": [ 7 ]
+        }
+      },
+      "cells": {
+        "$abc$159$auto$blifparse.cc:386:parse_blif$160": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__clkinv_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 8 ],
+            "Y": [ 9 ]
+          }
+        },
+        "$abc$159$auto$blifparse.cc:386:parse_blif$161": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__clkinv_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 6 ],
+            "Y": [ 10 ]
+          }
+        },
+        "$abc$159$auto$blifparse.cc:386:parse_blif$162": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 6 ],
+            "B": [ 7 ],
+            "Y": [ 11 ]
+          }
+        },
+        "$abc$159$auto$blifparse.cc:386:parse_blif$163": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand2b_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A_N": [ 12 ],
+            "B": [ 4 ],
+            "Y": [ 13 ]
+          }
+        },
+        "$abc$159$auto$blifparse.cc:386:parse_blif$164": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__a21o_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 4 ],
+            "A2": [ 11 ],
+            "B1": [ 12 ],
+            "X": [ 14 ]
+          }
+        },
+        "$abc$159$auto$blifparse.cc:386:parse_blif$165": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand3_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 6 ],
+            "B": [ 7 ],
+            "C": [ 4 ],
+            "Y": [ 15 ]
+          }
+        },
+        "$abc$159$auto$blifparse.cc:386:parse_blif$166": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__mux2i_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A0": [ 7 ],
+            "A1": [ 15 ],
+            "S": [ 13 ],
+            "Y": [ 16 ]
+          }
+        },
+        "$abc$159$auto$blifparse.cc:386:parse_blif$167": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 9 ],
+            "B": [ 16 ],
+            "Y": [ 17 ]
+          }
+        },
+        "$abc$159$auto$blifparse.cc:386:parse_blif$168": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__o21ai_0",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 10 ],
+            "A2": [ 7 ],
+            "B1": [ 13 ],
+            "Y": [ 18 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$131": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "fifo_06.sv:19.3-39.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 14 ],
+            "Q": [ 12 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$152": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfstp_2",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "fifo_06.sv:19.3-39.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 17 ],
+            "Q": [ 8 ],
+            "SET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$153": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "fifo_06.sv:19.3-39.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 18 ],
+            "Q": [ 6 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$154": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfstp_2",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "fifo_06.sv:19.3-39.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 9 ],
+            "Q": [ 5 ],
+            "SET_B": [ 3 ]
+          }
+        }
+      },
+      "netnames": {
+        "$0\\ready_out_reg[0:0]": {
+          "hide_name": 1,
+          "bits": [ 9 ],
+          "attributes": {
+            "src": "fifo_06.sv:19.3-39.6"
+          }
+        },
+        "$0\\valid_out_reg[0:0]": {
+          "hide_name": 1,
+          "bits": [ 18 ],
+          "attributes": {
+            "src": "fifo_06.sv:19.3-39.6"
+          }
+        },
+        "$abc$159$auto$rtlil.cc:2609:MuxGate$156": {
+          "hide_name": 1,
+          "bits": [ 14 ],
+          "attributes": {
+          }
+        },
+        "$abc$159$auto$rtlil.cc:2609:MuxGate$158": {
+          "hide_name": 1,
+          "bits": [ 17 ],
+          "attributes": {
+          }
+        },
+        "$abc$159$new_n11_": {
+          "hide_name": 1,
+          "bits": [ 10 ],
+          "attributes": {
+          }
+        },
+        "$abc$159$new_n12_": {
+          "hide_name": 1,
+          "bits": [ 11 ],
+          "attributes": {
+          }
+        },
+        "$abc$159$new_n13_": {
+          "hide_name": 1,
+          "bits": [ 13 ],
+          "attributes": {
+          }
+        },
+        "$abc$159$new_n15_": {
+          "hide_name": 1,
+          "bits": [ 15 ],
+          "attributes": {
+          }
+        },
+        "$abc$159$new_n16_": {
+          "hide_name": 1,
+          "bits": [ 16 ],
+          "attributes": {
+          }
+        },
+        "clk": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "fifo_06.sv:2.9-2.12"
+          }
+        },
+        "empty": {
+          "hide_name": 0,
+          "bits": [ 8 ],
+          "attributes": {
+            "src": "fifo_06.sv:12.7-12.12"
+          }
+        },
+        "full": {
+          "hide_name": 0,
+          "bits": [ 12 ],
+          "attributes": {
+            "src": "fifo_06.sv:11.7-11.11"
+          }
+        },
+        "ready_in": {
+          "hide_name": 0,
+          "bits": [ 7 ],
+          "attributes": {
+            "src": "fifo_06.sv:7.9-7.17"
+          }
+        },
+        "ready_out": {
+          "hide_name": 0,
+          "bits": [ 5 ],
+          "attributes": {
+            "src": "fifo_06.sv:5.10-5.19"
+          }
+        },
+        "ready_out_reg": {
+          "hide_name": 0,
+          "bits": [ 5 ],
+          "attributes": {
+            "src": "fifo_06.sv:16.7-16.20"
+          }
+        },
+        "rst_n": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "fifo_06.sv:3.9-3.14"
+          }
+        },
+        "valid_in": {
+          "hide_name": 0,
+          "bits": [ 4 ],
+          "attributes": {
+            "src": "fifo_06.sv:4.9-4.17"
+          }
+        },
+        "valid_out": {
+          "hide_name": 0,
+          "bits": [ 6 ],
+          "attributes": {
+            "src": "fifo_06.sv:6.10-6.19"
+          }
+        },
+        "valid_out_reg": {
+          "hide_name": 0,
+          "bits": [ 6 ],
+          "attributes": {
+            "src": "fifo_06.sv:15.7-15.20"
+          }
+        }
+      }
+    }
+  }
+}

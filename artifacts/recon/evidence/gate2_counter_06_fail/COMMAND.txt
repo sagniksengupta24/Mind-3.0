@@ -1,0 +1,1 @@
+cmd: sby -f <top>.sby (cwd: artifacts/recon/evidence/gate2_counter_06_fail; pattern observed at src/mind3/core/verifier.py Gate 2: ['sby','-f', <file>.sby])

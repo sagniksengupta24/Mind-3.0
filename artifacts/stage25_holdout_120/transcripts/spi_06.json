@@ -1,0 +1,459 @@
+{
+  "task_id": "spi_06",
+  "category": "SPI",
+  "name": "spi_fifo_wrapper",
+  "natural_language_spec": "SPI controller with integrated TX and RX FIFO interfaces",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:30b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "spi_06",
+    "functional_spec": "SPI controller with integrated TX and RX FIFO interfaces",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "in_data",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "out_data",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "SPI controller with integrated TX and RX FIFO interfaces"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "out_data == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "out_data == out_data",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module spi_06 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  reg [7:0] tx_fifo [0:3];\n  reg [7:0] rx_fifo [0:3];\n  reg tx_wr_en;\n  reg tx_rd_en;\n  reg rx_wr_en;\n  reg rx_rd_en;\n  reg [1:0] tx_ptr_wr;\n  reg [1:0] tx_ptr_rd;\n  reg [1:0] rx_ptr_wr;\n  reg [1:0] rx_ptr_rd;\n  reg tx_empty;\n  reg tx_full;\n  reg rx_empty;\n  reg rx_full;\n  reg spi_clk;\n  reg spi_mosi;\n  reg spi_miso;\n  reg [7:0] shift_reg;\n  reg [3:0] bit_count;\n  reg spi_enable;\n  reg spi_master;\n  reg [7:0] tx_data;\n  reg tx_start;\n  reg rx_done;\n\n  // TX FIFO write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      tx_ptr_wr <= 2'd0;\n      tx_ptr_rd <= 2'd0;\n      tx_empty <= 1'b1;\n      tx_full <= 1'b0;\n      tx_wr_en <= 1'b0;\n      tx_rd_en <= 1'b0;\n    end else begin\n      tx_wr_en <= 1'b0;\n      tx_rd_en <= 1'b0;\n      \n      if (tx_wr_en) begin\n        tx_fifo[tx_ptr_wr] <= in_data;\n        tx_ptr_wr <= tx_ptr_wr + 1'd1;\n        if (tx_ptr_wr == 2'd3)\n          tx_ptr_wr <= 2'd0;\n      end\n      \n      if (tx_rd_en) begin\n        tx_ptr_rd <= tx_ptr_rd + 1'd1;\n        if (tx_ptr_rd == 2'd3)\n          tx_ptr_rd <= 2'd0;\n      end\n      \n      // Update empty/full flags\n      if (tx_ptr_wr == tx_ptr_rd)\n        tx_empty <= 1'b1;\n      else\n        tx_empty <= 1'b0;\n        \n      if ((tx_ptr_wr == 2'd3 && tx_ptr_rd == 2'd0) || \n          (tx_ptr_wr == 2'd0 && tx_ptr_rd == 2'd3))\n        tx_full <= 1'b1;\n      else\n        tx_full <= 1'b0;\n    end\n  end\n\n  // RX FIFO write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      rx_ptr_wr <= 2'd0;\n      rx_ptr_rd <= 2'd0;\n      rx_empty <= 1'b1;\n      rx_full <= 1'b0;\n      rx_wr_en <= 1'b0;\n      rx_rd_en <= 1'b0;\n    end else begin\n      rx_wr_en <= 1'b0;\n      rx_rd_en <= 1'b0;\n      \n      if (rx_wr_en) begin\n        rx_fifo[rx_ptr_wr] <= shift_reg;\n        rx_ptr_wr <= rx_ptr_wr + 1'd1;\n        if (rx_ptr_wr == 2'd3)\n          rx_ptr_wr <= 2'd0;\n      end\n      \n      if (rx_rd_en) begin\n        rx_ptr_rd <= rx_ptr_rd + 1'd1;\n        if (rx_ptr_rd == 2'd3)\n          rx_ptr_rd <= 2'd0;\n      end\n      \n      // Update empty/full flags\n      if (rx_ptr_wr == rx_ptr_rd)\n        rx_empty <= 1'b1;\n      else\n        rx_empty <= 1'b0;\n        \n      if ((rx_ptr_wr == 2'd3 && rx_ptr_rd == 2'd0) || \n          (rx_ptr_wr == 2'd0 && rx_ptr_rd == 2'd3))\n        rx_full <= 1'b1;\n      else\n        rx_full <= 1'b0;\n    end\n  end\n\n  // SPI controller logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      spi_clk <= 1'b0;\n      spi_mosi <= 1'b0;\n      shift_reg <= 8'd0;\n      bit_count <= 4'd0;\n      spi_enable <= 1'b0;\n      spi_master <= 1'b1;\n      tx_data <= 8'd0;\n      tx_start <= 1'b0;\n      rx_done <= 1'b0;\n    end else begin\n      if (tx_start && !spi_enable) begin\n        // Start transfer\n        spi_enable <= 1'b1;\n        bit_count <= 4'd0;\n        shift_reg <= tx_data;\n        spi_mosi <= shift_reg[7];\n      end else if (spi_enable && bit_count < 8'd8) begin\n        // Shift data out\n        bit_count <= bit_count + 1'd1;\n        shift_reg <= {shift_reg[6:0], 1'b0};\n        spi_mosi <= shift_reg[7];\n      end else if (bit_count == 8'd8) begin\n        // Transfer complete\n        spi_enable <= 1'b0;\n        bit_count <= 4'd0;\n        rx_done <= 1'b1;\n        rx_wr_en <= 1'b1;\n      end\n      \n      if (tx_start && !spi_enable) begin\n        tx_start <= 1'b0;\n        // Read from FIFO\n        tx_data <= tx_fifo[tx_ptr_rd];\n        tx_rd_en <= 1'b1;\n      end\n    end\n  end\n\n  // Output logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data <= 8'd0;\n    end else begin\n      if (!rx_empty && rx_done) begin\n        out_data <= rx_fifo[rx_ptr_rd];\n        rx_rd_en <= 1'b1;\n        rx_done <= 1'b0;\n      end else begin\n        out_data <= 8'd0;\n      end\n    end\n  end\n\nendmodule",
+  "gate_failure_category": "SYNTAX_ERROR",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"SPI controller with integrated TX and RX FIFO interfaces\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"SPI controller with integrated TX and RX FIFO interfaces\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"spi_06\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"SPI controller with integrated TX and RX FIFO interfaces\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"SPI controller with integrated TX and RX FIFO interfaces\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"spi_06\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\n3 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule spi_06 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  reg [7:0] tx_fifo [0:3];\n  reg [7:0] rx_fifo [0:3];\n  reg tx_wr_en;\n  reg tx_rd_en;\n  reg rx_wr_en;\n  reg rx_rd_en;\n  reg [1:0] tx_ptr_wr;\n  reg [1:0] tx_ptr_rd;\n  reg [1:0] rx_ptr_wr;\n  reg [1:0] rx_ptr_rd;\n  reg tx_empty;\n  reg tx_full;\n  reg rx_empty;\n  reg rx_full;\n  reg spi_clk;\n  reg spi_mosi;\n  reg spi_miso;\n  reg [7:0] shift_reg;\n  reg [3:0] bit_count;\n  reg spi_enable;\n  reg spi_master;\n  reg [7:0] tx_data;\n  reg tx_start;\n  reg rx_done;\n\n  // TX FIFO write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      tx_ptr_wr <= 2'd0;\n      tx_ptr_rd <= 2'd0;\n      tx_empty <= 1'b1;\n      tx_full <= 1'b0;\n      tx_wr_en <= 1'b0;\n      tx_rd_en <= 1'b0;\n    end else begin\n      tx_wr_en <= 1'b0;\n      tx_rd_en <= 1'b0;\n      \n      if (tx_wr_en) begin\n        tx_fifo[tx_ptr_wr] <= in_data;\n        tx_ptr_wr <= tx_ptr_wr + 1'd1;\n        if (tx_ptr_wr == 2'd3)\n          tx_ptr_wr <= 2'd0;\n      end\n      \n      if (tx_rd_en) begin\n        tx_ptr_rd <= tx_ptr_rd + 1'd1;\n        if (tx_ptr_rd == 2'd3)\n          tx_ptr_rd <= 2'd0;\n      end\n      \n      // Update empty/full flags\n      if (tx_ptr_wr == tx_ptr_rd)\n        tx_empty <= 1'b1;\n      else\n        tx_empty <= 1'b0;\n        \n      if ((tx_ptr_wr == 2'd3 && tx_ptr_rd == 2'd0) || \n          (tx_ptr_wr == 2'd0 && tx_ptr_rd == 2'd3))\n        tx_full <= 1'b1;\n      else\n        tx_full <= 1'b0;\n    end\n  end\n\n  // RX FIFO write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      rx_ptr_wr <= 2'd0;\n      rx_ptr_rd <= 2'd0;\n      rx_empty <= 1'b1;\n      rx_full <= 1'b0;\n      rx_wr_en <= 1'b0;\n      rx_rd_en <= 1'b0;\n    end else begin\n      rx_wr_en <= 1'b0;\n      rx_rd_en <= 1'b0;\n      \n      if (rx_wr_en) begin\n        rx_fifo[rx_ptr_wr] <= shift_reg;\n        rx_ptr_wr <= rx_ptr_wr + 1'd1;\n        if (rx_ptr_wr == 2'd3)\n          rx_ptr_wr <= 2'd0;\n      end\n      \n      if (rx_rd_en) begin\n        rx_ptr_rd <= rx_ptr_rd + 1'd1;\n        if (rx_ptr_rd == 2'd3)\n          rx_ptr_rd <= 2'd0;\n      end\n      \n      // Update empty/full flags\n      if (rx_ptr_wr == rx_ptr_rd)\n        rx_empty <= 1'b1;\n      else\n        rx_empty <= 1'b0;\n        \n      if ((rx_ptr_wr == 2'd3 && rx_ptr_rd == 2'd0) || \n          (rx_ptr_wr == 2'd0 && rx_ptr_rd == 2'd3))\n        rx_full <= 1'b1;\n      else\n        rx_full <= 1'b0;\n    end\n  end\n\n  // SPI controller logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      spi_clk <= 1'b0;\n      spi_mosi <= 1'b0;\n      shift_reg <= 8'd0;\n      bit_count <= 4'd0;\n      spi_enable <= 1'b0;\n      spi_master <= 1'b1;\n      tx_data <= 8'd0;\n      tx_start <= 1'b0;\n      rx_done <= 1'b0;\n    end else begin\n      if (tx_start && !spi_enable) begin\n        // Start transfer\n        spi_enable <= 1'b1;\n        bit_count <= 4'd0;\n        shift_reg <= tx_data;\n        spi_mosi <= shift_reg[7];\n      end else if (spi_enable && bit_count < 8'd8) begin\n        // Shift data out\n        bit_count <= bit_count + 1'd1;\n        shift_reg <= {shift_reg[6:0], 1'b0};\n        spi_mosi <= shift_reg[7];\n      end else if (bit_count == 8'd8) begin\n        // Transfer complete\n        spi_enable <= 1'b0;\n        bit_count <= 4'd0;\n        rx_done <= 1'b1;\n        rx_wr_en <= 1'b1;\n      end\n      \n      if (tx_start && !spi_enable) begin\n        tx_start <= 1'b0;\n        // Read from FIFO\n        tx_data <= tx_fifo[tx_ptr_rd];\n        tx_rd_en <= 1'b1;\n      end\n    end\n  end\n\n  // Output logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data <= 8'd0;\n    end else begin\n      if (!rx_empty && rx_done) begin\n        out_data <= rx_fifo[rx_ptr_rd];\n        rx_rd_en <= 1'b1;\n        rx_done <= 1'b0;\n      end else begin\n        out_data <= 8'd0;\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule spi_06 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "spi_06",
+              "-o",
+              ".mind_compile.vvp",
+              "spi_06.sv"
+            ],
+            "return_code": 3,
+            "stdout": "",
+            "stderr": "spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "file": "spi_06.sv",
+            "line": 157,
+            "column": 1,
+            "source_context": "155:   always @(posedge clk or negedge rst_n) begin\n156:     if (!rst_n) begin\n157:       out_data <= 8'd0;\n158:     end else begin\n159:       if (!rx_empty && rx_done) begin"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"SPI controller with integrated TX and RX FIFO interfaces\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"SPI controller with integrated TX and RX FIFO interfaces\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"spi_06\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 2,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"SPI controller with integrated TX and RX FIFO interfaces\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"SPI controller with integrated TX and RX FIFO interfaces\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"spi_06\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"SYNTAX_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\n3 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule spi_06 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  reg [7:0] tx_fifo [0:3];\n  reg [7:0] rx_fifo [0:3];\n  reg tx_wr_en;\n  reg tx_rd_en;\n  reg rx_wr_en;\n  reg rx_rd_en;\n  reg [1:0] tx_ptr_wr;\n  reg [1:0] tx_ptr_rd;\n  reg [1:0] rx_ptr_wr;\n  reg [1:0] rx_ptr_rd;\n  reg tx_empty;\n  reg tx_full;\n  reg rx_empty;\n  reg rx_full;\n  reg spi_clk;\n  reg spi_mosi;\n  reg spi_miso;\n  reg [7:0] shift_reg;\n  reg [3:0] bit_count;\n  reg spi_enable;\n  reg spi_master;\n  reg [7:0] tx_data;\n  reg tx_start;\n  reg rx_done;\n\n  // TX FIFO write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      tx_ptr_wr <= 2'd0;\n      tx_ptr_rd <= 2'd0;\n      tx_empty <= 1'b1;\n      tx_full <= 1'b0;\n      tx_wr_en <= 1'b0;\n      tx_rd_en <= 1'b0;\n    end else begin\n      tx_wr_en <= 1'b0;\n      tx_rd_en <= 1'b0;\n      \n      if (tx_wr_en) begin\n        tx_fifo[tx_ptr_wr] <= in_data;\n        tx_ptr_wr <= tx_ptr_wr + 1'd1;\n        if (tx_ptr_wr == 2'd3)\n          tx_ptr_wr <= 2'd0;\n      end\n      \n      if (tx_rd_en) begin\n        tx_ptr_rd <= tx_ptr_rd + 1'd1;\n        if (tx_ptr_rd == 2'd3)\n          tx_ptr_rd <= 2'd0;\n      end\n      \n      // Update empty/full flags\n      if (tx_ptr_wr == tx_ptr_rd)\n        tx_empty <= 1'b1;\n      else\n        tx_empty <= 1'b0;\n        \n      if ((tx_ptr_wr == 2'd3 && tx_ptr_rd == 2'd0) || \n          (tx_ptr_wr == 2'd0 && tx_ptr_rd == 2'd3))\n        tx_full <= 1'b1;\n      else\n        tx_full <= 1'b0;\n    end\n  end\n\n  // RX FIFO write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      rx_ptr_wr <= 2'd0;\n      rx_ptr_rd <= 2'd0;\n      rx_empty <= 1'b1;\n      rx_full <= 1'b0;\n      rx_wr_en <= 1'b0;\n      rx_rd_en <= 1'b0;\n    end else begin\n      rx_wr_en <= 1'b0;\n      rx_rd_en <= 1'b0;\n      \n      if (rx_wr_en) begin\n        rx_fifo[rx_ptr_wr] <= shift_reg;\n        rx_ptr_wr <= rx_ptr_wr + 1'd1;\n        if (rx_ptr_wr == 2'd3)\n          rx_ptr_wr <= 2'd0;\n      end\n      \n      if (rx_rd_en) begin\n        rx_ptr_rd <= rx_ptr_rd + 1'd1;\n        if (rx_ptr_rd == 2'd3)\n          rx_ptr_rd <= 2'd0;\n      end\n      \n      // Update empty/full flags\n      if (rx_ptr_wr == rx_ptr_rd)\n        rx_empty <= 1'b1;\n      else\n        rx_empty <= 1'b0;\n        \n      if ((rx_ptr_wr == 2'd3 && rx_ptr_rd == 2'd0) || \n          (rx_ptr_wr == 2'd0 && rx_ptr_rd == 2'd3))\n        rx_full <= 1'b1;\n      else\n        rx_full <= 1'b0;\n    end\n  end\n\n  // SPI controller logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      spi_clk <= 1'b0;\n      spi_mosi <= 1'b0;\n      shift_reg <= 8'd0;\n      bit_count <= 4'd0;\n      spi_enable <= 1'b0;\n      spi_master <= 1'b1;\n      tx_data <= 8'd0;\n      tx_start <= 1'b0;\n      rx_done <= 1'b0;\n    end else begin\n      if (tx_start && !spi_enable) begin\n        // Start transfer\n        spi_enable <= 1'b1;\n        bit_count <= 4'd0;\n        shift_reg <= tx_data;\n        spi_mosi <= shift_reg[7];\n      end else if (spi_enable && bit_count < 8'd8) begin\n        // Shift data out\n        bit_count <= bit_count + 1'd1;\n        shift_reg <= {shift_reg[6:0], 1'b0};\n        spi_mosi <= shift_reg[7];\n      end else if (bit_count == 8'd8) begin\n        // Transfer complete\n        spi_enable <= 1'b0;\n        bit_count <= 4'd0;\n        rx_done <= 1'b1;\n        rx_wr_en <= 1'b1;\n      end\n      \n      if (tx_start && !spi_enable) begin\n        tx_start <= 1'b0;\n        // Read from FIFO\n        tx_data <= tx_fifo[tx_ptr_rd];\n        tx_rd_en <= 1'b1;\n      end\n    end\n  end\n\n  // Output logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data <= 8'd0;\n    end else begin\n      if (!rx_empty && rx_done) begin\n        out_data <= rx_fifo[rx_ptr_rd];\n        rx_rd_en <= 1'b1;\n        rx_done <= 1'b0;\n      end else begin\n        out_data <= 8'd0;\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule spi_06 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "spi_06",
+              "-o",
+              ".mind_compile.vvp",
+              "spi_06.sv"
+            ],
+            "return_code": 3,
+            "stdout": "",
+            "stderr": "spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "file": "spi_06.sv",
+            "line": 157,
+            "column": 1,
+            "source_context": "155:   always @(posedge clk or negedge rst_n) begin\n156:     if (!rst_n) begin\n157:       out_data <= 8'd0;\n158:     end else begin\n159:       if (!rx_empty && rx_done) begin"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"SPI controller with integrated TX and RX FIFO interfaces\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"SPI controller with integrated TX and RX FIFO interfaces\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"spi_06\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 3,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"SPI controller with integrated TX and RX FIFO interfaces\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"SPI controller with integrated TX and RX FIFO interfaces\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"spi_06\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"SYNTAX_ERROR\",\n    \"SYNTAX_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\\nspi_06.sv:5:      : out_data is declared here as wire.\\n3 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule spi_06 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  reg [7:0] tx_fifo [0:3];\n  reg [7:0] rx_fifo [0:3];\n  reg tx_wr_en;\n  reg tx_rd_en;\n  reg rx_wr_en;\n  reg rx_rd_en;\n  reg [1:0] tx_ptr_wr;\n  reg [1:0] tx_ptr_rd;\n  reg [1:0] rx_ptr_wr;\n  reg [1:0] rx_ptr_rd;\n  reg tx_empty;\n  reg tx_full;\n  reg rx_empty;\n  reg rx_full;\n  reg spi_clk;\n  reg spi_mosi;\n  reg spi_miso;\n  reg [7:0] shift_reg;\n  reg [3:0] bit_count;\n  reg spi_enable;\n  reg spi_master;\n  reg [7:0] tx_data;\n  reg tx_start;\n  reg rx_done;\n\n  // TX FIFO write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      tx_ptr_wr <= 2'd0;\n      tx_ptr_rd <= 2'd0;\n      tx_empty <= 1'b1;\n      tx_full <= 1'b0;\n      tx_wr_en <= 1'b0;\n      tx_rd_en <= 1'b0;\n    end else begin\n      tx_wr_en <= 1'b0;\n      tx_rd_en <= 1'b0;\n      \n      if (tx_wr_en) begin\n        tx_fifo[tx_ptr_wr] <= in_data;\n        tx_ptr_wr <= tx_ptr_wr + 1'd1;\n        if (tx_ptr_wr == 2'd3)\n          tx_ptr_wr <= 2'd0;\n      end\n      \n      if (tx_rd_en) begin\n        tx_ptr_rd <= tx_ptr_rd + 1'd1;\n        if (tx_ptr_rd == 2'd3)\n          tx_ptr_rd <= 2'd0;\n      end\n      \n      // Update empty/full flags\n      if (tx_ptr_wr == tx_ptr_rd)\n        tx_empty <= 1'b1;\n      else\n        tx_empty <= 1'b0;\n        \n      if ((tx_ptr_wr == 2'd3 && tx_ptr_rd == 2'd0) || \n          (tx_ptr_wr == 2'd0 && tx_ptr_rd == 2'd3))\n        tx_full <= 1'b1;\n      else\n        tx_full <= 1'b0;\n    end\n  end\n\n  // RX FIFO write logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      rx_ptr_wr <= 2'd0;\n      rx_ptr_rd <= 2'd0;\n      rx_empty <= 1'b1;\n      rx_full <= 1'b0;\n      rx_wr_en <= 1'b0;\n      rx_rd_en <= 1'b0;\n    end else begin\n      rx_wr_en <= 1'b0;\n      rx_rd_en <= 1'b0;\n      \n      if (rx_wr_en) begin\n        rx_fifo[rx_ptr_wr] <= shift_reg;\n        rx_ptr_wr <= rx_ptr_wr + 1'd1;\n        if (rx_ptr_wr == 2'd3)\n          rx_ptr_wr <= 2'd0;\n      end\n      \n      if (rx_rd_en) begin\n        rx_ptr_rd <= rx_ptr_rd + 1'd1;\n        if (rx_ptr_rd == 2'd3)\n          rx_ptr_rd <= 2'd0;\n      end\n      \n      // Update empty/full flags\n      if (rx_ptr_wr == rx_ptr_rd)\n        rx_empty <= 1'b1;\n      else\n        rx_empty <= 1'b0;\n        \n      if ((rx_ptr_wr == 2'd3 && rx_ptr_rd == 2'd0) || \n          (rx_ptr_wr == 2'd0 && rx_ptr_rd == 2'd3))\n        rx_full <= 1'b1;\n      else\n        rx_full <= 1'b0;\n    end\n  end\n\n  // SPI controller logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      spi_clk <= 1'b0;\n      spi_mosi <= 1'b0;\n      shift_reg <= 8'd0;\n      bit_count <= 4'd0;\n      spi_enable <= 1'b0;\n      spi_master <= 1'b1;\n      tx_data <= 8'd0;\n      tx_start <= 1'b0;\n      rx_done <= 1'b0;\n    end else begin\n      if (tx_start && !spi_enable) begin\n        // Start transfer\n        spi_enable <= 1'b1;\n        bit_count <= 4'd0;\n        shift_reg <= tx_data;\n        spi_mosi <= shift_reg[7];\n      end else if (spi_enable && bit_count < 8'd8) begin\n        // Shift data out\n        bit_count <= bit_count + 1'd1;\n        shift_reg <= {shift_reg[6:0], 1'b0};\n        spi_mosi <= shift_reg[7];\n      end else if (bit_count == 8'd8) begin\n        // Transfer complete\n        spi_enable <= 1'b0;\n        bit_count <= 4'd0;\n        rx_done <= 1'b1;\n        rx_wr_en <= 1'b1;\n      end\n      \n      if (tx_start && !spi_enable) begin\n        tx_start <= 1'b0;\n        // Read from FIFO\n        tx_data <= tx_fifo[tx_ptr_rd];\n        tx_rd_en <= 1'b1;\n      end\n    end\n  end\n\n  // Output logic\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data <= 8'd0;\n    end else begin\n      if (!rx_empty && rx_done) begin\n        out_data <= rx_fifo[rx_ptr_rd];\n        rx_rd_en <= 1'b1;\n        rx_done <= 1'b0;\n      end else begin\n        out_data <= 8'd0;\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule spi_06 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "spi_06",
+              "-o",
+              ".mind_compile.vvp",
+              "spi_06.sv"
+            ],
+            "return_code": 3,
+            "stdout": "",
+            "stderr": "spi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\nspi_06.sv:157: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:160: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\nspi_06.sv:164: error: out_data is not a valid l-value in spi_06.\nspi_06.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "file": "spi_06.sv",
+            "line": 157,
+            "column": 1,
+            "source_context": "155:   always @(posedge clk or negedge rst_n) begin\n156:     if (!rst_n) begin\n157:       out_data <= 8'd0;\n158:     end else begin\n159:       if (!rx_empty && rx_done) begin"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "failure_category": "SYNTAX_ERROR",
+    "passed": false
+  },
+  "timestamp": 1791233457.001472,
+  "duration_seconds": 174.251,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "a1246fc597df2a744fb027a6370a283996eeb7e445435a76c6bb7690eb88c329"
+  }
+}

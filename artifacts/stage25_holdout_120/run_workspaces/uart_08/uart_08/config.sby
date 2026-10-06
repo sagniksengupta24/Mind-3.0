@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal uart_08.sv
+read -formal uart_08_sva.sv
+read -formal uart_08_formal_top.sv
+prep -top uart_08_formal_top
+
+[files]
+uart_08.sv
+uart_08_formal_top.sv
+uart_08_sva.sv

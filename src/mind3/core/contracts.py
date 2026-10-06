@@ -660,6 +660,38 @@ def module_signature_block(contract: InterfaceContract) -> str:
     return f"module {contract.module_name} (\n" + ",\n".join(lines) + "\n);"
 
 
+def numeric_facts_block(contract: InterfaceContract) -> str:
+    """Render machine-derived numeric facts for arithmetic/stateful logic.
+
+    Every value comes from the contract (widths, reset, clock) — nothing is
+    invented. Unsigned maxima are exact by construction; signed bounds are
+    given as formulas keyed on width since signedness is a design decision
+    the model must make consistently and declare via its comparisons.
+    """
+    lines = []
+    for p in contract.ports:
+        if p.width == 1:
+            lines.append(
+                f"  - {p.name}: {p.direction.value}, width 1 (scalar, no range)"
+            )
+        else:
+            umax = (1 << p.width) - 1
+            lines.append(
+                f"  - {p.name}: {p.direction.value}, width {p.width}, "
+                f"unsigned range 0..{umax}; "
+                f"signed {p.width}-bit range would be "
+                f"-2^{p.width - 1}..2^{p.width - 1}-1"
+            )
+    if contract.reset is not None:
+        lines.append(
+            f"  - reset {contract.reset.name}: {contract.reset.polarity}, "
+            f"synchronous={contract.reset.synchronous}"
+        )
+    if contract.clock is not None:
+        lines.append(f"  - clock {contract.clock.name}: {contract.clock.edge}")
+    return "Numeric facts (derived from contract, not to be reinterpreted):\n" + "\n".join(lines)
+
+
 class RTLGenerator:
     """Generates synthesizable RTL from interface contracts without seeing verification code."""
 
@@ -672,6 +704,13 @@ class RTLGenerator:
             "- Use non-blocking (<=) for sequential clocked blocks, blocking (=) for combinational blocks.\n"
             "- Never infer latches: every if branch must have an else; every case statement must have a default.\n"
             "- Never declare loop variables inside procedural blocks; declare all registers at module level.\n"
+            "- Arithmetic discipline: saturation bounds derive from width and signedness "
+            "(unsigned N-bit saturates at 0 and 2^N-1; signed at -2^(N-1) and 2^(N-1)-1); "
+            "never saturate a signed range to an unsigned bound); comparison operands must share "
+            "width and signedness; a terminal count is a half-period toggle point unless the "
+            "specification states otherwise (symmetric duty needs equal halves); define "
+            "degenerate inputs explicitly (divide-by-zero, zero increment); every declared "
+            "register must be both driven and consumed.\n"
             "- You have zero access to the testbench or verification harness. Do not embed assertions in your RTL.\n"
             "Respond ONLY with the complete synthesizable module code."
         )
@@ -698,6 +737,7 @@ class RTLGenerator:
             f"Required behavior:\n{behavior}\n\n"
             f"Contract invariants:\n{invariants}\n\n"
             f"Protocol requirements:\n{protocols}\n\n"
+            f"{numeric_facts_block(contract)}\n\n"
             "Interface is fixed. Do not add, remove, rename, reorder, or resize ports. "
             "Implement the complete required behavior as synthesizable SystemVerilog.\n\n"
             "The module header must be exactly:\n"
@@ -1047,8 +1087,20 @@ class VerificationHarnessGenerator:
             raise
 
         init_reg = ""
+        reset_assume = ""
         if has_clock:
             init_reg = f"  reg init = 1'b1;\n  always @(posedge {clock_name}) init <= 1'b0;\n\n"
+            if reset_info:
+                rst_name, rst_active_low = reset_info
+                rst_asserted = f"!{rst_name}" if rst_active_low else f"{rst_name}"
+                reset_assume = (
+                    f"  // BMC starts from reset: real designs boot with reset asserted.\n"
+                    f"  // Without this, uninitialized flops take any value and every\n"
+                    f"  // stateful design fails vacuously once the init guard lifts.\n"
+                    f"  always @(posedge {clock_name}) begin\n"
+                    f"    if (init) assume ({rst_asserted});\n"
+                    f"  end\n\n"
+                )
 
         audit_lines = "\n".join(
             f"  // property-audit: {item['name']} kind={item['kind']} source={item['source']} supported={item['supported']}"
@@ -1060,6 +1112,7 @@ class VerificationHarnessGenerator:
             f"module {contract.module_name}_sva (\n{port_decls_str}\n);\n\n"
             f"{audit_lines}\n\n"
             f"{init_reg}"
+            f"{reset_assume}"
             f"{assertions}\n"
             f"endmodule\n"
         )
@@ -1357,6 +1410,35 @@ class VerificationHarnessGenerator:
                 lfsr_lines.append(f"        top->{p.name} = ((lfsr >> {shift}) & 0x{mask:X}u);")
         lfsr_code = "\n".join(lfsr_lines) if lfsr_lines else "        (void)lfsr;"
 
+        soak_blocks: list[str] = []
+        for i, p in enumerate(input_ports):
+            assigns: list[str] = []
+            for j, q in enumerate(input_ports):
+                mask = (1 << q.width) - 1
+                val = f"0x{mask:X}u" if i == j else "0u"
+                assigns.append(f"        top->{q.name} = {val};")
+            soak_blocks.append(
+                f"    // Soak step {i}: hold {p.name} asserted\n"
+                f"    for (int soak = 0; soak < 600; ++soak) {{\n"
+                f"        top->{clk_port} = !top->{clk_port};\n"
+                + "\n".join(assigns)
+                + f"\n        top->eval();\n"
+                f"    }}\n"
+            )
+        all_on = "\n".join(
+            f"        top->{p.name} = 0x{(1 << p.width) - 1:X}u;" for p in input_ports
+        )
+        if input_ports:
+            soak_blocks.append(
+                f"    // Soak step {len(input_ports)}: hold all inputs asserted\n"
+                f"    for (int soak = 0; soak < 600; ++soak) {{\n"
+                f"        top->{clk_port} = !top->{clk_port};\n"
+                f"{all_on}\n"
+                f"        top->eval();\n"
+                f"    }}\n"
+            )
+        soak_code = "\n".join(soak_blocks) if soak_blocks else ""
+
         if not has_clock:
             # PURE COMBINATIONAL TESTBENCH
             return (
@@ -1462,10 +1544,13 @@ class VerificationHarnessGenerator:
             f"{walking_code}\n"
             f"        top->eval();\n"
             f"    }}\n\n"
+            f"    // Phase 2c: Directed soak — hold each input asserted in turn so\n"
+            f"    // sequential depth (saturation, wrap, bounds) is actually reached.\n"
+            f"{soak_code}\n\n"
             f"    // Phase 3: Galois LFSR pseudo-random stimulus\n"
             f"    // A fixed 32-bit Galois LFSR (mask 0xB4BCD35C) used for pseudo-random stimulus.\n"
             f"    uint32_t lfsr = 0xACE1u;\n"
-            f"    for (int cycle = 0; cycle < 400; ++cycle) {{\n"
+            f"    for (int cycle = 0; cycle < 1400; ++cycle) {{\n"
             f"        top->{clk_port} = !top->{clk_port};\n"
             f"        uint32_t lsb = lfsr & 1u;\n"
             f"        lfsr = (lfsr >> 1) | (lsb ? 0x80000000u : 0u);\n"

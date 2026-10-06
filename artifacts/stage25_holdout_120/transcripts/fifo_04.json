@@ -1,0 +1,457 @@
+{
+  "task_id": "fifo_04",
+  "category": "FIFOs",
+  "name": "async_fifo_gray_2clock",
+  "natural_language_spec": "Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:30b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "fifo_04",
+    "functional_spec": "Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "wr_clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "wr_rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "wr_en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "wr_data",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "rd_clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rd_rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rd_en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rd_data",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "full",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "empty",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": null,
+    "reset": null,
+    "behavior": [
+      "Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers"
+    ],
+    "invariants": [
+      "assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);",
+      "assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);",
+      "assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "wr_clk",
+        "reset": "wr_rst_n:active_low",
+        "antecedent": "!wr_rst_n",
+        "consequent": "full == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "same_cycle_implication",
+        "clock": "rd_clk",
+        "reset": "rd_rst_n:active_low",
+        "antecedent": "!rd_rst_n",
+        "consequent": "empty == 1",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module fifo_04 (\n  input wr_clk,\n  input wr_rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_clk,\n  input rd_rst_n,\n  input rd_en,\n  output [7:0] rd_data,\n  output full,\n  output empty\n);\n\n  // FIFO parameters\n  localparam DEPTH = 4;\n  localparam ADDR_WIDTH = 2;\n\n  // Storage array\n  reg [7:0] fifo_mem [0:DEPTH-1];\n\n  // Write side\n  reg [ADDR_WIDTH-1:0] wr_addr_gray_reg;\n  reg [ADDR_WIDTH-1:0] wr_addr_bin_reg;\n  reg wr_addr_sync1, wr_addr_sync2;\n\n  // Read side\n  reg [ADDR_WIDTH-1:0] rd_addr_gray_reg;\n  reg [ADDR_WIDTH-1:0] rd_addr_bin_reg;\n  reg rd_addr_sync1, rd_addr_sync2;\n\n  // Sync FIFO pointers\n  reg [ADDR_WIDTH-1:0] wr_ptr_gray_d, wr_ptr_gray_q;\n  reg [ADDR_WIDTH-1:0] rd_ptr_gray_d, rd_ptr_gray_q;\n\n  // Gray to binary conversion\n  function [ADDR_WIDTH-1:0] gray_to_bin;\n    input [ADDR_WIDTH-1:0] gray;\n    reg [ADDR_WIDTH-1:0] bin;\n    integer i;\n    bin = 0;\n    for (i = ADDR_WIDTH - 1; i >= 0; i = i - 1) begin\n      if (i == ADDR_WIDTH - 1)\n        bin[i] = gray[i];\n      else\n        bin[i] = bin[i+1] ^ gray[i];\n    end\n    return bin;\n  endfunction\n\n  // Binary to Gray conversion\n  function [ADDR_WIDTH-1:0] bin_to_gray;\n    input [ADDR_WIDTH-1:0] bin;\n    reg [ADDR_WIDTH-1:0] gray;\n    integer i;\n    for (i = ADDR_WIDTH - 1; i >= 0; i = i - 1) begin\n      if (i == 0)\n        gray[i] = bin[i];\n      else\n        gray[i] = bin[i] ^ bin[i-1];\n    end\n    return gray;\n  endfunction\n\n  // Write clock domain\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      wr_addr_bin_reg <= {ADDR_WIDTH{1'b0}};\n      wr_addr_gray_reg <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      if (wr_en) begin\n        wr_addr_bin_reg <= wr_addr_bin_reg + 1;\n        wr_addr_gray_reg <= bin_to_gray(wr_addr_bin_reg + 1);\n      end\n    end\n  end\n\n  // Read clock domain\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      rd_addr_bin_reg <= {ADDR_WIDTH{1'b0}};\n      rd_addr_gray_reg <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      if (rd_en) begin\n        rd_addr_bin_reg <= rd_addr_bin_reg + 1;\n        rd_addr_gray_reg <= bin_to_gray(rd_addr_bin_reg + 1);\n      end\n    end\n  end\n\n  // Synchronizer for write pointer\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      wr_ptr_gray_q <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      wr_ptr_gray_q <= wr_addr_gray_reg;\n    end\n  end\n\n  // Synchronizer for read pointer\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      rd_ptr_gray_q <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      rd_ptr_gray_q <= rd_addr_gray_reg;\n    end\n  end\n\n  // FIFO read/write logic\n  reg [7:0] data_out;\n  reg fifo_full, fifo_empty;\n\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      fifo_full <= 1'b0;\n    end else begin\n      if (wr_en && !fifo_full) begin\n        fifo_mem[wr_addr_bin_reg] <= wr_data;\n      end\n    end\n  end\n\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      fifo_empty <= 1'b1;\n    end else begin\n      if (rd_en && !fifo_empty) begin\n        data_out <= fifo_mem[rd_addr_bin_reg];\n      end\n    end\n  end\n\n  // Full/empty flags\n  assign full = fifo_full;\n  assign empty = fifo_empty;\n\n  // Output assignment\n  assign rd_data = data_out;\n\n  // Update full/empty flags\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      fifo_full <= 1'b0;\n      fifo_empty <= 1'b1;\n    end else begin\n      if (wr_en && !fifo_full) begin\n        fifo_full <= (wr_addr_bin_reg == rd_addr_bin_reg);\n      end\n\n      if (rd_en && !fifo_empty) begin\n        fifo_empty <= (wr_addr_bin_reg == rd_addr_bin_reg);\n      end\n    end\n  end\n\nendmodule",
+  "gate_failure_category": "SYNTHESIS_ELABORATION_ERROR",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\"\n  ],\n  \"clock\": null,\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!wr_rst_n\",\n      \"clock\": \"wr_clk\",\n      \"consequent\": \"full == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"wr_rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": \"!rd_rst_n\",\n      \"clock\": \"rd_clk\",\n      \"consequent\": \"empty == 1\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rd_rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\",\n  \"invariants\": [\n    \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n    \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n  ],\n  \"module_name\": \"fifo_04\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"rd_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"full\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"empty\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n    \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n  ],\n  \"reset\": null,\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"SYNTHESIS_ELABORATION_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\"\n    ],\n    \"clock\": null,\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!wr_rst_n\",\n        \"clock\": \"wr_clk\",\n        \"consequent\": \"full == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"wr_rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": \"!rd_rst_n\",\n        \"clock\": \"rd_clk\",\n        \"consequent\": \"empty == 1\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rd_rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\",\n    \"invariants\": [\n      \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n      \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n    ],\n    \"module_name\": \"fifo_04\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"rd_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"full\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"empty\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n      \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n    ],\n    \"reset\": null,\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"other\",\n  \"stderr_tail\": \"fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\\n\",\n  \"stdout_tail\": \"\\n /----------------------------------------------------------------------------\\\\\\n |                                                                            |\\n |  yosys -- Yosys Open SYnthesis Suite                                       |\\n |                                                                            |\\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\\n |                                                                            |\\n |  Permission to use, copy, modify, and/or distribute this software for any  |\\n |  purpose with or without fee is hereby granted, provided that the above    |\\n |  copyright notice and this permission notice appear in all copies.         |\\n |                                                                            |\\n |  THE SOFTWARE IS PROVIDED \\\"AS IS\\\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\\n |                                                                            |\\n \\\\----------------------------------------------------------------------------/\\n\\n Yosys 0.33 (git sha1 2584903a060)\\n\\n\\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\\n\\n1. Executing Verilog-2005 frontend: fifo_04.sv\\n\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule fifo_04 (\n  input wr_clk,\n  input wr_rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_clk,\n  input rd_rst_n,\n  input rd_en,\n  output [7:0] rd_data,\n  output full,\n  output empty\n);\n\n  // FIFO parameters\n  localparam DEPTH = 4;\n  localparam ADDR_WIDTH = 2;\n\n  // Storage array\n  reg [7:0] fifo_mem [0:DEPTH-1];\n\n  // Write side\n  reg [ADDR_WIDTH-1:0] wr_addr_gray_reg;\n  reg [ADDR_WIDTH-1:0] wr_addr_bin_reg;\n  reg wr_addr_sync1, wr_addr_sync2;\n\n  // Read side\n  reg [ADDR_WIDTH-1:0] rd_addr_gray_reg;\n  reg [ADDR_WIDTH-1:0] rd_addr_bin_reg;\n  reg rd_addr_sync1, rd_addr_sync2;\n\n  // Sync FIFO pointers\n  reg [ADDR_WIDTH-1:0] wr_ptr_gray_d, wr_ptr_gray_q;\n  reg [ADDR_WIDTH-1:0] rd_ptr_gray_d, rd_ptr_gray_q;\n\n  // Gray to binary conversion\n  function [ADDR_WIDTH-1:0] gray_to_bin;\n    input [ADDR_WIDTH-1:0] gray;\n    reg [ADDR_WIDTH-1:0] bin;\n    integer i;\n    bin = 0;\n    for (i = ADDR_WIDTH - 1; i >= 0; i = i - 1) begin\n      if (i == ADDR_WIDTH - 1)\n        bin[i] = gray[i];\n      else\n        bin[i] = bin[i+1] ^ gray[i];\n    end\n    return bin;\n  endfunction\n\n  // Binary to Gray conversion\n  function [ADDR_WIDTH-1:0] bin_to_gray;\n    input [ADDR_WIDTH-1:0] bin;\n    reg [ADDR_WIDTH-1:0] gray;\n    integer i;\n    for (i = ADDR_WIDTH - 1; i >= 0; i = i - 1) begin\n      if (i == 0)\n        gray[i] = bin[i];\n      else\n        gray[i] = bin[i] ^ bin[i-1];\n    end\n    return gray;\n  endfunction\n\n  // Write clock domain\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      wr_addr_bin_reg <= {ADDR_WIDTH{1'b0}};\n      wr_addr_gray_reg <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      if (wr_en) begin\n        wr_addr_bin_reg <= wr_addr_bin_reg + 1;\n        wr_addr_gray_reg <= bin_to_gray(wr_addr_bin_reg + 1);\n      end\n    end\n  end\n\n  // Read clock domain\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      rd_addr_bin_reg <= {ADDR_WIDTH{1'b0}};\n      rd_addr_gray_reg <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      if (rd_en) begin\n        rd_addr_bin_reg <= rd_addr_bin_reg + 1;\n        rd_addr_gray_reg <= bin_to_gray(rd_addr_bin_reg + 1);\n      end\n    end\n  end\n\n  // Synchronizer for write pointer\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      wr_ptr_gray_q <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      wr_ptr_gray_q <= wr_addr_gray_reg;\n    end\n  end\n\n  // Synchronizer for read pointer\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      rd_ptr_gray_q <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      rd_ptr_gray_q <= rd_addr_gray_reg;\n    end\n  end\n\n  // FIFO read/write logic\n  reg [7:0] data_out;\n  reg fifo_full, fifo_empty;\n\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      fifo_full <= 1'b0;\n    end else begin\n      if (wr_en && !fifo_full) begin\n        fifo_mem[wr_addr_bin_reg] <= wr_data;\n      end\n    end\n  end\n\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      fifo_empty <= 1'b1;\n    end else begin\n      if (rd_en && !fifo_empty) begin\n        data_out <= fifo_mem[rd_addr_bin_reg];\n      end\n    end\n  end\n\n  // Full/empty flags\n  assign full = fifo_full;\n  assign empty = fifo_empty;\n\n  // Output assignment\n  assign rd_data = data_out;\n\n  // Update full/empty flags\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      fifo_full <= 1'b0;\n      fifo_empty <= 1'b1;\n    end else begin\n      if (wr_en && !fifo_full) begin\n        fifo_full <= (wr_addr_bin_reg == rd_addr_bin_reg);\n      end\n\n      if (rd_en && !fifo_empty) begin\n        fifo_empty <= (wr_addr_bin_reg == rd_addr_bin_reg);\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule fifo_04 (\n  input wr_clk,\n  input wr_rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_clk,\n  input rd_rst_n,\n  input rd_en,\n  output [7:0] rd_data,\n  output full,\n  output empty\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTHESIS_ELABORATION_ERROR",
+      "failure_reason": "Yosys elaboration failed.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n /----------------------------------------------------------------------------\\\n |                                                                            |\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |                                                                            |\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\n |                                                                            |\n |  Permission to use, copy, modify, and/or distribute this software for any  |\n |  purpose with or without fee is hereby granted, provided that the above    |\n |  copyright notice and this permission notice appear in all copies.         |\n |                                                                            |\n |  THE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\n |                                                                            |\n \\----------------------------------------------------------------------------/\n\n Yosys 0.33 (git sha1 2584903a060)\n\n\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\n\n1. Executing Verilog-2005 frontend: fifo_04.sv\n",
+          "stderr": "fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\n",
+          "details": "Yosys elaboration failed.",
+          "error_category": "SYNTHESIS_ELABORATION_ERROR",
+          "netlist_path": null,
+          "simulated": false,
+          "diagnostic": {
+            "tool": "yosys",
+            "executable": "yosys",
+            "argv": [
+              "yosys",
+              "-p",
+              "read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v"
+            ],
+            "return_code": 1,
+            "stdout": "\n /----------------------------------------------------------------------------\\\n |                                                                            |\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |                                                                            |\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\n |                                                                            |\n |  Permission to use, copy, modify, and/or distribute this software for any  |\n |  purpose with or without fee is hereby granted, provided that the above    |\n |  copyright notice and this permission notice appear in all copies.         |\n |                                                                            |\n |  THE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\n |                                                                            |\n \\----------------------------------------------------------------------------/\n\n Yosys 0.33 (git sha1 2584903a060)\n\n\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\n\n1. Executing Verilog-2005 frontend: fifo_04.sv\n",
+            "stderr": "fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\n",
+            "execution_mode": "local_bwrap"
+          },
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\"\n  ],\n  \"clock\": null,\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!wr_rst_n\",\n      \"clock\": \"wr_clk\",\n      \"consequent\": \"full == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"wr_rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": \"!rd_rst_n\",\n      \"clock\": \"rd_clk\",\n      \"consequent\": \"empty == 1\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rd_rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\",\n  \"invariants\": [\n    \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n    \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n  ],\n  \"module_name\": \"fifo_04\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"rd_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"full\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"empty\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n    \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n  ],\n  \"reset\": null,\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"SYNTHESIS_ELABORATION_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\"\n    ],\n    \"clock\": null,\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!wr_rst_n\",\n        \"clock\": \"wr_clk\",\n        \"consequent\": \"full == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"wr_rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": \"!rd_rst_n\",\n        \"clock\": \"rd_clk\",\n        \"consequent\": \"empty == 1\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rd_rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\",\n    \"invariants\": [\n      \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n      \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n    ],\n    \"module_name\": \"fifo_04\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"rd_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"full\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"empty\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n      \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n    ],\n    \"reset\": null,\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"SYNTHESIS_ELABORATION_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"other\",\n  \"stderr_tail\": \"fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\\n\",\n  \"stdout_tail\": \"\\n /----------------------------------------------------------------------------\\\\\\n |                                                                            |\\n |  yosys -- Yosys Open SYnthesis Suite                                       |\\n |                                                                            |\\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\\n |                                                                            |\\n |  Permission to use, copy, modify, and/or distribute this software for any  |\\n |  purpose with or without fee is hereby granted, provided that the above    |\\n |  copyright notice and this permission notice appear in all copies.         |\\n |                                                                            |\\n |  THE SOFTWARE IS PROVIDED \\\"AS IS\\\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\\n |                                                                            |\\n \\\\----------------------------------------------------------------------------/\\n\\n Yosys 0.33 (git sha1 2584903a060)\\n\\n\\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\\n\\n1. Executing Verilog-2005 frontend: fifo_04.sv\\n\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule fifo_04 (\n  input wr_clk,\n  input wr_rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_clk,\n  input rd_rst_n,\n  input rd_en,\n  output [7:0] rd_data,\n  output full,\n  output empty\n);\n\n  // FIFO parameters\n  localparam DEPTH = 4;\n  localparam ADDR_WIDTH = 2;\n\n  // Storage array\n  reg [7:0] fifo_mem [0:DEPTH-1];\n\n  // Write side\n  reg [ADDR_WIDTH-1:0] wr_addr_gray_reg;\n  reg [ADDR_WIDTH-1:0] wr_addr_bin_reg;\n  reg wr_addr_sync1, wr_addr_sync2;\n\n  // Read side\n  reg [ADDR_WIDTH-1:0] rd_addr_gray_reg;\n  reg [ADDR_WIDTH-1:0] rd_addr_bin_reg;\n  reg rd_addr_sync1, rd_addr_sync2;\n\n  // Sync FIFO pointers\n  reg [ADDR_WIDTH-1:0] wr_ptr_gray_d, wr_ptr_gray_q;\n  reg [ADDR_WIDTH-1:0] rd_ptr_gray_d, rd_ptr_gray_q;\n\n  // Gray to binary conversion\n  function [ADDR_WIDTH-1:0] gray_to_bin;\n    input [ADDR_WIDTH-1:0] gray;\n    reg [ADDR_WIDTH-1:0] bin;\n    integer i;\n    bin = 0;\n    for (i = ADDR_WIDTH - 1; i >= 0; i = i - 1) begin\n      if (i == ADDR_WIDTH - 1)\n        bin[i] = gray[i];\n      else\n        bin[i] = bin[i+1] ^ gray[i];\n    end\n    return bin;\n  endfunction\n\n  // Binary to Gray conversion\n  function [ADDR_WIDTH-1:0] bin_to_gray;\n    input [ADDR_WIDTH-1:0] bin;\n    reg [ADDR_WIDTH-1:0] gray;\n    integer i;\n    for (i = ADDR_WIDTH - 1; i >= 0; i = i - 1) begin\n      if (i == 0)\n        gray[i] = bin[i];\n      else\n        gray[i] = bin[i] ^ bin[i-1];\n    end\n    return gray;\n  endfunction\n\n  // Write clock domain\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      wr_addr_bin_reg <= {ADDR_WIDTH{1'b0}};\n      wr_addr_gray_reg <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      if (wr_en) begin\n        wr_addr_bin_reg <= wr_addr_bin_reg + 1;\n        wr_addr_gray_reg <= bin_to_gray(wr_addr_bin_reg + 1);\n      end\n    end\n  end\n\n  // Read clock domain\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      rd_addr_bin_reg <= {ADDR_WIDTH{1'b0}};\n      rd_addr_gray_reg <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      if (rd_en) begin\n        rd_addr_bin_reg <= rd_addr_bin_reg + 1;\n        rd_addr_gray_reg <= bin_to_gray(rd_addr_bin_reg + 1);\n      end\n    end\n  end\n\n  // Synchronizer for write pointer\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      wr_ptr_gray_q <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      wr_ptr_gray_q <= wr_addr_gray_reg;\n    end\n  end\n\n  // Synchronizer for read pointer\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      rd_ptr_gray_q <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      rd_ptr_gray_q <= rd_addr_gray_reg;\n    end\n  end\n\n  // FIFO read/write logic\n  reg [7:0] data_out;\n  reg fifo_full, fifo_empty;\n\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      fifo_full <= 1'b0;\n    end else begin\n      if (wr_en && !fifo_full) begin\n        fifo_mem[wr_addr_bin_reg] <= wr_data;\n      end\n    end\n  end\n\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      fifo_empty <= 1'b1;\n    end else begin\n      if (rd_en && !fifo_empty) begin\n        data_out <= fifo_mem[rd_addr_bin_reg];\n      end\n    end\n  end\n\n  // Full/empty flags\n  assign full = fifo_full;\n  assign empty = fifo_empty;\n\n  // Output assignment\n  assign rd_data = data_out;\n\n  // Update full/empty flags\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      fifo_full <= 1'b0;\n      fifo_empty <= 1'b1;\n    end else begin\n      if (wr_en && !fifo_full) begin\n        fifo_full <= (wr_addr_bin_reg == rd_addr_bin_reg);\n      end\n\n      if (rd_en && !fifo_empty) begin\n        fifo_empty <= (wr_addr_bin_reg == rd_addr_bin_reg);\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule fifo_04 (\n  input wr_clk,\n  input wr_rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_clk,\n  input rd_rst_n,\n  input rd_en,\n  output [7:0] rd_data,\n  output full,\n  output empty\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTHESIS_ELABORATION_ERROR",
+      "failure_reason": "Yosys elaboration failed.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n /----------------------------------------------------------------------------\\\n |                                                                            |\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |                                                                            |\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\n |                                                                            |\n |  Permission to use, copy, modify, and/or distribute this software for any  |\n |  purpose with or without fee is hereby granted, provided that the above    |\n |  copyright notice and this permission notice appear in all copies.         |\n |                                                                            |\n |  THE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\n |                                                                            |\n \\----------------------------------------------------------------------------/\n\n Yosys 0.33 (git sha1 2584903a060)\n\n\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\n\n1. Executing Verilog-2005 frontend: fifo_04.sv\n",
+          "stderr": "fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\n",
+          "details": "Yosys elaboration failed.",
+          "error_category": "SYNTHESIS_ELABORATION_ERROR",
+          "netlist_path": null,
+          "simulated": false,
+          "diagnostic": {
+            "tool": "yosys",
+            "executable": "yosys",
+            "argv": [
+              "yosys",
+              "-p",
+              "read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v"
+            ],
+            "return_code": 1,
+            "stdout": "\n /----------------------------------------------------------------------------\\\n |                                                                            |\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |                                                                            |\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\n |                                                                            |\n |  Permission to use, copy, modify, and/or distribute this software for any  |\n |  purpose with or without fee is hereby granted, provided that the above    |\n |  copyright notice and this permission notice appear in all copies.         |\n |                                                                            |\n |  THE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\n |                                                                            |\n \\----------------------------------------------------------------------------/\n\n Yosys 0.33 (git sha1 2584903a060)\n\n\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\n\n1. Executing Verilog-2005 frontend: fifo_04.sv\n",
+            "stderr": "fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\n",
+            "execution_mode": "local_bwrap"
+          },
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\"\n  ],\n  \"clock\": null,\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!wr_rst_n\",\n      \"clock\": \"wr_clk\",\n      \"consequent\": \"full == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"wr_rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": \"!rd_rst_n\",\n      \"clock\": \"rd_clk\",\n      \"consequent\": \"empty == 1\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rd_rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\",\n  \"invariants\": [\n    \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n    \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n  ],\n  \"module_name\": \"fifo_04\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"wr_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rd_en\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"rd_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"full\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"empty\",\n      \"width\": 1\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n    \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n  ],\n  \"reset\": null,\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"SYNTHESIS_ELABORATION_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\"\n    ],\n    \"clock\": null,\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!wr_rst_n\",\n        \"clock\": \"wr_clk\",\n        \"consequent\": \"full == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"wr_rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": \"!rd_rst_n\",\n        \"clock\": \"rd_clk\",\n        \"consequent\": \"empty == 1\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rd_rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Dual-clock asynchronous FIFO with Gray-code pointers and 2-FF synchronizers\",\n    \"invariants\": [\n      \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n      \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n    ],\n    \"module_name\": \"fifo_04\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"wr_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rd_en\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"rd_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"full\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"empty\",\n        \"width\": 1\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);\",\n      \"assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);\"\n    ],\n    \"reset\": null,\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"SYNTHESIS_ELABORATION_ERROR\",\n    \"SYNTHESIS_ELABORATION_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"other\",\n  \"stderr_tail\": \"fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\\n\",\n  \"stdout_tail\": \"\\n /----------------------------------------------------------------------------\\\\\\n |                                                                            |\\n |  yosys -- Yosys Open SYnthesis Suite                                       |\\n |                                                                            |\\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\\n |                                                                            |\\n |  Permission to use, copy, modify, and/or distribute this software for any  |\\n |  purpose with or without fee is hereby granted, provided that the above    |\\n |  copyright notice and this permission notice appear in all copies.         |\\n |                                                                            |\\n |  THE SOFTWARE IS PROVIDED \\\"AS IS\\\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\\n |                                                                            |\\n \\\\----------------------------------------------------------------------------/\\n\\n Yosys 0.33 (git sha1 2584903a060)\\n\\n\\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\\n\\n1. Executing Verilog-2005 frontend: fifo_04.sv\\n\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule fifo_04 (\n  input wr_clk,\n  input wr_rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_clk,\n  input rd_rst_n,\n  input rd_en,\n  output [7:0] rd_data,\n  output full,\n  output empty\n);\n\n  // FIFO parameters\n  localparam DEPTH = 4;\n  localparam ADDR_WIDTH = 2;\n\n  // Storage array\n  reg [7:0] fifo_mem [0:DEPTH-1];\n\n  // Write side\n  reg [ADDR_WIDTH-1:0] wr_addr_gray_reg;\n  reg [ADDR_WIDTH-1:0] wr_addr_bin_reg;\n  reg wr_addr_sync1, wr_addr_sync2;\n\n  // Read side\n  reg [ADDR_WIDTH-1:0] rd_addr_gray_reg;\n  reg [ADDR_WIDTH-1:0] rd_addr_bin_reg;\n  reg rd_addr_sync1, rd_addr_sync2;\n\n  // Sync FIFO pointers\n  reg [ADDR_WIDTH-1:0] wr_ptr_gray_d, wr_ptr_gray_q;\n  reg [ADDR_WIDTH-1:0] rd_ptr_gray_d, rd_ptr_gray_q;\n\n  // Gray to binary conversion\n  function [ADDR_WIDTH-1:0] gray_to_bin;\n    input [ADDR_WIDTH-1:0] gray;\n    reg [ADDR_WIDTH-1:0] bin;\n    integer i;\n    bin = 0;\n    for (i = ADDR_WIDTH - 1; i >= 0; i = i - 1) begin\n      if (i == ADDR_WIDTH - 1)\n        bin[i] = gray[i];\n      else\n        bin[i] = bin[i+1] ^ gray[i];\n    end\n    return bin;\n  endfunction\n\n  // Binary to Gray conversion\n  function [ADDR_WIDTH-1:0] bin_to_gray;\n    input [ADDR_WIDTH-1:0] bin;\n    reg [ADDR_WIDTH-1:0] gray;\n    integer i;\n    for (i = ADDR_WIDTH - 1; i >= 0; i = i - 1) begin\n      if (i == 0)\n        gray[i] = bin[i];\n      else\n        gray[i] = bin[i] ^ bin[i-1];\n    end\n    return gray;\n  endfunction\n\n  // Write clock domain\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      wr_addr_bin_reg <= {ADDR_WIDTH{1'b0}};\n      wr_addr_gray_reg <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      if (wr_en) begin\n        wr_addr_bin_reg <= wr_addr_bin_reg + 1;\n        wr_addr_gray_reg <= bin_to_gray(wr_addr_bin_reg + 1);\n      end\n    end\n  end\n\n  // Read clock domain\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      rd_addr_bin_reg <= {ADDR_WIDTH{1'b0}};\n      rd_addr_gray_reg <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      if (rd_en) begin\n        rd_addr_bin_reg <= rd_addr_bin_reg + 1;\n        rd_addr_gray_reg <= bin_to_gray(rd_addr_bin_reg + 1);\n      end\n    end\n  end\n\n  // Synchronizer for write pointer\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      wr_ptr_gray_q <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      wr_ptr_gray_q <= wr_addr_gray_reg;\n    end\n  end\n\n  // Synchronizer for read pointer\n  always @(posedge rd_clk or negedge rd_rst_n) begin\n    if (!rd_rst_n) begin\n      rd_ptr_gray_q <= {ADDR_WIDTH{1'b0}};\n    end else begin\n      rd_ptr_gray_q <= rd_addr_gray_reg;\n    end\n  end\n\n  // FIFO read/write logic\n  reg [7:0] data_out;\n  reg fifo_full, fifo_empty;\n\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      fifo_full <= 1'b0;\n    end else begin\n      if (wr_en && !fifo_full) begin\n        fifo_mem[wr_addr_bin_reg] <= wr_data;\n      end\n    end\n  end\n\n  always @(posedge rd_clk or negedge wr_rst_n) begin\n    if (!rd_rst_n) begin\n      fifo_empty <= 1'b1;\n    end else begin\n      if (rd_en && !fifo_empty) begin\n        data_out <= fifo_mem[rd_addr_bin_reg];\n      end\n    end\n  end\n\n  // Full/empty flags\n  assign full = fifo_full;\n  assign empty = fifo_empty;\n\n  // Output assignment\n  assign rd_data = data_out;\n\n  // Update full/empty flags\n  always @(posedge wr_clk or negedge wr_rst_n) begin\n    if (!wr_rst_n) begin\n      fifo_full <= 1'b0;\n      fifo_empty <= 1'b1;\n    end else begin\n      if (wr_en && !fifo_full) begin\n        fifo_full <= (wr_addr_bin_reg == rd_addr_bin_reg);\n      end\n\n      if (rd_en && !fifo_empty) begin\n        fifo_empty <= (wr_addr_bin_reg == rd_addr_bin_reg);\n      end\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule fifo_04 (\n  input wr_clk,\n  input wr_rst_n,\n  input wr_en,\n  input [7:0] wr_data,\n  input rd_clk,\n  input rd_rst_n,\n  input rd_en,\n  output [7:0] rd_data,\n  output full,\n  output empty\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTHESIS_ELABORATION_ERROR",
+      "failure_reason": "Yosys elaboration failed.",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n /----------------------------------------------------------------------------\\\n |                                                                            |\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |                                                                            |\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\n |                                                                            |\n |  Permission to use, copy, modify, and/or distribute this software for any  |\n |  purpose with or without fee is hereby granted, provided that the above    |\n |  copyright notice and this permission notice appear in all copies.         |\n |                                                                            |\n |  THE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\n |                                                                            |\n \\----------------------------------------------------------------------------/\n\n Yosys 0.33 (git sha1 2584903a060)\n\n\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\n\n1. Executing Verilog-2005 frontend: fifo_04.sv\n",
+          "stderr": "fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\n",
+          "details": "Yosys elaboration failed.",
+          "error_category": "SYNTHESIS_ELABORATION_ERROR",
+          "netlist_path": null,
+          "simulated": false,
+          "diagnostic": {
+            "tool": "yosys",
+            "executable": "yosys",
+            "argv": [
+              "yosys",
+              "-p",
+              "read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v"
+            ],
+            "return_code": 1,
+            "stdout": "\n /----------------------------------------------------------------------------\\\n |                                                                            |\n |  yosys -- Yosys Open SYnthesis Suite                                       |\n |                                                                            |\n |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |\n |                                                                            |\n |  Permission to use, copy, modify, and/or distribute this software for any  |\n |  purpose with or without fee is hereby granted, provided that the above    |\n |  copyright notice and this permission notice appear in all copies.         |\n |                                                                            |\n |  THE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |\n |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |\n |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |\n |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |\n |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |\n |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |\n |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |\n |                                                                            |\n \\----------------------------------------------------------------------------/\n\n Yosys 0.33 (git sha1 2584903a060)\n\n\n-- Running command `read_verilog -sv fifo_04.sv; hierarchy -check -top fifo_04; proc; opt; fsm; opt; memory; opt; techmap; opt; dfflibmap -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; abc -liberty /home/mind/pdk/sky130A/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib; clean; write_json fifo_04_ast.json; write_verilog -noattr fifo_04_netlist.v' --\n\n1. Executing Verilog-2005 frontend: fifo_04.sv\n",
+            "stderr": "fifo_04.sv:47: ERROR: syntax error, unexpected TOK_ID\n",
+            "execution_mode": "local_bwrap"
+          },
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791231220.6690662,
+  "duration_seconds": 162.1,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "432e750da40b6c23952784a0774dd047e55d9bd28fe0d9785551b0ce86d30d26"
+  }
+}

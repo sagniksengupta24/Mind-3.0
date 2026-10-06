@@ -1,0 +1,116 @@
+{
+  "task_id": "counter_10",
+  "category": "counters",
+  "name": "dual_edge_toggle_counter",
+  "natural_language_spec": "Dual-edge event counter capturing transitions on asynchronous strobe lines",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen/qwen3-coder:free",
+  "provider": "openrouter",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_10",
+    "functional_spec": "Dual-edge event counter capturing transitions on asynchronous strobe lines",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "strobe",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "count",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Dual-edge event counter capturing transitions on asynchronous strobe lines"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> count == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) $changed(strobe) |=> count == $past(count) + 1);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> count == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) $changed(strobe) |=> count == $past(count) + 1);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "count == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      }
+    ],
+    "sva_properties": [
+      {
+        "name": "contract_property_2",
+        "property_expr": "assert property (@(posedge clk) disable iff (!rst_n) $changed(strobe) |=> count == $past(count) + 1);",
+        "clock": "clk",
+        "reset": "rst_n",
+        "description": "Held-out evaluator property preserved verbatim for bounded classification at formal stage."
+      }
+    ],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791202138.4242141,
+  "duration_seconds": 0.445,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {},
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "e96d9b4ae4c9caeee69bb946848800b79fa853690d7e18e163e67f688d730803"
+  }
+}

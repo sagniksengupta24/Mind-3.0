@@ -153,3 +153,71 @@ def test_write_path_terminates_unterminated_file(tmp_path) -> None:
     rec = driver._execute_action(WriteFileAction(path="m.sv", content="module m;\nendmodule"))
     assert (ws / "m.sv").read_text(encoding="utf-8") == "module m;\nendmodule\n"
     assert rec["bytes_written"] == len("module m;\nendmodule\n".encode("utf-8"))
+
+
+def test_sva_bind_assumes_reset_at_init() -> None:
+    from mind3.core.contracts import VerificationHarnessGenerator
+
+    contract = _counter01_contract()
+    sva = VerificationHarnessGenerator.build_sva_bind_module(contract)
+    assert "if (init) assume (!rst_n);" in sva
+
+
+def test_sva_bind_assume_uses_active_high_polarity() -> None:
+    from mind3.core.contracts import InterfaceContract, VerificationHarnessGenerator
+
+    contract = InterfaceContract(
+        module_name="rsthigh",
+        functional_spec="active-high reset check",
+        ports=[
+            {"name": "clk", "direction": "input", "width": 1},
+            {"name": "rst", "direction": "input", "width": 1},
+            {"name": "q", "direction": "output", "width": 1},
+        ],
+        clock={"name": "clk", "edge": "posedge"},
+        reset={"name": "rst", "polarity": "active_high", "synchronous": False},
+        timing={"clock_name": "clk", "period_ns": 10.0},
+        formal_properties=[{
+            "name": "p1", "kind": "boolean",
+            "clock": "clk", "reset": "rst:active_high",
+            "expression": "q == 0",
+        }],
+    )
+    sva = VerificationHarnessGenerator.build_sva_bind_module(contract)
+    assert "if (init) assume (rst);" in sva
+
+
+def test_numeric_facts_render_widths_and_bounds() -> None:
+    from mind3.core.contracts import numeric_facts_block
+
+    contract = _counter01_contract()
+    block = numeric_facts_block(contract)
+    assert "clk" in block and "width 1 (scalar, no range)" in block
+    assert "count" in block and "unsigned range 0..255" in block
+    assert "rst_n" in block
+
+
+def test_numeric_facts_signed_formula_scales_with_width() -> None:
+    from mind3.core.contracts import InterfaceContract, numeric_facts_block
+
+    contract = InterfaceContract(
+        module_name="w4",
+        functional_spec="x",
+        ports=[
+            {"name": "clk", "direction": "input", "width": 1},
+            {"name": "v", "direction": "output", "width": 4},
+        ],
+        timing={"clock_name": "clk", "period_ns": 10.0},
+    )
+    block = numeric_facts_block(contract)
+    assert "unsigned range 0..15" in block
+    assert "signed 4-bit range would be -2^3..2^3-1" in block
+
+
+def test_generation_prompt_carries_numeric_block_and_discipline() -> None:
+    from mind3.core.contracts import RTLGenerator
+
+    prompt = RTLGenerator.build_prompt(_counter01_contract())
+    assert "Numeric facts (derived from contract" in prompt["user"]
+    assert "saturation bounds derive from width and signedness" in prompt["system"]
+    assert "terminal count is a half-period toggle point" in prompt["system"]

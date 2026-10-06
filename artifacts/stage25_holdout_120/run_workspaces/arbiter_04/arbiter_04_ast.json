@@ -1,0 +1,631 @@
+{
+  "creator": "Yosys 0.33 (git sha1 2584903a060)",
+  "modules": {
+    "arbiter_04": {
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "arbiter_04.sv:1.1-69.10"
+      },
+      "ports": {
+        "clk": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "rst_n": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "req": {
+          "direction": "input",
+          "bits": [ 4, 5, 6 ]
+        },
+        "gnt": {
+          "direction": "output",
+          "bits": [ 7, 8, 9 ]
+        }
+      },
+      "cells": {
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1167": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__clkinv_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 8 ],
+            "Y": [ 10 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1168": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 11 ],
+            "B": [ 12 ],
+            "Y": [ 13 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1169": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__mux2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A0": [ 14 ],
+            "A1": [ 15 ],
+            "S": [ 13 ],
+            "X": [ 16 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1170": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__mux2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A0": [ 17 ],
+            "A1": [ 18 ],
+            "S": [ 13 ],
+            "X": [ 19 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1171": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__mux2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A0": [ 20 ],
+            "A1": [ 21 ],
+            "S": [ 13 ],
+            "X": [ 22 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1172": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__a21oi_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 7 ],
+            "A2": [ 10 ],
+            "B1": [ 9 ],
+            "Y": [ 23 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1173": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand2b_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A_N": [ 9 ],
+            "B": [ 8 ],
+            "Y": [ 24 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1174": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor3b_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 8 ],
+            "B": [ 9 ],
+            "C_N": [ 7 ],
+            "Y": [ 25 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1175": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor3_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 14 ],
+            "B": [ 17 ],
+            "C": [ 20 ],
+            "Y": [ 26 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1176": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 21 ],
+            "B": [ 27 ],
+            "Y": [ 28 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1177": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 18 ],
+            "B": [ 29 ],
+            "Y": [ 30 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1178": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor3b_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 26 ],
+            "B": [ 30 ],
+            "C_N": [ 28 ],
+            "Y": [ 31 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1179": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 26 ],
+            "B": [ 28 ],
+            "Y": [ 32 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1180": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__o21ba_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 12 ],
+            "A2": [ 31 ],
+            "B1_N": [ 11 ],
+            "X": [ 33 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1181": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 11 ],
+            "B": [ 12 ],
+            "Y": [ 34 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1182": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__a21bo_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A1": [ 13 ],
+            "A2": [ 32 ],
+            "B1_N": [ 34 ],
+            "X": [ 35 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1183": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nand4_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 15 ],
+            "B": [ 36 ],
+            "C": [ 28 ],
+            "D": [ 30 ],
+            "Y": [ 37 ]
+          }
+        },
+        "$abc$1166$auto$blifparse.cc:386:parse_blif$1184": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__nor2_1",
+          "parameters": {
+          },
+          "attributes": {
+          },
+          "connections": {
+            "A": [ 26 ],
+            "B": [ 37 ],
+            "Y": [ 38 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$136": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfstp_2",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 16 ],
+            "Q": [ 14 ],
+            "SET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$137": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfstp_2",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 19 ],
+            "Q": [ 17 ],
+            "SET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$138": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfstp_2",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 22 ],
+            "Q": [ 20 ],
+            "SET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$193": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 38 ],
+            "Q": [ 7 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$194": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 31 ],
+            "Q": [ 8 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$195": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 32 ],
+            "Q": [ 9 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$196": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 33 ],
+            "Q": [ 11 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$197": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 35 ],
+            "Q": [ 12 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$198": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfstp_2",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 23 ],
+            "Q": [ 36 ],
+            "SET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$199": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfstp_2",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 24 ],
+            "Q": [ 29 ],
+            "SET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$200": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 25 ],
+            "Q": [ 27 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$201": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 4 ],
+            "Q": [ 15 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$202": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 5 ],
+            "Q": [ 18 ],
+            "RESET_B": [ 3 ]
+          }
+        },
+        "$auto$ff.cc:266:slice$203": {
+          "hide_name": 1,
+          "type": "sky130_fd_sc_hd__dfrtp_1",
+          "parameters": {
+          },
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 6 ],
+            "Q": [ 21 ],
+            "RESET_B": [ 3 ]
+          }
+        }
+      },
+      "netnames": {
+        "$0\\count[1:0]": {
+          "hide_name": 1,
+          "bits": [ 33, 35 ],
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          }
+        },
+        "$0\\gnt_reg[2:0]": {
+          "hide_name": 1,
+          "bits": [ 38, 31, 32 ],
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          }
+        },
+        "$0\\weight[2:0]": {
+          "hide_name": 1,
+          "bits": [ 23, 24, 25 ],
+          "attributes": {
+            "src": "arbiter_04.sv:14.3-65.6"
+          }
+        },
+        "$abc$1166$auto$rtlil.cc:2609:MuxGate$1161": {
+          "hide_name": 1,
+          "bits": [ 16 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$auto$rtlil.cc:2609:MuxGate$1163": {
+          "hide_name": 1,
+          "bits": [ 19 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$auto$rtlil.cc:2609:MuxGate$1165": {
+          "hide_name": 1,
+          "bits": [ 22 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$new_n26_": {
+          "hide_name": 1,
+          "bits": [ 10 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$new_n27_": {
+          "hide_name": 1,
+          "bits": [ 13 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$new_n34_": {
+          "hide_name": 1,
+          "bits": [ 26 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$new_n35_": {
+          "hide_name": 1,
+          "bits": [ 28 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$new_n36_": {
+          "hide_name": 1,
+          "bits": [ 30 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$new_n40_": {
+          "hide_name": 1,
+          "bits": [ 34 ],
+          "attributes": {
+          }
+        },
+        "$abc$1166$new_n42_": {
+          "hide_name": 1,
+          "bits": [ 37 ],
+          "attributes": {
+          }
+        },
+        "clk": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "arbiter_04.sv:2.9-2.12"
+          }
+        },
+        "count": {
+          "hide_name": 0,
+          "bits": [ 11, 12 ],
+          "attributes": {
+            "src": "arbiter_04.sv:9.13-9.18"
+          }
+        },
+        "gnt": {
+          "hide_name": 0,
+          "bits": [ 7, 8, 9 ],
+          "attributes": {
+            "src": "arbiter_04.sv:5.16-5.19"
+          }
+        },
+        "gnt_reg": {
+          "hide_name": 0,
+          "bits": [ 7, 8, 9 ],
+          "attributes": {
+            "src": "arbiter_04.sv:8.13-8.20"
+          }
+        },
+        "grant_mask": {
+          "hide_name": 0,
+          "bits": [ 14, 17, 20 ],
+          "attributes": {
+            "src": "arbiter_04.sv:11.13-11.23"
+          }
+        },
+        "req": {
+          "hide_name": 0,
+          "bits": [ 4, 5, 6 ],
+          "attributes": {
+            "src": "arbiter_04.sv:4.15-4.18"
+          }
+        },
+        "req_delayed": {
+          "hide_name": 0,
+          "bits": [ 15, 18, 21 ],
+          "attributes": {
+            "src": "arbiter_04.sv:12.13-12.24"
+          }
+        },
+        "rst_n": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "arbiter_04.sv:3.9-3.14"
+          }
+        },
+        "weight": {
+          "hide_name": 0,
+          "bits": [ 36, 29, 27 ],
+          "attributes": {
+            "src": "arbiter_04.sv:10.13-10.19"
+          }
+        }
+      }
+    }
+  }
+}

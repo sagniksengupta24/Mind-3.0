@@ -1,0 +1,81 @@
+SBY  1:52:01 [arbiter_04] Removing directory '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/arbiter_04/arbiter_04'.
+SBY  1:52:01 [arbiter_04] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/arbiter_04/arbiter_04.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/arbiter_04/arbiter_04/src/arbiter_04.sv'.
+SBY  1:52:01 [arbiter_04] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/arbiter_04/arbiter_04_formal_top.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/arbiter_04/arbiter_04/src/arbiter_04_formal_top.sv'.
+SBY  1:52:01 [arbiter_04] Copy '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/arbiter_04/arbiter_04_sva.sv' to '/home/mind/Desktop/Mind-3.0-main/artifacts/stage25_holdout_120/run_workspaces/arbiter_04/arbiter_04/src/arbiter_04_sva.sv'.
+SBY  1:52:01 [arbiter_04] engine_0: smtbmc z3
+SBY  1:52:01 [arbiter_04] base: starting process "cd arbiter_04/src; yosys -ql ../model/design.log ../model/design.ys"
+SBY  1:52:01 [arbiter_04] base: Warning: Wire arbiter_04_formal_top.\rst_n is used but has no driver.
+SBY  1:52:01 [arbiter_04] base: Warning: Wire arbiter_04_formal_top.\req [2] is used but has no driver.
+SBY  1:52:01 [arbiter_04] base: Warning: Wire arbiter_04_formal_top.\req [1] is used but has no driver.
+SBY  1:52:01 [arbiter_04] base: Warning: Wire arbiter_04_formal_top.\req [0] is used but has no driver.
+SBY  1:52:01 [arbiter_04] base: Warning: Wire arbiter_04_formal_top.\clk is used but has no driver.
+SBY  1:52:01 [arbiter_04] base: finished (returncode=0)
+SBY  1:52:01 [arbiter_04] prep: starting process "cd arbiter_04/model; yosys -ql design_prep.log design_prep.ys"
+SBY  1:52:01 [arbiter_04] prep: Warning: Wire arbiter_04_formal_top.\rst_n is used but has no driver.
+SBY  1:52:01 [arbiter_04] prep: Warning: Wire arbiter_04_formal_top.\req [2] is used but has no driver.
+SBY  1:52:01 [arbiter_04] prep: Warning: Wire arbiter_04_formal_top.\req [1] is used but has no driver.
+SBY  1:52:01 [arbiter_04] prep: Warning: Wire arbiter_04_formal_top.\req [0] is used but has no driver.
+SBY  1:52:01 [arbiter_04] prep: Warning: Wire arbiter_04_formal_top.\clk is used but has no driver.
+SBY  1:52:01 [arbiter_04] prep: finished (returncode=0)
+SBY  1:52:01 [arbiter_04] smt2: starting process "cd arbiter_04/model; yosys -ql design_smt2.log design_smt2.ys"
+SBY  1:52:01 [arbiter_04] smt2: finished (returncode=0)
+SBY  1:52:01 [arbiter_04] engine_0: starting process "cd arbiter_04; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2"
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Solver: z3
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 0..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 0..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 1..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 1..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 2..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 2..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 3..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 3..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 4..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 4..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 5..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 5..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 6..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 6..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 7..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 7..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 8..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 8..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 9..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 9..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 10..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 10..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 11..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 11..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 12..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 12..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 13..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 13..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 14..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 14..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 15..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 15..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 16..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 16..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 17..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 17..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 18..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 18..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 19..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 19..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 20..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 20..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 21..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 21..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 22..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 22..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 23..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 23..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assumptions in step 24..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Checking assertions in step 24..
+SBY  1:52:02 [arbiter_04] engine_0: ##   0:00:00  Status: passed
+SBY  1:52:02 [arbiter_04] engine_0: finished (returncode=0)
+SBY  1:52:02 [arbiter_04] engine_0: Status returned by engine: pass
+SBY  1:52:02 [arbiter_04] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  1:52:02 [arbiter_04] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)
+SBY  1:52:02 [arbiter_04] summary: engine_0 (smtbmc z3) returned pass
+SBY  1:52:02 [arbiter_04] summary: engine_0 did not produce any traces
+SBY  1:52:02 [arbiter_04] DONE (PASS, rc=0)

@@ -1,0 +1,459 @@
+{
+  "task_id": "reg_if_09",
+  "category": "register interfaces",
+  "name": "reg_parity_protected",
+  "natural_language_spec": "Parity-protected register bank checking data integrity on every read",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen2.5-coder:30b",
+  "provider": "ollama",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "reg_if_09",
+    "functional_spec": "Parity-protected register bank checking data integrity on every read",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "in_data",
+        "direction": "input",
+        "width": 8,
+        "description": ""
+      },
+      {
+        "name": "out_data",
+        "direction": "output",
+        "width": 8,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "Parity-protected register bank checking data integrity on every read"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+      "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "same_cycle_implication",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": "!rst_n",
+        "consequent": "out_data == 0",
+        "expression": null,
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": "Classified deterministically from the bounded legacy SVA subset."
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "out_data == out_data",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": "module reg_if_09 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  reg [7:0] reg_bank [0:0];\n  wire parity_in;\n  wire parity_out;\n  wire data_valid;\n\n  // Parity calculation for input data\n  assign parity_in = ^in_data;\n\n  // Register write operation\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      reg_bank[0] <= 8'd0;\n    end else begin\n      reg_bank[0] <= in_data;\n    end\n  end\n\n  // Parity calculation for stored data\n  assign parity_out = ^reg_bank[0];\n\n  // Data integrity check on read\n  assign data_valid = (parity_in == parity_out);\n\n  // Output data with integrity check\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data <= 8'd0;\n    end else if (data_valid) begin\n      out_data <= reg_bank[0];\n    end else begin\n      out_data <= 8'd0; // Return zero on parity error\n    end\n  end\n\nendmodule",
+  "gate_failure_category": "SYNTAX_ERROR",
+  "repair_attempts": [
+    {
+      "turn": 1,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Parity-protected register bank checking data integrity on every read\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Parity-protected register bank checking data integrity on every read\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"reg_if_09\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 1,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Parity-protected register bank checking data integrity on every read\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Parity-protected register bank checking data integrity on every read\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"reg_if_09\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\n3 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule reg_if_09 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  reg [7:0] reg_bank [0:0];\n  wire parity_in;\n  wire parity_out;\n  wire data_valid;\n\n  // Parity calculation for input data\n  assign parity_in = ^in_data;\n\n  // Register write operation\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      reg_bank[0] <= 8'd0;\n    end else begin\n      reg_bank[0] <= in_data;\n    end\n  end\n\n  // Parity calculation for stored data\n  assign parity_out = ^reg_bank[0];\n\n  // Data integrity check on read\n  assign data_valid = (parity_in == parity_out);\n\n  // Output data with integrity check\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data <= 8'd0;\n    end else if (data_valid) begin\n      out_data <= reg_bank[0];\n    end else begin\n      out_data <= 8'd0; // Return zero on parity error\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule reg_if_09 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "reg_if_09",
+              "-o",
+              ".mind_compile.vvp",
+              "reg_if_09.sv"
+            ],
+            "return_code": 3,
+            "stdout": "",
+            "stderr": "reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "file": "reg_if_09.sv",
+            "line": 34,
+            "column": 1,
+            "source_context": "32:   always @(posedge clk or negedge rst_n) begin\n33:     if (!rst_n) begin\n34:       out_data <= 8'd0;\n35:     end else if (data_valid) begin\n36:       out_data <= reg_bank[0];"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Parity-protected register bank checking data integrity on every read\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Parity-protected register bank checking data integrity on every read\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"reg_if_09\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 2,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Parity-protected register bank checking data integrity on every read\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Parity-protected register bank checking data integrity on every read\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"reg_if_09\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"SYNTAX_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\n3 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule reg_if_09 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  reg [7:0] reg_bank [0:0];\n  wire parity_in;\n  wire parity_out;\n  wire data_valid;\n\n  // Parity calculation for input data\n  assign parity_in = ^in_data;\n\n  // Register write operation\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      reg_bank[0] <= 8'd0;\n    end else begin\n      reg_bank[0] <= in_data;\n    end\n  end\n\n  // Parity calculation for stored data\n  assign parity_out = ^reg_bank[0];\n\n  // Data integrity check on read\n  assign data_valid = (parity_in == parity_out);\n\n  // Output data with integrity check\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data <= 8'd0;\n    end else if (data_valid) begin\n      out_data <= reg_bank[0];\n    end else begin\n      out_data <= 8'd0; // Return zero on parity error\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule reg_if_09 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "reg_if_09",
+              "-o",
+              ".mind_compile.vvp",
+              "reg_if_09.sv"
+            ],
+            "return_code": 3,
+            "stdout": "",
+            "stderr": "reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "file": "reg_if_09.sv",
+            "line": 34,
+            "column": 1,
+            "source_context": "32:   always @(posedge clk or negedge rst_n) begin\n33:     if (!rst_n) begin\n34:       out_data <= 8'd0;\n35:     end else if (data_valid) begin\n36:       out_data <= reg_bank[0];"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "guidance": "Immutable contract:\n{\n  \"async_inputs\": null,\n  \"behavior\": [\n    \"Parity-protected register bank checking data integrity on every read\"\n  ],\n  \"clock\": {\n    \"edge\": \"posedge\",\n    \"name\": \"clk\"\n  },\n  \"formal_properties\": [\n    {\n      \"antecedent\": \"!rst_n\",\n      \"clock\": \"clk\",\n      \"consequent\": \"out_data == 0\",\n      \"cycles\": 1,\n      \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n      \"expression\": null,\n      \"kind\": \"same_cycle_implication\",\n      \"name\": \"contract_property_1\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    },\n    {\n      \"antecedent\": null,\n      \"clock\": \"clk\",\n      \"consequent\": null,\n      \"cycles\": 1,\n      \"description\": \"\",\n      \"expression\": \"out_data == out_data\",\n      \"kind\": \"boolean\",\n      \"name\": \"contract_property_2\",\n      \"reset\": \"rst_n:active_low\",\n      \"signal\": null,\n      \"value\": null\n    }\n  ],\n  \"functional_spec\": \"Parity-protected register bank checking data integrity on every read\",\n  \"invariants\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"module_name\": \"reg_if_09\",\n  \"parameters\": {},\n  \"ports\": [\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"clk\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"rst_n\",\n      \"width\": 1\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"input\",\n      \"name\": \"in_data\",\n      \"width\": 8\n    },\n    {\n      \"description\": \"\",\n      \"direction\": \"output\",\n      \"name\": \"out_data\",\n      \"width\": 8\n    }\n  ],\n  \"protocol_requirements\": [\n    \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n    \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n  ],\n  \"reset\": {\n    \"name\": \"rst_n\",\n    \"polarity\": \"active_low\",\n    \"synchronous\": true\n  },\n  \"sva_properties\": [],\n  \"timing\": {\n    \"clock_name\": \"clk\",\n    \"lef_path\": null,\n    \"period_ns\": 10.0,\n    \"pvt_corners\": [\n      \"tt_025c_1v80\",\n      \"ff_n40c_1v95\",\n      \"ss_125c_1v60\"\n    ]\n  }\n}\n\nStructured verifier evidence (authoritative):\n{\n  \"artifact_paths\": [],\n  \"attempt\": 3,\n  \"category\": \"SYNTAX_ERROR\",\n  \"clock_state\": null,\n  \"column\": null,\n  \"contract\": {\n    \"async_inputs\": null,\n    \"behavior\": [\n      \"Parity-protected register bank checking data integrity on every read\"\n    ],\n    \"clock\": {\n      \"edge\": \"posedge\",\n      \"name\": \"clk\"\n    },\n    \"formal_properties\": [\n      {\n        \"antecedent\": \"!rst_n\",\n        \"clock\": \"clk\",\n        \"consequent\": \"out_data == 0\",\n        \"cycles\": 1,\n        \"description\": \"Classified deterministically from the bounded legacy SVA subset.\",\n        \"expression\": null,\n        \"kind\": \"same_cycle_implication\",\n        \"name\": \"contract_property_1\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      },\n      {\n        \"antecedent\": null,\n        \"clock\": \"clk\",\n        \"consequent\": null,\n        \"cycles\": 1,\n        \"description\": \"\",\n        \"expression\": \"out_data == out_data\",\n        \"kind\": \"boolean\",\n        \"name\": \"contract_property_2\",\n        \"reset\": \"rst_n:active_low\",\n        \"signal\": null,\n        \"value\": null\n      }\n    ],\n    \"functional_spec\": \"Parity-protected register bank checking data integrity on every read\",\n    \"invariants\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"module_name\": \"reg_if_09\",\n    \"parameters\": {},\n    \"ports\": [\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"clk\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"rst_n\",\n        \"width\": 1\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"input\",\n        \"name\": \"in_data\",\n        \"width\": 8\n      },\n      {\n        \"description\": \"\",\n        \"direction\": \"output\",\n        \"name\": \"out_data\",\n        \"width\": 8\n      }\n    ],\n    \"protocol_requirements\": [\n      \"assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);\",\n      \"assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);\"\n    ],\n    \"reset\": {\n      \"name\": \"rst_n\",\n      \"polarity\": \"active_low\",\n      \"synchronous\": true\n    },\n    \"sva_properties\": [],\n    \"timing\": {\n      \"clock_name\": \"clk\",\n      \"lef_path\": null,\n      \"period_ns\": 10.0,\n      \"pvt_corners\": [\n        \"tt_025c_1v80\",\n        \"ff_n40c_1v95\",\n        \"ss_125c_1v60\"\n      ]\n    }\n  },\n  \"counterexample_trace\": null,\n  \"cycle\": null,\n  \"details\": \"\",\n  \"error\": \"NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)\",\n  \"expected_behavior\": null,\n  \"failing_property\": null,\n  \"failing_step\": null,\n  \"failing_test\": null,\n  \"file\": null,\n  \"gate\": \"DFT Scan Audit (Advisory)\",\n  \"line\": null,\n  \"metrics\": {},\n  \"observed_behavior\": null,\n  \"property_source\": null,\n  \"relevant_signals\": {},\n  \"repair_history\": [\n    \"SYNTAX_ERROR\",\n    \"SYNTAX_ERROR\"\n  ],\n  \"reset_state\": null,\n  \"source_context\": \"\",\n  \"stage\": \"compile\",\n  \"stderr_tail\": \"reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\\nreg_if_09.sv:5:      : out_data is declared here as wire.\\n3 error(s) during elaboration.\\n\",\n  \"stdout_tail\": \"\",\n  \"tool\": \"\",\n  \"trace_file\": null\n}\n\nCurrent RTL:\nmodule reg_if_09 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\n  reg [7:0] reg_bank [0:0];\n  wire parity_in;\n  wire parity_out;\n  wire data_valid;\n\n  // Parity calculation for input data\n  assign parity_in = ^in_data;\n\n  // Register write operation\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      reg_bank[0] <= 8'd0;\n    end else begin\n      reg_bank[0] <= in_data;\n    end\n  end\n\n  // Parity calculation for stored data\n  assign parity_out = ^reg_bank[0];\n\n  // Data integrity check on read\n  assign data_valid = (parity_in == parity_out);\n\n  // Output data with integrity check\n  always @(posedge clk or negedge rst_n) begin\n    if (!rst_n) begin\n      out_data <= 8'd0;\n    end else if (data_valid) begin\n      out_data <= reg_bank[0];\n    end else begin\n      out_data <= 8'd0; // Return zero on parity error\n    end\n  end\n\nendmodule\n\n\nRepair the current RTL with the smallest semantically justified change. The repaired module header must still be exactly:\nmodule reg_if_09 (\n  input clk,\n  input rst_n,\n  input [7:0] in_data,\n  output [7:0] out_data\n);\n\nRepair strategy: The previous repair failed with an identical failure: do not repeat the same edit. Change a different part of the logic with a structurally different fix.",
+      "repaired_rtl": null,
+      "passed": false,
+      "error_category": "SYNTAX_ERROR",
+      "failure_reason": "RTL compile failed (iverilog): \nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+      "gate_reports": [
+        {
+          "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+          "passed": false,
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "details": "RTL compile failed (iverilog): \nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+          "error_category": "SYNTAX_ERROR",
+          "compile_tool": "iverilog",
+          "diagnostic": {
+            "tool": "iverilog",
+            "executable": "iverilog",
+            "argv": [
+              "iverilog",
+              "-g2012",
+              "-s",
+              "reg_if_09",
+              "-o",
+              ".mind_compile.vvp",
+              "reg_if_09.sv"
+            ],
+            "return_code": 3,
+            "stdout": "",
+            "stderr": "reg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "execution_mode": "local_bwrap",
+            "stage": "compile",
+            "error": "\nreg_if_09.sv:34: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:36: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\nreg_if_09.sv:38: error: out_data is not a valid l-value in reg_if_09.\nreg_if_09.sv:5:      : out_data is declared here as wire.\n3 error(s) during elaboration.\n",
+            "file": "reg_if_09.sv",
+            "line": 34,
+            "column": 1,
+            "source_context": "32:   always @(posedge clk or negedge rst_n) begin\n33:     if (!rst_n) begin\n34:       out_data <= 8'd0;\n35:     end else if (data_valid) begin\n36:       out_data <= reg_bank[0];"
+          },
+          "simulated": false,
+          "status": "FAIL"
+        },
+        {
+          "gate": "Gate 3: Verilator Coverage Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 2: SymbiYosys Formal Property Verification",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 4: OpenSTA Multi-Corner Timing Signoff",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "Gate 6: Yosys CDC Static Analysis",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        },
+        {
+          "gate": "DFT Scan Audit (Advisory)",
+          "passed": false,
+          "exit_code": -1,
+          "stdout": "",
+          "stderr": "",
+          "details": "NOT_RUN: blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "error_category": "NOT_RUN",
+          "status": "NOT_RUN",
+          "not_run_reason": "blocked by earlier gate failure (Gate 1: Yosys Elaboration & Latch Trap)",
+          "simulated": false,
+          "skipped": false
+        }
+      ]
+    }
+  ],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "failure_category": "SYNTAX_ERROR",
+    "passed": false
+  },
+  "timestamp": 1791234045.8386626,
+  "duration_seconds": 40.279,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {
+      "yosys": "Yosys 0.33 (git sha1 2584903a060)",
+      "sta": "2.3.1",
+      "verilator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+      "sby": "SBY v0.69",
+      "openroad": "f12e2f474102bfb875eeee57fb610d7d7de17770"
+    },
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "8a50631a8fc423dd0a4ac258008fc12754c7967e37b417b33563a59bcb0170f5"
+  }
+}

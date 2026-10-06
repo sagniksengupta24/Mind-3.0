@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal counter_10.sv
+read -formal counter_10_sva.sv
+read -formal counter_10_formal_top.sv
+prep -top counter_10_formal_top
+
+[files]
+counter_10.sv
+counter_10_formal_top.sv
+counter_10_sva.sv

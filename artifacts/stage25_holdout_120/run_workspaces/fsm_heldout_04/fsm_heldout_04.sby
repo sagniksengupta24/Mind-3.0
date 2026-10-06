@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal fsm_heldout_04.sv
+read -formal fsm_heldout_04_sva.sv
+read -formal fsm_heldout_04_formal_top.sv
+prep -top fsm_heldout_04_formal_top
+
+[files]
+fsm_heldout_04.sv
+fsm_heldout_04_formal_top.sv
+fsm_heldout_04_sva.sv

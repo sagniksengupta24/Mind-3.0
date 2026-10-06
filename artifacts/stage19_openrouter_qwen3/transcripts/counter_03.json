@@ -1,0 +1,133 @@
+{
+  "task_id": "counter_03",
+  "category": "counters",
+  "name": "bcd_counter_2digit",
+  "natural_language_spec": "2-digit 0-99 BCD decimal counter with carry out on wrap",
+  "is_schema_validation_fixture": false,
+  "label": "real generation output",
+  "model": "qwen/qwen3-coder:free",
+  "provider": "openrouter",
+  "max_repairs": 3,
+  "contract": {
+    "module_name": "counter_03",
+    "functional_spec": "2-digit 0-99 BCD decimal counter with carry out on wrap",
+    "parameters": {},
+    "ports": [
+      {
+        "name": "clk",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "rst_n",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "en",
+        "direction": "input",
+        "width": 1,
+        "description": ""
+      },
+      {
+        "name": "bcd_ones",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "bcd_tens",
+        "direction": "output",
+        "width": 4,
+        "description": ""
+      },
+      {
+        "name": "carry_out",
+        "direction": "output",
+        "width": 1,
+        "description": ""
+      }
+    ],
+    "clock": {
+      "name": "clk",
+      "edge": "posedge"
+    },
+    "reset": {
+      "name": "rst_n",
+      "polarity": "active_low",
+      "synchronous": true
+    },
+    "behavior": [
+      "2-digit 0-99 BCD decimal counter with carry out on wrap"
+    ],
+    "invariants": [
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);",
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);"
+    ],
+    "protocol_requirements": [
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_ones <= 4'd9);",
+      "assert property (@(posedge clk) disable iff (!rst_n) bcd_tens <= 4'd9);"
+    ],
+    "formal_properties": [
+      {
+        "name": "contract_property_1",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "bcd_ones <= 4'd9",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      },
+      {
+        "name": "contract_property_2",
+        "kind": "boolean",
+        "clock": "clk",
+        "reset": "rst_n:active_low",
+        "antecedent": null,
+        "consequent": null,
+        "expression": "bcd_tens <= 4'd9",
+        "signal": null,
+        "value": null,
+        "cycles": 1,
+        "description": ""
+      }
+    ],
+    "sva_properties": [],
+    "timing": {
+      "clock_name": "clk",
+      "period_ns": 10.0,
+      "pvt_corners": [
+        "tt_025c_1v80",
+        "ff_n40c_1v95",
+        "ss_125c_1v60"
+      ],
+      "lef_path": null
+    },
+    "async_inputs": null
+  },
+  "generated_rtl": null,
+  "gate_failure_category": "RESPONSE_PARSE_FAILURE",
+  "repair_attempts": [],
+  "final_outcome": {
+    "status": "ROLLED_BACK",
+    "reason": "compile repair limit (3) exhausted.",
+    "passed": false
+  },
+  "timestamp": 1791202135.9323676,
+  "duration_seconds": 0.332,
+  "environment": {
+    "python": "Python 3.12.3",
+    "eda_versions": {},
+    "sandbox": "BubblewrapSandbox",
+    "parser_mode": "strict"
+  },
+  "artifact_hashes": {
+    "transcript.jsonl": "023ace2d6edbb11500a5ac64517ff904ec2f50bb322dabba5b7f8e0a2704ac55"
+  }
+}

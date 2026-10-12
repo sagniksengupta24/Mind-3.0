@@ -1,0 +1,49 @@
+{
+ "tool": "crux",
+ "version": "0.1.0",
+ "design": "cdc_bad",
+ "clock_domains": [
+  {
+   "name": "clk_a",
+   "clock_net": 2,
+   "polarity": "posedge",
+   "ff_count": 1
+  },
+  {
+   "name": "clk_b",
+   "clock_net": 3,
+   "polarity": "posedge",
+   "ff_count": 1
+  }
+ ],
+ "crossings": [
+  {
+   "source_ff": "$procdff$14",
+   "dest_ff": "$procdff$9",
+   "source_domain": "clk_a",
+   "dest_domain": "clk_b",
+   "signal": "data_a",
+   "has_combo_logic": false,
+   "is_synchronized": false
+  }
+ ],
+ "violations": [
+  {
+   "rule": "MISSING_SYNC",
+   "severity": "error",
+   "message": "Missing synchronizer: 'data_a' (clk_a -> clk_b), source: $procdff$14, dest: $procdff$9",
+   "signal": "data_a",
+   "source_domain": "clk_a",
+   "dest_domain": "clk_b"
+  }
+ ],
+ "waived": [],
+ "summary": {
+  "total_crossings": 1,
+  "synchronized": 0,
+  "errors": 1,
+  "warnings": 0,
+  "info": 0,
+  "waived": 0
+ }
+}

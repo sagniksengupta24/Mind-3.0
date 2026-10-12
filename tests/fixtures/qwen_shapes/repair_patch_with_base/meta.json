@@ -1,0 +1,1 @@
+{"expect": {"lenient": "accept", "strict": "accept"}, "model_digest": "synthetic", "needs_base_code": true, "notes": "Repair-loop patch object. Only reachable with base_code (initial generation never supplies it). Both modes accept via the patch branch."}

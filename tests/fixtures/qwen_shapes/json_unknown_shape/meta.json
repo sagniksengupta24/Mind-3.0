@@ -1,0 +1,1 @@
+{"expect": {"lenient": "reject", "strict": "reject"}, "model_digest": "synthetic", "needs_base_code": false, "notes": "JSON dict matching no documented shape (undocumented key). Both modes must reject: no any-key scan, even when a value contains a module."}

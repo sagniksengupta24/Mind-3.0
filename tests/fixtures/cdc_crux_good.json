@@ -1,0 +1,40 @@
+{
+ "tool": "crux",
+ "version": "0.1.0",
+ "design": "cdc_good2",
+ "clock_domains": [
+  {
+   "name": "clk_a",
+   "clock_net": 2,
+   "polarity": "posedge",
+   "ff_count": 1
+  },
+  {
+   "name": "clk_b",
+   "clock_net": 3,
+   "polarity": "posedge",
+   "ff_count": 2
+  }
+ ],
+ "crossings": [
+  {
+   "source_ff": "$procdff$19",
+   "dest_ff": "$procdff$9",
+   "source_domain": "clk_a",
+   "dest_domain": "clk_b",
+   "signal": "data_a",
+   "has_combo_logic": false,
+   "is_synchronized": true
+  }
+ ],
+ "violations": [],
+ "waived": [],
+ "summary": {
+  "total_crossings": 1,
+  "synchronized": 1,
+  "errors": 0,
+  "warnings": 0,
+  "info": 0,
+  "waived": 0
+ }
+}

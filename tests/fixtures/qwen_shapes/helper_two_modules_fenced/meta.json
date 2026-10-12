@@ -1,0 +1,1 @@
+{"expect": {"lenient": "accept", "strict": "accept"}, "model_digest": "synthetic", "needs_base_code": false, "notes": "KNOWN PERMISSIVE CORNER: fenced multi-module output passes strict branch 2 (only checks module/endmodule substrings). Documented, not fixed: tightening risks negative-control regressions. Stop sequences must NOT cut at the first endmodule because of this shape."}

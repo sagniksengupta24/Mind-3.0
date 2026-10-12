@@ -1,0 +1,1 @@
+{"expect": {"lenient": "accept", "strict": "accept"}, "model_digest": "synthetic", "needs_base_code": false, "notes": "Exact WriteFileAction schema. Happy path for Track J (JSON mode + schema prompt)."}

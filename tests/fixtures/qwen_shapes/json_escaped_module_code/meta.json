@@ -1,0 +1,1 @@
+{"expect": {"lenient": "accept", "strict": "reject"}, "model_digest": "synthetic", "needs_base_code": false, "notes": "Local models frequently double-escape newlines under JSON mode. Lenient _unescape recovers; strict rejects."}

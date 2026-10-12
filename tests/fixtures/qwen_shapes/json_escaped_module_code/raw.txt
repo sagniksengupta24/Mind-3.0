@@ -1,0 +1,1 @@
+{"verilog_code": "module counter (\\n  input  logic       clk,\\n  input  logic       rst_n,\\n  output logic [7:0] count\\n);\\n  always_ff @(posedge clk or negedge rst_n) begin\\n    if (!rst_n) count <= 8'h00;\\n    else        count <= count + 8'h01;\\n  end\\nendmodule\\n"}

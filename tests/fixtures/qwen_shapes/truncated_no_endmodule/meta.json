@@ -1,0 +1,1 @@
+{"expect": {"lenient": "reject", "strict": "reject"}, "model_digest": "synthetic", "needs_base_code": false, "notes": "Output truncation (num_predict hit before endmodule). Both modes must reject; the fix is decode-side (bigger num_predict), never parser-side."}

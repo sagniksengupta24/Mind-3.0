@@ -1,0 +1,1 @@
+{"explanation": "Here is a counter with async reset.", "code_snippet": "module counter (input logic clk); endmodule"}

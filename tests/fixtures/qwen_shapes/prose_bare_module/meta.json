@@ -1,0 +1,1 @@
+{"expect": {"lenient": "accept", "strict": "reject"}, "model_digest": "synthetic", "needs_base_code": false, "notes": "Unfenced prose-wrapped module. Strict fullmatch rejects; lenient branch 6 (first module-to-endmodule) recovers. The dominant suspected Stage-6 shape."}

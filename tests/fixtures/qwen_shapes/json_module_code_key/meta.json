@@ -1,0 +1,1 @@
+{"expect": {"lenient": "accept", "strict": "reject"}, "model_digest": "synthetic", "needs_base_code": false, "notes": "JSON dict with documented lenient key. Strict must reject (no any-key scan); lenient branch 3b recovers. Core strict/lenient boundary fixture."}

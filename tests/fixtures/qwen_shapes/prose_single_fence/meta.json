@@ -1,0 +1,1 @@
+{"expect": {"lenient": "accept", "strict": "accept"}, "model_digest": "synthetic", "needs_base_code": false, "notes": "Chatty prose around exactly one fenced module. Strict branch 2 (fence search) accepts; documents that prose alone is not fatal when a fence exists."}

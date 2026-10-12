@@ -1,11 +1,9 @@
 """Command-line interface for Mind 3.0.
 
 Provides:
-- `mind3 benchmark --suite heldout-v1 --seed 42`
+- `mind3 benchmark --suite heldout --seed 42`
 - `mind3 smoke-test`
 - `mind3 negative-controls`
-- `mind3 bundle export --approval <file>`
-- `mind3 verify --workspace <path>`
 """
 
 from __future__ import annotations
@@ -35,6 +33,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     print(f"Seed: {args.seed}")
     print(f"Model: {args.model}")
     print(f"Parser mode: {getattr(args, 'parser_mode', 'strict')}")
+    print(f"Decode: temp={getattr(args, 'decode_temperature', 0.0)} seed={getattr(args, 'decode_seed', None)} num_predict={getattr(args, 'decode_num_predict', 4096)} num_ctx={getattr(args, 'decode_num_ctx', 8192)} format={getattr(args, 'generation_format', 'json')}")
 
     try:
         out_path = execute_full_benchmark(
@@ -50,6 +49,11 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
             required_min_tasks=args.min_tasks if getattr(args, "min_tasks", None) is not None else 100,
             diagnostic=getattr(args, "diagnostic", False),
             parser_mode=getattr(args, "parser_mode", "strict"),
+            decode_temperature=getattr(args, "decode_temperature", 0.0),
+            decode_seed=getattr(args, "decode_seed", None),
+            decode_num_predict=getattr(args, "decode_num_predict", 4096),
+            decode_num_ctx=getattr(args, "decode_num_ctx", 8192),
+            generation_format=getattr(args, "generation_format", "json"),
         )
         print(f"\nBenchmark completed successfully!")
         print(f"Artifacts generated in: {out_path}")
@@ -100,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # benchmark
     p_bench = subparsers.add_parser("benchmark", help="Run reproducible RTL benchmark suite")
-    p_bench.add_argument("--suite", default="heldout-v1", help="Benchmark suite name or path")
+    p_bench.add_argument("--suite", default="heldout", help="Benchmark suite name under benchmarks/ (heldout, heldout-v2, development-20) or a direct path")
     p_bench.add_argument("--seed", type=int, default=42, help="Deterministic random seed")
     p_bench.add_argument("--model", default="qwen2.5-coder:7b", help="Model identifier")
     p_bench.add_argument("--provider", choices=("ollama", "openrouter", "mock"), default="ollama", help="LLM provider; mock is evidence-blocked and never counts as benchmark performance")
@@ -112,6 +116,11 @@ def main(argv: list[str] | None = None) -> int:
     p_bench.add_argument("--diagnostic", action="store_true", help="Explicitly mark run as diagnostic/development mode (not release-eligible)")
     p_bench.add_argument("--min-tasks", type=int, default=None, help="Minimum tasks required for release qualification (default: 100)")
     p_bench.add_argument("--parser-mode", choices=("strict", "lenient"), default="strict", help="Model-response parser mode: strict (default) or lenient opt-in recovery for local models; recorded in traces and summaries")
+    p_bench.add_argument("--decode-temperature", type=float, default=0.0, help="Ollama sampling temperature (default 0.0, deterministic)")
+    p_bench.add_argument("--decode-seed", type=int, default=None, help="Ollama sampling seed (default None = benchmark --seed is used)")
+    p_bench.add_argument("--decode-num-predict", type=int, default=4096, help="Ollama max completion tokens (anti-truncation guard)")
+    p_bench.add_argument("--decode-num-ctx", type=int, default=8192, help="Ollama context window (anti-prompt-truncation guard)")
+    p_bench.add_argument("--generation-format", choices=("json", "text", "json-schema"), default="json", help="Ollama format for generation/repair calls: json (default), text (Track F), json-schema (Track J)")
     p_bench.set_defaults(func=cmd_benchmark)
 
     # smoke-test

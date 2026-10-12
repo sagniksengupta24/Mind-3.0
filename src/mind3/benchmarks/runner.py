@@ -16,7 +16,7 @@ import statistics
 import subprocess
 import tempfile
 import time
-from collections import Counter
+from collections import Counter, deque
 from pathlib import Path
 from typing import Any, Iterable, Literal
 
@@ -58,6 +58,7 @@ class RepairTurnRecord(BaseModel):
     turn: int = Field(ge=0)
     guidance: str = Field(default="")
     repaired_rtl: str | None = None
+    raw_repair_response: str | None = None
     passed: bool
     error_category: str | None = None
     failure_reason: str | None = None
@@ -80,6 +81,9 @@ class BenchmarkTranscript(BaseModel):
     max_repairs: int = 10
     contract: dict[str, Any] | None = None
     generated_rtl: str | None = None
+    raw_initial_response: str | None = None
+    raw_initial_responses: list[str] = Field(default_factory=list)
+    decode: dict[str, Any] = Field(default_factory=dict)
     gate_failure_category: str | None = None
     repair_attempts: list[RepairTurnRecord] = Field(default_factory=list)
     final_outcome: dict[str, Any] = Field(default_factory=dict)
@@ -229,6 +233,15 @@ class BenchmarkRunner:
         final_outcome: dict[str, Any] = {"passed": final_passed}
         current_guidance = ""
         current_repaired_rtl: str | None = None
+        # C2: raw repair bytes pair with RepairTurnRecords in order. Failed
+        # model invocations append no raw and emit no record, so a FIFO queue
+        # stays aligned: each record consumes the next successful call's raw.
+        raw_repair_queue: deque[str] = deque(
+            [r for r in getattr(driver, "_raw_repair_responses", []) if isinstance(r, str)]
+        )
+        initial_raws: list[str] = [
+            r for r in getattr(driver, "_raw_initial_responses", []) if isinstance(r, str)
+        ]
 
         for rec in driver.transcript:
             phase = rec.phase
@@ -247,7 +260,7 @@ class BenchmarkRunner:
                     initial_rtl = json.dumps(raw_rtl)
             elif phase == PhaseEnum.MODEL_CALL and payload.get("role") in {"Targeted RTL Repair Loop", "Independent RTL Verification Repair Engineer"}:
                 current_guidance = str(payload.get("guidance", ""))
-            elif phase == PhaseEnum.EXECUTE and payload.get("role") == "Targeted RTL Repair Loop":
+            elif phase == PhaseEnum.EXECUTE and payload.get("role") in {"Targeted RTL Repair Loop", "Independent RTL Verification Repair Engineer"}:
                 raw_rep = payload.get("content") or payload.get("rtl_file")
                 current_repaired_rtl = raw_rep if isinstance(raw_rep, str) else (json.dumps(raw_rep) if raw_rep is not None else None)
             elif phase == PhaseEnum.VERIFY:
@@ -263,12 +276,17 @@ class BenchmarkRunner:
                             turn=rec.event.turn,
                             guidance=current_guidance,
                             repaired_rtl=current_repaired_rtl,
+                            raw_repair_response=raw_repair_queue.popleft() if raw_repair_queue else None,
                             passed=v_passed,
                             error_category=str(v_cat) if v_cat else None,
                             failure_reason=str(v_reason) if v_reason else None,
                             gate_reports=payload.get("gate_reports", []),
                         )
                     )
+                    # Consume the EXECUTE payload so a later VERIFY without a
+                    # preceding repair EXECUTE (e.g. parse failure) cannot
+                    # reuse stale RTL from an earlier turn.
+                    current_repaired_rtl = None
             elif phase == PhaseEnum.REPAIR_OR_FINISH:
                 final_outcome = dict(payload)
                 final_outcome["passed"] = final_passed
@@ -279,6 +297,19 @@ class BenchmarkRunner:
             "sandbox": type(driver.sandbox).__name__,
             "parser_mode": getattr(driver, "parser_mode", "strict"),
         }
+        # C2: decode provenance block. Defensive isinstance guards keep this
+        # working with test doubles (MagicMock drivers) as well as live ones.
+        decode_events: list[dict[str, Any]] = [
+            e for e in (getattr(driver, "_decode_events", []) or []) if isinstance(e, dict)
+        ]
+        raw_decode_config = driver.decode_config() if hasattr(driver, "decode_config") else {}
+        decode_block: dict[str, Any] = dict(raw_decode_config) if isinstance(raw_decode_config, dict) else {}
+        decode_block["calls_observed"] = len(decode_events)
+        decode_block["any_output_truncated"] = any(e.get("output_truncated") for e in decode_events)
+        decode_block["any_prompt_overflow"] = any(e.get("prompt_overflow") for e in decode_events)
+        raw_parse_attempts = getattr(driver, "_parse_attempts", 0)
+        decode_block["parse_attempts"] = raw_parse_attempts if isinstance(raw_parse_attempts, int) else 0
+        environment["decode"] = decode_block
         artifact_hashes: dict[str, str] = {}
         for candidate in (
             driver.workspace / f"{task.task_id}.sv" if isinstance(getattr(driver, "workspace", None), Path) else None,
@@ -299,6 +330,9 @@ class BenchmarkRunner:
             max_repairs=driver.max_repairs,
             contract=contract_dict,
             generated_rtl=initial_rtl,
+            raw_initial_response=initial_raws[0] if initial_raws else None,
+            raw_initial_responses=initial_raws,
+            decode=decode_block,
             gate_failure_category=initial_failure_category,
             repair_attempts=repair_attempts,
             final_outcome=final_outcome,
@@ -325,6 +359,11 @@ class BenchmarkRunner:
         base_url: str | None = None,
         workspace_root: Path | None = None,
         parser_mode: str = "strict",
+        decode_temperature: float = 0.0,
+        decode_seed: int | None = None,
+        decode_num_predict: int = 4096,
+        decode_num_ctx: int = 8192,
+        generation_format: str = "json",
     ) -> BenchmarkTranscript:
         """Run one task through the real, fail-closed PhaseDriver pipeline."""
         ws_root = Path(workspace_root).resolve() if workspace_root else Path(tempfile.mkdtemp(prefix=f"mind3_{task.task_id}_"))
@@ -388,6 +427,11 @@ class BenchmarkRunner:
             api_key=api_key,
             base_url=base_url,
             parser_mode=parser_mode,
+            decode_temperature=decode_temperature,
+            decode_seed=decode_seed,
+            decode_num_predict=decode_num_predict,
+            decode_num_ctx=decode_num_ctx,
+            generation_format=generation_format,
         )
         try:
             passed = driver.run_silicon_pipeline(self.build_task_prompt(task), liberty_path=liberty_path, contract_override=contract)
@@ -755,6 +799,11 @@ def _cli() -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--require-live", action="store_true")
     parser.add_argument("--parser-mode", choices=("strict", "lenient"), default="strict", help="Model-response parser mode: strict (default) accepts only WriteFileAction, fenced blocks, repair patches, or exactly one module; lenient additionally permits bounded recovery of malformed local-model output and is recorded in traces and summaries")
+    parser.add_argument("--decode-temperature", type=float, default=0.0, help="Ollama sampling temperature (default 0.0, deterministic)")
+    parser.add_argument("--decode-seed", type=int, default=None, help="Ollama sampling seed (default None = server default; supply 42/43/44 for pinned multi-seed runs)")
+    parser.add_argument("--decode-num-predict", type=int, default=4096, help="Ollama max completion tokens (anti-truncation guard)")
+    parser.add_argument("--decode-num-ctx", type=int, default=8192, help="Ollama context window (anti-prompt-truncation guard)")
+    parser.add_argument("--generation-format", choices=("json", "text", "json-schema"), default="json", help="Ollama format for generation/repair calls: json (default, current behavior), text (Track F, no constraint), json-schema (Track J, WriteFileAction schema)")
     args = parser.parse_args()
 
     runner = BenchmarkRunner(tasks_file=args.tasks, transcripts_dir=args.transcripts)
@@ -792,12 +841,19 @@ def _cli() -> int:
         missing = check_live_prerequisites()
         if missing and args.require_live:
             raise SystemExit(f"LIVE_BENCHMARK_PREREQUISITES_MISSING: {', '.join(missing)}")
+        from mind3.core.verifier import describe_cdc_implementation, run_cdc_preflight
+        print(describe_cdc_implementation(), flush=True)
+        preflight_failures = run_cdc_preflight()
+        if preflight_failures:
+            for failure in preflight_failures:
+                print(f"CDC_PREFLIGHT_FAIL: {failure}", flush=True)
+            raise SystemExit("CDC_PREFLIGHT_FAILED: structural CDC checker is broken; refusing live run.")
         transcripts = []
         work_root = runner.transcripts_dir.parent / "run_workspaces"
         work_root.mkdir(parents=True, exist_ok=True)
         for index, task in enumerate(tasks, 1):
             print(f"[{index}/{len(tasks)}] {task.task_id}", flush=True)
-            transcript = runner.run_live_task(task, model=args.model, provider=args.provider, max_repairs=args.max_repairs, liberty_path=args.liberty, api_key=args.api_key, base_url=args.base_url, workspace_root=work_root, parser_mode=args.parser_mode)
+            transcript = runner.run_live_task(task, model=args.model, provider=args.provider, max_repairs=args.max_repairs, liberty_path=args.liberty, api_key=args.api_key, base_url=args.base_url, workspace_root=work_root, parser_mode=args.parser_mode, decode_temperature=args.decode_temperature, decode_seed=args.decode_seed, decode_num_predict=args.decode_num_predict, decode_num_ctx=args.decode_num_ctx, generation_format=args.generation_format)
             runner.persist_transcript(transcript)
             transcripts.append(transcript)
 

@@ -115,6 +115,15 @@ class FormalPropertySpec(BaseModel):
     value: str | None = None
     cycles: int = Field(default=1, ge=1, le=8)
     description: str = Field(default="", max_length=512)
+    disable_iff_reset: bool = Field(
+        default=False,
+        description=(
+            "True when the source SVA carried `disable iff` on the active reset. "
+            "The compiled checker must then evaluate only while the reset is "
+            "inactive, mirroring the source semantics instead of asserting "
+            "through the reset window (unprovable for synchronous resets)."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_shape(self) -> "FormalPropertySpec":
@@ -167,22 +176,28 @@ class UnsupportedFormalTemplate(ValueError):
     """Raised when a property cannot be reduced to the deterministic template DSL."""
 
 
-def _strip_sva_wrappers(raw: str) -> tuple[str, str | None, str | None]:
+def _strip_sva_wrappers(raw: str) -> tuple[str, str | None, str | None, bool]:
     expr = raw.strip()
     clock = None
     reset = None
+    disable_iff_reset = False
     m_clock = re.search(r"@\(\s*posedge\s+([A-Za-z_]\w*)\s*\)", expr, re.I)
     if m_clock:
         clock = m_clock.group(1)
     m_reset = re.search(r"disable\s+iff\s*\(\s*(!?)([A-Za-z_]\w*)\s*\)", expr, re.I)
     if m_reset:
-        reset = f"{m_reset.group(2)}:{'active_low' if m_reset.group(1) else 'active_high'}"
+        negated = bool(m_reset.group(1))
+        reset = f"{m_reset.group(2)}:{'active_low' if negated else 'active_high'}"
+        # `disable iff` on the asserted reset (e.g. `disable iff (!rst_n)`)
+        # suspends evaluation while reset is active; the compiled checker
+        # must preserve that suspension instead of asserting through it.
+        disable_iff_reset = True
     m_prop = re.search(r"(?:assert\s+)?property\s*\(\s*(.*)\)\s*;?\s*$", expr, re.I | re.S)
     if m_prop:
         expr = m_prop.group(1).strip()
         expr = re.sub(r"^@\([^)]*\)\s*", "", expr).strip()
         expr = re.sub(r"^disable\s+iff\s*\([^)]*\)\s*", "", expr, flags=re.I).strip()
-    return expr.rstrip(";").strip(), clock, reset
+    return expr.rstrip(";").strip(), clock, reset, disable_iff_reset
 
 
 def _split_implication(expr: str) -> tuple[str, str, bool] | None:
@@ -202,7 +217,7 @@ def classify_legacy_property(
     default_reset: str | None = "rst_n:active_low",
 ) -> FormalPropertySpec:
     """Classify only a conservative subset of legacy SVA expressions."""
-    expr, clock_hint, reset_hint = _strip_sva_wrappers(raw_expression)
+    expr, clock_hint, reset_hint, disable_iff_reset = _strip_sva_wrappers(raw_expression)
     clock = clock_hint if clock_hint is not None else default_clock
     reset = reset_hint if reset_hint is not None else default_reset
 
@@ -238,6 +253,7 @@ def classify_legacy_property(
                 reset=reset,
                 expression=f"(!({left}) || ({right}))",
                 description="Legacy SVA implication reduced to a bounded historical boolean expression.",
+                disable_iff_reset=disable_iff_reset,
             )
         try:
             _validate_expression(left, allow_past=False)
@@ -252,6 +268,7 @@ def classify_legacy_property(
             antecedent=left,
             consequent=right,
             description="Classified deterministically from the bounded legacy SVA subset.",
+            disable_iff_reset=disable_iff_reset,
         )
 
     onehot_match = re.fullmatch(r"\$onehot\s*\(\s*([^()]+)\s*\)", expr, re.I)
@@ -259,6 +276,7 @@ def classify_legacy_property(
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.ONEHOT, clock=clock, reset=reset,
             signal=onehot_match.group(1).strip(),
+            disable_iff_reset=disable_iff_reset,
         )
 
     onehot0_match = re.fullmatch(r"\$onehot0\s*\(\s*([^()]+)\s*\)", expr, re.I)
@@ -266,6 +284,7 @@ def classify_legacy_property(
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.ONEHOT0, clock=clock, reset=reset,
             signal=onehot0_match.group(1).strip(),
+            disable_iff_reset=disable_iff_reset,
         )
 
     onehot_or = re.fullmatch(r"\$onehot\s*\(\s*([^()]+)\s*\)\s*\|\|\s*([^=]+)==\s*(.+)", expr, re.I)
@@ -277,6 +296,7 @@ def classify_legacy_property(
             reset=reset,
             signal=onehot_or.group(1).strip(),
             value=onehot_or.group(3).strip(),
+            disable_iff_reset=disable_iff_reset,
         )
 
     past_terms = re.findall(r"\$past\s*\(\s*[A-Za-z_]\w*(?:\[[0-9]+(?::[0-9]+)?\])?\s*(?:,\s*[0-8])?\s*\)", expr, re.I)
@@ -288,6 +308,7 @@ def classify_legacy_property(
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.PAST_EXPRESSION, clock=clock, reset=reset,
             expression=expr,
+            disable_iff_reset=disable_iff_reset,
         )
 
     stable_match = re.fullmatch(r"\$stable\s*\(\s*([A-Za-z_]\w*)\s*\)", expr, re.I)
@@ -295,11 +316,12 @@ def classify_legacy_property(
         signal = stable_match.group(1)
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.PAST_STABLE, clock=clock, reset=reset, signal=signal,
+            disable_iff_reset=disable_iff_reset,
         )
 
     if not re.search(r"\$past|\$rose|\$fell|\$stable|\$changed|\$toggle|\$onehot|\|->|\|=>|##", expr, re.I):
         try:
-            return FormalPropertySpec(name=name, kind=FormalTemplateKind.BOOLEAN, clock=clock, reset=reset, expression=expr)
+            return FormalPropertySpec(name=name, kind=FormalTemplateKind.BOOLEAN, clock=clock, reset=reset, expression=expr, disable_iff_reset=disable_iff_reset)
         except ValueError as exc:
             raise UnsupportedFormalTemplate(f"Could not classify property '{name}': {exc}") from exc
 
@@ -309,6 +331,14 @@ def classify_legacy_property(
 def _guard(prop: FormalPropertySpec, *, references_reset: bool = False) -> str:
     if prop.clock is None:
         return "1'b1"
+    if prop.disable_iff_reset and prop.reset:
+        # The source SVA suspended evaluation while reset was asserted
+        # (`disable iff` on the active reset). Mirror that suspension: check
+        # only while reset is inactive. Without this, synchronous-reset
+        # designs fail spuriously on the entry edge before logic can respond.
+        reset_name, polarity = prop.reset.split(":", 1)
+        inactive = reset_name if polarity == "active_low" else f"!{reset_name}"
+        return f"!init && {inactive}"
     if not prop.reset or references_reset:
         return "!init"
     reset_name, polarity = prop.reset.split(":", 1)

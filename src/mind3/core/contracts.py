@@ -475,6 +475,23 @@ def validate_contract_consistency(contract: InterfaceContract) -> list[dict[str,
                     "message": f"Formal property '{getattr(prop, 'name', 'unnamed')}' references signal '{token}', but it is absent from the immutable contract.",
                 })
                 break
+        # Bare-identifier operands (antecedent/consequent/signal) must name
+        # declared ports or parameters. The architect otherwise copies template
+        # examples (e.g. req/gnt) into unrelated contracts, and formal then
+        # fails on properties the DUT can never satisfy (seen 2026-10-08:
+        # free-text reset-mux run died at Gate 2 on req_implies_gnt).
+        # Complex expressions are intentionally unchecked here: literals and
+        # localparams cannot be told apart from undeclared signals.
+        for field in ("antecedent", "consequent", "signal"):
+            operand = getattr(prop, field, None)
+            if isinstance(operand, str) and re.fullmatch(r"[A-Za-z_]\w*", operand.strip()):
+                name = operand.strip()
+                if name not in {"true", "false"} and name not in declared:
+                    violations.append({
+                        "category": "SPECIFICATION_ERROR",
+                        "message": f"Formal property '{getattr(prop, 'name', 'unnamed')}' references signal '{name}', but it is not declared by the immutable contract.",
+                    })
+                    break
 
     return violations
 
@@ -569,6 +586,23 @@ def validate_rtl_against_contract(contract: InterfaceContract, rtl_code: str) ->
                 if contract.behavior and any(token in " ".join(contract.behavior).lower() for token in ("counter", "fifo", "register", "pipeline", "state", "clock")):
                     violations.append({"category": "CLOCK_RESET_ERROR", "message": f"Clocked contract requires an {edge} {contract.clock.name} sequential block, but none was found.", "file": f"{contract.module_name}.sv", "line": None, "column": None, "source_context": _source_context(rtl_code, 1)})
 
+    # Multi-clock dodge (found in exp_c9_cdc_s43, cdc_04): a contract whose formal
+    # properties reference two or more distinct clocks must be implemented with
+    # an edge-sensitive block per referenced clock. Single-clock RTL against
+    # such a contract otherwise sails through Gate 6 with "0 crossings".
+    # Applies whether or not contract.clock is set: a second property clock is
+    # itself evidence of multi-clock intent.
+    input_port_names = {p.name for p in contract.ports if p.direction == PortDirection.INPUT}
+    prop_clocks = sorted({
+        getattr(prop, "clock", None)
+        for prop in [*contract.formal_properties, *contract.sva_properties]
+    } - {None})
+    multi_clocks = [c for c in prop_clocks if c in input_port_names]
+    if len(multi_clocks) >= 2:
+        for clk in multi_clocks:
+            if not re.search(rf"always(?:_ff)?\s*@\s*\(\s*(?:posedge|negedge)\s+{re.escape(clk)}\b", rtl_code):
+                violations.append({"category": "CLOCK_RESET_ERROR", "message": f"Multi-clock contract references clock '{clk}' in formal properties, but no edge-sensitive block for it was found in the RTL.", "file": f"{contract.module_name}.sv", "line": None, "column": None, "source_context": _source_context(rtl_code, 1)})
+
     if contract.reset is not None:
         reset_port = next((p for p in contract.ports if p.name == contract.reset.name), None)
         if reset_port is None:
@@ -578,7 +612,7 @@ def validate_rtl_against_contract(contract: InterfaceContract, rtl_code: str) ->
             reset_used = bool(re.search(rf"(?:!\s*{re.escape(contract.reset.name)}|~\s*{re.escape(contract.reset.name)}|\b{re.escape(contract.reset.name)}\b)", rtl_code))
             if not reset_used:
                 violations.append({"category": "CLOCK_RESET_ERROR", "message": f"Reset '{contract.reset.name}' is declared by the contract but is not referenced in the RTL.", "file": f"{contract.module_name}.sv", "line": None, "column": None, "source_context": _source_context(rtl_code, 1)})
-            if contract.reset.synchronous and re.search(rf"always(?:_ff)?\s*@\s*\(\s*{contract.clock.name if contract.clock else 'clk'}\s+[^)]*\bor\s+(?:negedge|posedge)\s+{re.escape(contract.reset.name)}", rtl_code):
+            if contract.reset.synchronous and re.search(rf"always(?:_ff)?\s*@\s*\(\s*(?:posedge|negedge)\s+{re.escape(contract.clock.name if contract.clock else 'clk')}\b[^)]*\bor\s+(?:negedge|posedge)\s+{re.escape(contract.reset.name)}", rtl_code):
                 violations.append({"category": "CLOCK_RESET_ERROR", "message": f"Synchronous reset '{contract.reset.name}' must not appear in the clocked sensitivity list.", "file": f"{contract.module_name}.sv", "line": None, "column": None, "source_context": _source_context(rtl_code, 1)})
             if not contract.reset.synchronous and contract.clock is not None and not re.search(rf"always(?:_ff)?\s*@\s*\(\s*{contract.clock.edge}\s+{re.escape(contract.clock.name)}.*\bor\s+(?:negedge|posedge)\s+{re.escape(contract.reset.name)}", rtl_code):
                 violations.append({"category": "CLOCK_RESET_ERROR", "message": f"Asynchronous reset '{contract.reset.name}' must be included in the clocked sensitivity list.", "file": f"{contract.module_name}.sv", "line": None, "column": None, "source_context": _source_context(rtl_code, 1)})
@@ -613,6 +647,7 @@ class ContractSynthesizer:
             "Mandatory guidelines:\n"
             "1. Pinout: Explicitly define every clock, reset, data, and handshake port with proper bit-widths.\n"
             "2. Formal Invariants: Author 2 to 5 SystemVerilog Assertions (SVA) using typed bounded-property templates (a deterministic subset of SVA). Do NOT emit arbitrary SVA sequences, cover/assume statements, or unsupported temporal syntax.\n"
+            "2b. Temporal honesty: when the behavior describes registered logic (outputs update on a clock edge), cause and effect live in different cycles — use next_cycle_implication, never same_cycle_implication, for input-to-output properties. same_cycle_implication is only valid for purely combinational paths. A same-cycle claim over a flop is unprovable and will fail verification.\n"
             "3. Timing: Define target clock period in nanoseconds.\n"
             "4. CDC inputs: List every asynchronous input signal (external interrupts, asynchronous enables, asynchronous status/control inputs sampled by clocked logic) in async_inputs. Use an explicitly empty list ONLY when the design has no asynchronous inputs; use null when async-input state is unknown. Declare the reset synchronous flag honestly: an asynchronous reset still requires CDC analysis even with a single clock.\n\n"
             "Preferred formal_properties templates:\n"
@@ -649,8 +684,41 @@ class ContractSynthesizer:
 class RTLGenerator:
     """Generates synthesizable RTL from interface contracts without seeing verification code."""
 
+    # C5: machine-checkable output contracts. "legacy" preserves historical
+    # behavior byte-for-byte; "fence" (Track F) and "schema" (Track J) add a
+    # format block the strict parser can accept deterministically.
+    FENCE_FORMAT_BLOCK = (
+        "Output format (mandatory):\n"
+        "- Emit exactly one fenced code block and nothing else.\n"
+        "- Open with ```systemverilog on its own line; close with ``` on its own line.\n"
+        "- No prose, explanations, headings, or additional blocks before, between, or after the fence.\n"
+        "- The fence holds exactly one complete synthesizable module.\n"
+        "Example shape (ports differ per contract):\n"
+        "```systemverilog\n"
+        "module example (\n"
+        "  input  logic clk,\n"
+        "  output logic q\n"
+        ");\n"
+        "  always_ff @(posedge clk) q <= 1'b1;\n"
+        "endmodule\n"
+        "```\n"
+    )
+    SCHEMA_FORMAT_BLOCK = (
+        "Output format (mandatory): respond with exactly one JSON object matching "
+        "this schema and nothing else:\n"
+        '{"action": "write_file", "path": "<module_name>.sv", "content": "<complete synthesizable module>"}\n'
+        '- "action" is always the string "write_file".\n'
+        '- "path" is "<module_name>.sv" for the contract module.\n'
+        '- "content" holds the entire module with newlines as escaped newlines.\n'
+        "- No prose, explanations, or additional keys.\n"
+    )
+
     @staticmethod
-    def build_prompt(contract: InterfaceContract) -> dict[str, str]:
+    def build_prompt(contract: InterfaceContract, *, format_block: str = "legacy") -> dict[str, str]:
+        if format_block not in ("legacy", "fence", "schema"):
+            raise ValueError(
+                f"Unknown format_block {format_block!r}. Expected 'legacy', 'fence', or 'schema'."
+            )
         system_msg = (
             "You are a Principal RTL Design Engineer.\n"
             "You MUST write synthesizable, production-grade SystemVerilog matching the supplied contract.\n"
@@ -658,10 +726,21 @@ class RTLGenerator:
             "- Use non-blocking (<=) for sequential clocked blocks, blocking (=) for combinational blocks.\n"
             "- Never infer latches: every if branch must have an else; every case statement must have a default.\n"
             "- Never declare loop variables inside procedural blocks; declare all registers at module level.\n"
+            "- Port widths are exact: an N-bit port MUST be declared [N-1:0] (8 bits becomes [7:0], 4 bits becomes [3:0]); a 1-bit port takes NO range (write `input logic clk`, never `[1:0] clk` or `[0:0] clk`).\n"
+            "- Reset style MUST match the contract: a synchronous reset means `always_ff @(posedge clk)` with the reset tested INSIDE the block; NEVER add `or negedge rst_n` / `or posedge rst` to the sensitivity list unless the contract explicitly states the reset is asynchronous.\n"
             "- You have zero access to the testbench or verification harness. Do not embed assertions in your RTL.\n"
             "Respond ONLY with the complete synthesizable module code."
         )
-        ports_summary = "\n".join(f"  - {p.name}: {p.direction.value} [{p.width} bits] // {p.description}" for p in contract.ports)
+        if format_block == "fence":
+            system_msg += "\n" + RTLGenerator.FENCE_FORMAT_BLOCK
+        elif format_block == "schema":
+            system_msg += "\n" + RTLGenerator.SCHEMA_FORMAT_BLOCK
+        def _port_line(p: Any) -> str:
+            if p.width > 1:
+                return f"  - {p.name}: {p.direction.value} {p.width} bits, declare as [{p.width - 1}:0] // {p.description}"
+            return f"  - {p.name}: {p.direction.value} 1 bit, declare with NO range // {p.description}"
+
+        ports_summary = "\n".join(_port_line(p) for p in contract.ports)
         clock_summary = (
             f"{contract.clock.name}, edge={contract.clock.edge}" if contract.clock is not None else "none"
         )
@@ -733,15 +812,28 @@ class VerificationRepairer:
         contract: InterfaceContract,
         current_rtl: str,
         evidence: VerificationFailureEvidence,
+        *,
+        format_block: str = "legacy",
     ) -> dict[str, str]:
+        if format_block not in ("legacy", "fence", "schema"):
+            raise ValueError(
+                f"Unknown format_block {format_block!r}. Expected 'legacy', 'fence', or 'schema'."
+            )
         system_msg = (
             "You are the Independent RTL Verification Repair Engineer.\n"
             "The external verifier is authoritative. Repair only the reported stage failure.\n"
             "Fix only the reported issue. Do not change the module interface. Do not remove required behavior. "
             "Do not remove assertions. Do not weaken verification. Do not rewrite unrelated RTL.\n"
+            "Make the smallest targeted correction that addresses the reported failure: preserve module ports "
+            "and unrelated behavior, identify the relevant logic, and change only what the evidence requires.\n"
+            "Never resubmit the current RTL unchanged: an identical candidate cannot clear verification and wastes repair budget.\n"
             "Return the complete corrected SystemVerilog module with the minimal necessary changes. Do not return partial patches or line fragments.\n"
             "Do not emit testbench code, formal checker code, shell commands, or explanations."
         )
+        if format_block == "fence":
+            system_msg += "\n" + RTLGenerator.FENCE_FORMAT_BLOCK
+        elif format_block == "schema":
+            system_msg += "\n" + RTLGenerator.SCHEMA_FORMAT_BLOCK
         evidence_json = json.dumps(evidence.model_dump(mode="json"), indent=2, sort_keys=True)
         user_msg = (
             f"Immutable contract:\n{json.dumps(contract.model_dump(mode='json'), indent=2, sort_keys=True)}\n\n"

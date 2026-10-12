@@ -67,6 +67,12 @@ class ModelResponseParseError(ValueError):
 REPAIR_MAX_CHANGED_LINE_RATIO = 0.65
 REPAIR_MAX_LINE_GROWTH = 3.0
 
+# C6: total model-response parse attempts per pipeline (initial + retries).
+# Parse failures draw from this budget, never from EDA stage-repair budgets.
+PARSE_MAX_ATTEMPTS = 3
+# C6: ceiling for the truncation-driven num_predict doubling.
+PARSE_NUM_PREDICT_CAP = 16384
+
 
 def _repair_diff_stats(before: str, after: str) -> dict[str, float | int]:
     """Compute change-budget statistics for a proposed RTL repair."""
@@ -92,6 +98,47 @@ def _repair_diff_stats(before: str, after: str) -> dict[str, float | int]:
         "changed_lines": changed,
         "changed_line_ratio": changed / baseline,
         "line_growth_ratio": len(after_lines) / baseline,
+    }
+
+
+def _sha256_text(text: str) -> str:
+    """Deterministic SHA-256 hex digest of a candidate's raw bytes."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _normalize_rtl_for_identity(code: str) -> str:
+    """Normalize RTL for identity comparison without mutating stored bytes.
+
+    Strips comments, collapses all whitespace runs to a single space, and
+    strips leading/trailing space. The original bytes are always preserved;
+    both raw and normalized hashes are recorded so an equality verdict is
+    auditable. Normalization is used only to detect semantically identical
+    resubmissions (e.g. comment-only or whitespace-only "repairs"); the
+    authoritative equality signal remains the raw hash.
+    """
+    no_block_comments = re.sub(r"/\*.*?\*/", " ", code, flags=re.DOTALL)
+    no_comments = re.sub(r"//[^\n]*", " ", no_block_comments)
+    collapsed = re.sub(r"\s+", " ", no_comments)
+    return collapsed.strip()
+
+
+def _candidate_identity(before: str, after: str) -> dict[str, Any]:
+    """Compare a repair candidate against the current RTL deterministically.
+
+    Returns raw and normalized hashes for both sides plus boolean flags.
+    ``identical_raw`` is byte equality; ``identical_normalized`` also covers
+    whitespace/comment-only resubmissions. Neither flag is a correctness
+    signal: a different hash never implies the candidate passes.
+    """
+    before_norm = _normalize_rtl_for_identity(before)
+    after_norm = _normalize_rtl_for_identity(after)
+    return {
+        "current_sha256": _sha256_text(before),
+        "candidate_sha256": _sha256_text(after),
+        "current_normalized_sha256": _sha256_text(before_norm),
+        "candidate_normalized_sha256": _sha256_text(after_norm),
+        "identical_raw": before == after,
+        "identical_normalized": before_norm == after_norm,
     }
 
 
@@ -520,6 +567,8 @@ NON_REPAIRABLE_CATEGORIES: set[str] = {
     "MISSING_LIBERTY_FOR_PNR",
     "CDC_ANALYSIS_FAILED",
     "CDC_TOOLING_UNAVAILABLE",
+    "CDC_INCONCLUSIVE",
+    "CDC_CHECKER_ERROR",
 }
 
 
@@ -649,6 +698,11 @@ class PhaseDriver:
         loopback_only: bool = False,
         air_gapped: bool | None = None,
         parser_mode: str = "strict",
+        decode_temperature: float = 0.0,
+        decode_seed: int | None = None,
+        decode_num_predict: int = 4096,
+        decode_num_ctx: int = 8192,
+        generation_format: str = "json",
     ) -> None:
         """Initialize the driver runtime.
 
@@ -675,12 +729,53 @@ class PhaseDriver:
                 "lenient". Lenient recovery must be explicitly opted in here; it is
                 never inferred from provider, model name, failure count,
                 environment, or hostname.
+            decode_temperature: Ollama sampling temperature (default 0.0 for
+                determinism; previously the server default applied).
+            decode_seed: Optional Ollama sampling seed. None (default) leaves the
+                server default in place; provide an explicit seed for pinned runs.
+            decode_num_predict: Ollama max completion tokens (default 4096;
+                guards against output truncation before endmodule).
+            decode_num_ctx: Ollama context window (default 8192; guards against
+                prompt truncation of contract-heavy prompts).
+            generation_format: Ollama response format for generation/repair calls,
+                exactly "json" (default, current behavior), "text" (no format
+                constraint), or "json-schema" (schema-constrained; reserved for
+                Track J). Contract synthesis always uses JSON mode.
         """
         if parser_mode not in ("strict", "lenient"):
             raise ValueError(
                 f"Unknown parser_mode {parser_mode!r}. Expected 'strict' or 'lenient'."
             )
+        if generation_format not in ("json", "text", "json-schema"):
+            raise ValueError(
+                f"Unknown generation_format {generation_format!r}. Expected 'json', 'text', or 'json-schema'."
+            )
         self.parser_mode: str = parser_mode
+        self.decode_temperature: float = float(decode_temperature)
+        self.decode_seed: int | None = decode_seed
+        self.decode_num_predict: int = int(decode_num_predict)
+        self.decode_num_ctx: int = int(decode_num_ctx)
+        self.generation_format: str = generation_format
+        # One-call JSON override for contract synthesis (see _query_model).
+        self._ollama_force_json: bool = False
+        # One-call options override for tight-decode calls (intent classification).
+        # Same consume-once pattern as _ollama_force_json; test doubles that call
+        # _query_ollama(messages) keep working because the default is None.
+        self._ollama_extra_options: dict[str, Any] | None = None
+        # C5: prompt format track follows the decode format. "json" keeps the
+        # legacy prompt byte-for-byte; "text" uses the fence block (Track F);
+        # "json-schema" uses the schema block (Track J).
+        self._format_block: str = {"json": "legacy", "text": "fence", "json-schema": "schema"}[
+            self.generation_format
+        ]
+        # C2 observability: raw model bytes + per-call decode accounting.
+        # Full raw text lives here (transcript fields); trace payloads carry
+        # only capped previews to bound the hash-chained transcript size.
+        self._raw_initial_response: str | None = None
+        self._raw_initial_responses: list[str] = []
+        self._raw_repair_responses: list[str] = []
+        self._last_decode: dict[str, Any] = {}
+        self._decode_events: list[dict[str, Any]] = []
         self.session_id: str = session_id
         self.workspace: Path = Path(workspace).resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
@@ -900,23 +995,116 @@ class PhaseDriver:
         ]
 
     def _query_ollama(self, messages: list[dict[str, str]]) -> str:
-        """Invoke Ollama API with forced JSON structured format."""
+        """Invoke Ollama API with pinned decode controls (C2/C4).
+
+        The generation/repair format follows ``self.generation_format``:
+        "json" preserves historical behavior, "text" omits the format
+        constraint (Track F), "json-schema" constrains to the WriteFileAction
+        schema (Track J). ``_query_model(force_json=True)`` overrides the
+        track for one call (contract synthesis); the override travels via
+        ``self._ollama_force_json`` so this single-argument signature —
+        relied upon by test doubles — never changes.
+        """
+        force_json = self._ollama_force_json
+        self._ollama_force_json = False
+        extra_options = self._ollama_extra_options
+        self._ollama_extra_options = None
         endpoint = f"{self.ollama_url}/api/chat"
-        payload = {
+        options: dict[str, Any] = {
+            "temperature": self.decode_temperature,
+            "num_predict": self.decode_num_predict,
+            "num_ctx": self.decode_num_ctx,
+        }
+        if extra_options:
+            options.update(extra_options)
+        if self.decode_seed is not None:
+            options["seed"] = self.decode_seed
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "format": "json",
             "stream": False,
+            "options": options,
         }
+        if self.generation_format == "json" or force_json:
+            payload["format"] = "json"
+        elif self.generation_format == "json-schema" and not force_json:
+            payload["format"] = self._generation_json_schema()
         response = self.client.post(endpoint, json=payload)
         response.raise_for_status()
         data = response.json()
         message = data.get("message", {})
         raw_content = str(message.get("content", "")).strip()
-        usage = data.get("prompt_eval_count"), data.get("eval_count")
-        if all(isinstance(v, int) for v in usage):
-            self._record_model_usage(int(usage[0]), int(usage[1]))
+        prompt_eval = data.get("prompt_eval_count")
+        eval_count = data.get("eval_count")
+        if all(isinstance(v, int) for v in (prompt_eval, eval_count)):
+            self._record_model_usage(int(prompt_eval), int(eval_count))
+            self._record_decode_event(int(prompt_eval), int(eval_count))
         return _sanitize_json_output(raw_content)
+
+    def _generation_json_schema(self) -> dict[str, Any]:
+        """JSON schema constraining generation output to WriteFileAction (Track J)."""
+        return {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "const": "write_file"},
+                "path": {"type": "string"},
+                "content": {"type": "string"},
+            },
+            "required": ["action", "path", "content"],
+        }
+
+    def _record_decode_event(self, prompt_eval_count: int, eval_count: int) -> None:
+        """Stash per-call decode accounting incl. truncation flags (C2)."""
+        event = {
+            "prompt_eval_count": prompt_eval_count,
+            "eval_count": eval_count,
+            "num_predict": self.decode_num_predict,
+            "num_ctx": self.decode_num_ctx,
+            # Output truncation: completion stopped at/near the token budget.
+            "output_truncated": eval_count >= max(0, self.decode_num_predict - 8),
+            # Prompt truncation: prompt filled the context window.
+            "prompt_overflow": prompt_eval_count >= self.decode_num_ctx,
+        }
+        self._last_decode = dict(event)
+        self._decode_events.append(event)
+
+    def decode_config(self) -> dict[str, Any]:
+        """Return the pinned decode configuration for traces/transcripts."""
+        return {
+            "temperature": self.decode_temperature,
+            "seed": self.decode_seed,
+            "num_predict": self.decode_num_predict,
+            "num_ctx": self.decode_num_ctx,
+            "generation_format": self.generation_format,
+            "model": self.model,
+            "provider": self.provider,
+        }
+
+    def _parse_retry_guidance(self, error: str) -> str:
+        """Format-specific re-ask message embedding the exact rejection (C6)."""
+        if self._last_decode.get("output_truncated"):
+            return (
+                "Your previous response appears truncated before the module was "
+                "complete. Return the COMPLETE SystemVerilog module, including "
+                "its module declaration and endmodule, with no text outside it."
+            )
+        return (
+            f"The previous response could not be parsed: {error}\n"
+            "Return ONLY the complete SystemVerilog module, including its "
+            "module declaration and endmodule, with no prose or text outside it."
+        )
+
+    def _maybe_bump_for_truncation(self) -> bool:
+        """Double num_predict when the last call hit the token budget (C6).
+
+        Returns True when the budget was raised. The parse attempt is still
+        counted against PARSE_MAX_ATTEMPTS; this only changes what the retry
+        asks the server for.
+        """
+        if self._last_decode.get("output_truncated") and self.decode_num_predict < PARSE_NUM_PREDICT_CAP:
+            self.decode_num_predict = min(PARSE_NUM_PREDICT_CAP, self.decode_num_predict * 2)
+            return True
+        return False
 
     def _query_openrouter(
         self,
@@ -942,7 +1130,20 @@ class PhaseDriver:
         payload = {
             "model": self.model,
             "messages": messages,
+            # Cap completion spend: without max_tokens providers may reserve
+            # tens of thousands of tokens per call (observed 64k default),
+            # failing low-credit keys with HTTP 402 before any token is used.
+            "max_tokens": int(self.decode_num_predict),
+            "temperature": float(self.decode_temperature),
         }
+        reasoning_max_tokens_env = os.getenv("MIND_OPENROUTER_REASONING_MAX_TOKENS")
+        if reasoning_max_tokens_env is not None:
+            try:
+                payload["reasoning"] = {"max_tokens": int(reasoning_max_tokens_env)}
+            except ValueError:
+                payload.pop("reasoning", None)
+        elif any(k in self.model.lower() for k in ("nemotron", "deepseek-r1", "reasoning")):
+            payload["reasoning"] = {"max_tokens": 0}
 
         try:
             response = self.client.post(endpoint, json=payload, headers=headers)
@@ -967,9 +1168,10 @@ class PhaseDriver:
             choices = data.get("choices", [])
             if not choices:
                 raise ValueError(f"OpenRouter response contained no choices: {data}")
-            raw_content = choices[0]["message"]["content"]
+            msg = choices[0].get("message", {})
+            raw_content = msg.get("content")
             if raw_content is None:
-                raw_content = ""
+                raw_content = msg.get("reasoning") or ""
             raw_content = str(raw_content).strip()
         except (KeyError, IndexError, TypeError) as parse_err:
             raise ValueError(
@@ -982,6 +1184,7 @@ class PhaseDriver:
             completion_tokens = usage.get("completion_tokens")
             if isinstance(prompt_tokens, int) and isinstance(completion_tokens, int):
                 self._record_model_usage(prompt_tokens, completion_tokens)
+                self._record_decode_event(prompt_tokens, completion_tokens)
         return _sanitize_json_output(raw_content)
 
     def _record_model_usage(self, prompt_tokens: int, completion_tokens: int) -> None:
@@ -1007,8 +1210,14 @@ class PhaseDriver:
         self,
         prompt_or_messages: str | list[dict[str, str]],
         system_instruction: str | None = None,
+        *,
+        force_json: bool = False,
     ) -> str:
-        """Dispatch model query to configured provider (ollama or openrouter)."""
+        """Dispatch model query to configured provider (ollama or openrouter).
+
+        ``force_json=True`` pins Ollama JSON mode regardless of the generation
+        track (used by contract synthesis, which always wants JSON).
+        """
         if isinstance(prompt_or_messages, list):
             messages = prompt_or_messages
         else:
@@ -1020,9 +1229,75 @@ class PhaseDriver:
         if self.provider == "openrouter":
             return self._query_openrouter(messages)
         elif self.provider == "ollama":
-            return self._query_ollama(messages)
+            self._ollama_force_json = force_json
+            try:
+                return self._query_ollama(messages)
+            finally:
+                self._ollama_force_json = False
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")
+
+    def classify_request(self, user_prompt: str) -> str:
+        """Classify a request as GENERAL (answer directly) or GENERATE (pipeline).
+
+        Delegates to the single orchestration in mind3.core.intent; never
+        raises (falls back to GENERATE). See intent.route_intent.
+        """
+        from .intent import route_intent as _route_intent
+
+        def _query(messages: list[dict[str, str]], options: dict[str, Any]) -> str:
+            self._ollama_extra_options = dict(options)
+            try:
+                return self._query_model(messages)
+            finally:
+                self._ollama_extra_options = None
+
+        return _route_intent(user_prompt, _query)
+
+    def ask(
+        self,
+        user_prompt: str,
+        system_extra: str = "",
+        history: list[dict[str, str]] | None = None,
+    ) -> str:
+        """Answer a general question directly: one model call, no gates, no verdicts.
+
+        This path must never synthesize RTL workspaces or emit verification
+        verdicts; generation requests belong in run_silicon_pipeline.
+        ``history`` carries prior turns (capped to the last 4, 1000 chars each)
+        so follow-ups keep context.
+        """
+        from .intent import ASK_BOUNDARY, assert_no_verdict
+
+        system_instruction = (
+            "You are Mind 3.0, a senior RTL engineer answering a question.\n" + ASK_BOUNDARY
+        )
+        if system_extra:
+            system_instruction += "\n" + system_extra
+        prior: list[dict[str, str]] = []
+        for turn in (history or [])[-4:]:
+            if not isinstance(turn, dict):
+                continue
+            role, content = turn.get("role"), turn.get("content")
+            if role in ("user", "assistant") and content:
+                prior.append({"role": role, "content": str(content)[:1000]})
+        messages = [
+            {"role": "system", "content": system_instruction},
+            *prior,
+            {"role": "user", "content": user_prompt},
+        ]
+        reply = self._query_model(messages)
+        assert_no_verdict(reply)
+        self._emit_trace(
+            PhaseEnum.TRACE,
+            {
+                "mode": "ask",
+                "prompt_chars": len(user_prompt),
+                "history_turns": len(prior),
+                "reply_chars": len(reply),
+            },
+        )
+        return reply
 
     # ── Policy Enforcement (Invariant 2) ─────────────────────────────────
 
@@ -1092,11 +1367,14 @@ class PhaseDriver:
         if action.action == "write_file":
             target_path = (self.workspace / action.path).resolve()
             target_path.parent.mkdir(parents=True, exist_ok=True)
-            target_path.write_text(action.content, encoding="utf-8")
+            content = action.content
+            if content and not content.endswith("\n"):
+                content += "\n"
+            target_path.write_text(content, encoding="utf-8")
             return {
                 "operation": "write_file",
                 "path": str(target_path.relative_to(self.workspace.resolve())),
-                "bytes_written": len(action.content.encode("utf-8")),
+                "bytes_written": len(content.encode("utf-8")),
             }
         elif action.action == "write_batch_files":
             records = [self._execute_action(sub_f) for sub_f in action.files]
@@ -1383,8 +1661,15 @@ class PhaseDriver:
                     f"Counterexample Trace: {v_result.failure_reason}\n"
                     "Fix Invariant: Correct sequential transition condition to prevent illegal state activation."
                 )
-            elif v_result.error_category == "COVERAGE_DEFICIT":
+            elif v_result.error_category == "CDC_VIOLATION":
                 repair_feedback = (
+                    "GATE 6 SIGN-OFF FAILURE: Unsafe clock-domain crossing detected by structural CDC analysis.\n"
+                    f"Counterexample Trace: {v_result.failure_reason}\n"
+                    "Fix Invariant: Route every cross-domain signal through an exact 2-flop synchronizer "
+                    "(`sync1 <= src; sync2 <= sync1;` in the destination domain) and never consume the raw "
+                    "crossing signal or the first stage elsewhere; multi-bit buses require a handshake or async FIFO."
+                )
+            elif v_result.error_category == "COVERAGE_DEFICIT":                repair_feedback = (
                     "GATE 3 SIGN-OFF FAILURE: Coverage threshold deficit.\n"
                     f"Details: {v_result.failure_reason}\n"
                     "Fix Invariant: Exercise unreached branches and toggles."
@@ -1458,6 +1743,20 @@ class PhaseDriver:
         self.turn = 0
         self.total_repair_calls = 0
         self._stage_repair_attempts: dict[str, int] = {"compile": 0, "simulation": 0, "formal": 0, "timing": 0, "other": 0}
+        # C6: independent parse-retry budget (never consumes EDA repair turns).
+        self._parse_attempts = 0
+        self._last_failure_was_parse = False
+        # C2 observability reset.
+        self._raw_initial_response = None
+        self._raw_initial_responses = []
+        self._raw_repair_responses = []
+        self._last_decode = {}
+        self._decode_events = []
+        # C1: deterministic candidate-identity accounting. Original bytes are
+        # always preserved; hashes below only record equality and must never
+        # be read as a correctness signal.
+        self._candidate_hashes: list[dict[str, Any]] = []
+        self._unchanged_repair_count = 0
         self.last_verification_result = None
         self.total_prompt_tokens = 0
         self.total_completion_tokens = 0
@@ -1487,6 +1786,7 @@ class PhaseDriver:
 
         # Contract stage. Benchmarks use immutable structured metadata; general requests retain
         # the existing architect model but the resulting contract is persisted and enforced.
+        contract_violations: list[dict[str, Any]] = []
         if contract_override is not None:
             contract = contract_override
             self._emit_trace(
@@ -1501,15 +1801,54 @@ class PhaseDriver:
             )
         else:
             contract_prompt = ContractSynthesizer.build_prompt(task_prompt)
-            self._emit_trace(PhaseEnum.MODEL_CALL, {"role": "Lead Silicon Architect", "stage": "contract_synthesis"})
-            arch_messages = self._build_prompt_messages(
-                system_instruction=contract_prompt["system"],
-                task_prompt=contract_prompt["user"],
-            )
-            try:
-                raw_contract = self._query_model(arch_messages)
-                cleaned_contract_json = _sanitize_json_output(raw_contract)
-                contract = InterfaceContract.model_validate_json(cleaned_contract_json)
+            # Bounded architect retry: one re-ask carrying the exact schema
+            # rejection. Contract synthesis precedes all EDA stages, so retries
+            # here never consume verification repair turns.
+            contract: InterfaceContract | None = None
+            contract_error = ""
+            for architect_attempt in range(2):
+                self._emit_trace(
+                    PhaseEnum.MODEL_CALL,
+                    {"role": "Lead Silicon Architect", "stage": "contract_synthesis", "attempt": architect_attempt + 1},
+                )
+                arch_user = contract_prompt["user"]
+                if architect_attempt > 0:
+                    arch_user += (
+                        "\n\nYour previous contract was rejected by schema validation: "
+                        + contract_error
+                        + " Return ONLY a valid InterfaceContract JSON object matching the schema template."
+                    )
+                arch_messages = self._build_prompt_messages(
+                    system_instruction=contract_prompt["system"],
+                    task_prompt=arch_user,
+                )
+                try:
+                    raw_contract = self._query_model(arch_messages, force_json=True)
+                    cleaned_contract_json = _sanitize_json_output(raw_contract)
+                    candidate = InterfaceContract.model_validate_json(cleaned_contract_json)
+                except Exception as exc:
+                    contract_error = str(exc)
+                    self._emit_trace(
+                        PhaseEnum.PARSE,
+                        {"error": f"Architect contract synthesis failed (attempt {architect_attempt + 1}): {exc}"},
+                    )
+                    continue
+                consistency = validate_contract_consistency(candidate)
+                if consistency and architect_attempt == 0:
+                    # Same bounded budget covers semantic rejection: feed the
+                    # exact violations back once instead of aborting outright.
+                    contract_error = (
+                        "Contract consistency errors: "
+                        + "; ".join(v.get("message", "") for v in consistency)
+                        + " Fix the ports or properties so every referenced signal is declared."
+                    )
+                    self._emit_trace(
+                        PhaseEnum.PARSE,
+                        {"error": f"Architect contract inconsistent (attempt 1): {contract_error}"},
+                    )
+                    continue
+                contract = candidate
+                contract_violations = consistency
                 self._emit_trace(
                     PhaseEnum.PARSE,
                     {
@@ -1519,12 +1858,11 @@ class PhaseDriver:
                         "contract": contract.model_dump(mode="json"),
                     },
                 )
-            except Exception as exc:
-                self._emit_trace(PhaseEnum.PARSE, {"error": f"Architect contract synthesis failed: {exc}"})
+                break
+            if contract is None:
                 self._restore_snapshot()
                 return False
 
-        contract_violations = validate_contract_consistency(contract)
         if contract_violations:
             self._emit_trace(
                 PhaseEnum.VERIFY,
@@ -1583,13 +1921,14 @@ class PhaseDriver:
         exec_harness = self._execute_action(batch_harness_action)
         self._emit_trace(PhaseEnum.EXECUTE, {"role": "Verification Lead", "staged_artifacts": exec_harness})
 
-        rtl_prompt = RTLGenerator.build_prompt(contract)
+        rtl_prompt = RTLGenerator.build_prompt(contract, format_block=self._format_block)
         repair_system_instruction = VerificationRepairer.build_prompt(
             contract,
             "",
             VerificationFailureEvidence(
                 gate="generation", category="generation", stage="compile", tool="model", error="initial generation"
             ),
+            format_block=self._format_block,
         )["system"]
 
         self._emit_trace(
@@ -1598,14 +1937,59 @@ class PhaseDriver:
         )
         rtl_messages = self._build_prompt_messages(system_instruction=rtl_prompt["system"], task_prompt=rtl_prompt["user"])
         try:
-            raw_rtl = self._query_model(rtl_messages)
-            rtl_code = _parse_model_code_response(raw_rtl, default_module_name=contract.module_name, parser_mode=self.parser_mode)
+            # C6: initial parse retries draw from the independent parse budget
+            # (PARSE_MAX_ATTEMPTS total), never from EDA repair budgets.
+            attempt_messages = rtl_messages
+            rtl_code = ""
+            while True:
+                raw_rtl = self._query_model(attempt_messages)
+                # C2: every raw attempt is stashed (transcript); first is kept
+                # as the diagnostic anchor for first-attempt reporting.
+                self._raw_initial_responses.append(raw_rtl)
+                if self._raw_initial_response is None:
+                    self._raw_initial_response = raw_rtl
+                self._parse_attempts += 1
+                try:
+                    rtl_code = _parse_model_code_response(raw_rtl, default_module_name=contract.module_name, parser_mode=self.parser_mode)
+                    break
+                except ModelResponseParseError as parse_exc:
+                    bumped = self._maybe_bump_for_truncation()
+                    self._emit_trace(
+                        PhaseEnum.VERIFY,
+                        {
+                            "passed": False,
+                            "domain": "RTL",
+                            "exit_code": 1,
+                            "failure_reason": str(parse_exc),
+                            "error_category": "RESPONSE_PARSE_FAILURE",
+                            "gate": "RTL generation/parser",
+                            "parser_mode": self.parser_mode,
+                            "decode": dict(self._last_decode),
+                            "num_predict_bumped": bumped,
+                            "initial_parse_attempt": self._parse_attempts,
+                        },
+                    )
+                    if self._parse_attempts >= PARSE_MAX_ATTEMPTS:
+                        raise
+                    attempt_messages = self._build_prompt_messages(
+                        system_instruction=rtl_prompt["system"],
+                        task_prompt=rtl_prompt["user"] + "\n\n" + self._parse_retry_guidance(str(parse_exc)),
+                    )
             rtl_action = WriteFileAction(path=f"{contract.module_name}.sv", content=rtl_code)
             self._policy_check(rtl_action)
             exec_rtl = self._execute_action(rtl_action)
             self._emit_trace(
                 PhaseEnum.EXECUTE,
-                {"role": "Principal RTL Design Engineer", "rtl_file": exec_rtl, "content": rtl_code},
+                {
+                    "role": "Principal RTL Design Engineer",
+                    "rtl_file": exec_rtl,
+                    "content": rtl_code,
+                    "raw_response_preview": self._raw_initial_responses[-1][:2000],
+                    "raw_response_truncated_in_trace": len(self._raw_initial_responses[-1]) > 2000,
+                    "initial_parse_attempts": self._parse_attempts,
+                    "decode": dict(self._last_decode),
+                    "decode_config": self.decode_config(),
+                },
             )
         except (ModelResponseParseError, Exception) as exc:
             # Treat malformed generation or invocation error as a bounded compile-stage repair opportunity.
@@ -1619,7 +2003,7 @@ class PhaseDriver:
                 contract=contract.model_dump(mode="json"),
                 attempt=1,
             )
-            repair_messages = VerificationRepairer.build_prompt(contract, "", evidence)
+            repair_messages = VerificationRepairer.build_prompt(contract, "", evidence, format_block=self._format_block)
             repair_guidance = repair_messages["user"]
             repair_system_instruction = repair_messages["system"]
             rtl_code = ""
@@ -1633,6 +2017,7 @@ class PhaseDriver:
                     "error_category": "RESPONSE_PARSE_FAILURE",
                     "gate": "RTL generation/parser",
                     "parser_mode": self.parser_mode,
+                    "decode": dict(self._last_decode),
                     "diagnostic": evidence.model_dump(mode="json"),
                 },
             )
@@ -1654,6 +2039,10 @@ class PhaseDriver:
             )
 
         repair_guidance: str | None = locals().get("repair_guidance")
+        if repair_guidance is not None:
+            # Initial generation failed to parse: the pending failure is a
+            # parse failure, so the loop's pre-call budget gate applies.
+            self._last_failure_was_parse = True
         repair_history: list[str] = []
         current_rtl_path = self.workspace / f"{contract.module_name}.sv"
         current_rtl = current_rtl_path.read_text(encoding="utf-8") if current_rtl_path.exists() else ""
@@ -1667,9 +2056,29 @@ class PhaseDriver:
                 current_rtl_path = self.workspace / f"{contract.module_name}.sv"
                 current_rtl = current_rtl_path.read_text(encoding="utf-8") if current_rtl_path.exists() else ""
                 stage_key = "compile"
-                self._stage_repair_attempts[stage_key] += 1
-                attempt = self._stage_repair_attempts[stage_key]
-                if attempt > stage_limits[stage_key]:
+                # C6: parse budget is checked BEFORE spending another model
+                # call, so total parse attempts never exceed PARSE_MAX_ATTEMPTS.
+                if self._parse_attempts >= PARSE_MAX_ATTEMPTS:
+                    self._restore_snapshot()
+                    self._emit_trace(
+                        PhaseEnum.REPAIR_OR_FINISH,
+                        {"status": "ROLLED_BACK", "reason": f"parse retry budget ({PARSE_MAX_ATTEMPTS}) exhausted.", "failure_category": "RESPONSE_PARSE_FAILURE"},
+                    )
+                    return False
+                # C6: if the pending failure is itself a parse failure and the
+                # parse budget is spent, roll back WITHOUT another model call.
+                if self._last_failure_was_parse and self._parse_attempts >= PARSE_MAX_ATTEMPTS:
+                    self._restore_snapshot()
+                    self._emit_trace(
+                        PhaseEnum.REPAIR_OR_FINISH,
+                        {"status": "ROLLED_BACK", "reason": f"parse retry budget ({PARSE_MAX_ATTEMPTS}) exhausted.", "failure_category": "RESPONSE_PARSE_FAILURE"},
+                    )
+                    return False
+                # C6: prospective EDA-turn accounting. Parse failures below do
+                # NOT consume this budget; it is only spent on parsed RTL that
+                # reaches the verifier.
+                prospective_attempt = self._stage_repair_attempts[stage_key] + 1
+                if prospective_attempt > stage_limits[stage_key]:
                     self._restore_snapshot()
                     self._emit_trace(
                         PhaseEnum.REPAIR_OR_FINISH,
@@ -1680,7 +2089,7 @@ class PhaseDriver:
                 self.total_repair_calls += 1
                 self._emit_trace(
                     PhaseEnum.MODEL_CALL,
-                    {"role": "Independent RTL Verification Repair Engineer", "turn": self.turn, "stage": stage_key, "attempt": attempt, "guidance": repair_guidance, "parser_mode": self.parser_mode},
+                    {"role": "Independent RTL Verification Repair Engineer", "turn": self.turn, "stage": stage_key, "attempt": prospective_attempt, "guidance": repair_guidance, "parser_mode": self.parser_mode},
                 )
                 repair_messages = self._build_prompt_messages(
                     system_instruction=repair_system_instruction,
@@ -1688,38 +2097,25 @@ class PhaseDriver:
                 )
                 try:
                     raw_repair = self._query_model(repair_messages)
-                    repaired_code = _parse_model_code_response(raw_repair, default_module_name=contract.module_name, base_code=current_rtl, parser_mode=self.parser_mode)
-                    diff_stats = _repair_diff_stats(current_rtl, repaired_code) if current_rtl else {"changed_line_ratio": 0.0, "line_growth_ratio": 1.0}
-                    if current_rtl and len(current_rtl.splitlines()) >= 12 and (
-                        diff_stats["changed_line_ratio"] > REPAIR_MAX_CHANGED_LINE_RATIO
-                        or diff_stats["line_growth_ratio"] > REPAIR_MAX_LINE_GROWTH
-                    ):
-                        repair_history.append("REPAIR_PATCH_TOO_LARGE")
-                        repair_guidance = (
-                            f"Your last repair was rejected because it exceeded the bounded change budget. "
-                            f"Keep changed lines <= {REPAIR_MAX_CHANGED_LINE_RATIO:.0%} of current RTL and growth <= {REPAIR_MAX_LINE_GROWTH:.1f}x."
-                        )
+                except Exception as exc:
+                    repair_history.append("REPAIR_CALL_FAILURE")
+                    # A dead model endpoint must not spin the loop forever:
+                    # _parse_attempts only advances on returned responses, so
+                    # cap consecutive invocation failures explicitly.
+                    if repair_history[-3:] == ["REPAIR_CALL_FAILURE"] * 3:
+                        self._restore_snapshot()
                         self._emit_trace(
-                            PhaseEnum.VERIFY,
-                            {
-                                "passed": False,
-                                "domain": "RTL",
-                                "exit_code": 1,
-                                "failure_reason": "Repair patch exceeded bounded change budget.",
-                                "error_category": "REPAIR_PATCH_TOO_LARGE",
-                                "diff_stats": diff_stats,
-                                "gate_reports": [],
-                            },
+                            PhaseEnum.REPAIR_OR_FINISH,
+                            {"status": "ROLLED_BACK", "reason": "repair model invocation failed 3 times in a row.", "failure_category": "MODEL_CALL_FAILURE"},
                         )
-                        continue
-                    rep_action = WriteFileAction(path=f"{contract.module_name}.sv", content=repaired_code)
-                    self._policy_check(rep_action)
-                    exec_rep = self._execute_action(rep_action)
-                    self._emit_trace(
-                        PhaseEnum.EXECUTE,
-                        {"role": "Independent RTL Verification Repair Engineer", "rtl_file": exec_rep, "content": repaired_code, "diff_stats": diff_stats, "attempt": attempt},
-                    )
-                    repair_guidance = None
+                        return False
+                    repair_guidance = f"Repair model invocation failed: {exc}. Return the complete SystemVerilog module only."
+                    continue
+                # C2: stash every raw repair response for the transcript.
+                self._raw_repair_responses.append(raw_repair)
+                self._parse_attempts += 1
+                try:
+                    repaired_code = _parse_model_code_response(raw_repair, default_module_name=contract.module_name, base_code=current_rtl, parser_mode=self.parser_mode)
                 except ModelResponseParseError as exc:
                     repair_history.append("RESPONSE_PARSE_FAILURE")
                     self._emit_trace(
@@ -1732,17 +2128,89 @@ class PhaseDriver:
                             "error_category": "RESPONSE_PARSE_FAILURE",
                             "gate": "RTL repair/parser",
                             "parser_mode": self.parser_mode,
+                            "decode": dict(self._last_decode),
+                            "parse_attempt": self._parse_attempts,
                         },
                     )
+                    # C6: independent parse budget. EDA turns untouched.
+                    if self._parse_attempts >= PARSE_MAX_ATTEMPTS:
+                        self._restore_snapshot()
+                        self._emit_trace(
+                            PhaseEnum.REPAIR_OR_FINISH,
+                            {"status": "ROLLED_BACK", "reason": f"parse retry budget ({PARSE_MAX_ATTEMPTS}) exhausted.", "failure_category": "RESPONSE_PARSE_FAILURE"},
+                        )
+                        return False
+                    self._maybe_bump_for_truncation()
+                    repair_guidance = self._parse_retry_guidance(str(exc))
+                    self._last_failure_was_parse = True
+                    continue
+                # Parse succeeded: spend the EDA turn now.
+                self._last_failure_was_parse = False
+                self._stage_repair_attempts[stage_key] += 1
+                attempt = prospective_attempt
+                diff_stats = _repair_diff_stats(current_rtl, repaired_code) if current_rtl else {"changed_line_ratio": 0.0, "line_growth_ratio": 1.0}
+                # C1: deterministic unchanged-candidate detection. Raw bytes
+                # are preserved; hashes only record equality. A different
+                # hash is never treated as proof of correctness.
+                identity = _candidate_identity(current_rtl, repaired_code) if current_rtl else {
+                    "current_sha256": None,
+                    "candidate_sha256": _sha256_text(repaired_code),
+                    "current_normalized_sha256": None,
+                    "candidate_normalized_sha256": _sha256_text(_normalize_rtl_for_identity(repaired_code)),
+                    "identical_raw": False,
+                    "identical_normalized": False,
+                }
+                self._candidate_hashes.append({"attempt": attempt, **identity, "diff_stats": dict(diff_stats)})
+                unchanged = bool(identity["identical_raw"] or identity["identical_normalized"])
+                if unchanged:
+                    self._unchanged_repair_count += 1
+                    repair_history.append("UNCHANGED_CANDIDATE")
+                if current_rtl and len(current_rtl.splitlines()) >= 12 and (
+                    diff_stats["changed_line_ratio"] > REPAIR_MAX_CHANGED_LINE_RATIO
+                    or diff_stats["line_growth_ratio"] > REPAIR_MAX_LINE_GROWTH
+                ):
+                    repair_history.append("REPAIR_PATCH_TOO_LARGE")
                     repair_guidance = (
-                        f"The previous repair response could not be parsed: {exc}.\n"
-                        "Return ONLY the complete SystemVerilog module, including its module declaration and endmodule."
+                        f"Your last repair was rejected because it exceeded the bounded change budget. "
+                        f"Keep changed lines <= {REPAIR_MAX_CHANGED_LINE_RATIO:.0%} of current RTL and growth <= {REPAIR_MAX_LINE_GROWTH:.1f}x."
+                    )
+                    self._emit_trace(
+                        PhaseEnum.VERIFY,
+                        {
+                            "passed": False,
+                            "domain": "RTL",
+                            "exit_code": 1,
+                            "failure_reason": "Repair patch exceeded bounded change budget.",
+                            "error_category": "REPAIR_PATCH_TOO_LARGE",
+                            "diff_stats": diff_stats,
+                            "gate_reports": [],
+                        },
                     )
                     continue
+                try:
+                    rep_action = WriteFileAction(path=f"{contract.module_name}.sv", content=repaired_code)
+                    self._policy_check(rep_action)
+                    exec_rep = self._execute_action(rep_action)
                 except Exception as exc:
                     repair_history.append("REPAIR_CALL_FAILURE")
-                    repair_guidance = f"Repair model invocation failed: {exc}. Return the complete SystemVerilog module only."
+                    repair_guidance = f"Repair file write failed: {exc}. Return the complete SystemVerilog module only."
                     continue
+                self._emit_trace(
+                    PhaseEnum.EXECUTE,
+                    {
+                        "role": "Independent RTL Verification Repair Engineer",
+                        "rtl_file": exec_rep,
+                        "content": repaired_code,
+                        "diff_stats": diff_stats,
+                        "candidate_identity": identity,
+                        "unchanged_candidate": unchanged,
+                        "unchanged_repair_count": self._unchanged_repair_count,
+                        "attempt": attempt,
+                        "raw_response_preview": self._raw_repair_responses[-1][:2000] if self._raw_repair_responses else "",
+                        "decode": dict(self._last_decode),
+                    },
+                )
+                repair_guidance = None
 
             v_result: VerificationResult = signoff_verifier.verify(self.workspace, self.sandbox)
             self.last_verification_result = v_result
@@ -1803,13 +2271,53 @@ class PhaseDriver:
             column = compile_diag.get("column")
             source_context = compile_diag.get("source_context", "")
             property_source = None
+            matched_contract_prop: str | None = None
             if last_report.get("failing_property"):
                 prop_name = str(last_report.get("failing_property"))
                 for prop in [*contract.formal_properties, *contract.sva_properties]:
                     pname = getattr(prop, "name", "")
                     if pname == prop_name or prop_name in pname:
                         property_source = getattr(prop, "expression", None) or getattr(prop, "property_expr", None)
+                        matched_contract_prop = pname
                         break
+            # C2: deterministic evidence enrichment. Values below are derived
+            # only from the contract and the verifier's own report; signal
+            # values are never invented. When the SBY witness name cannot be
+            # mapped to a contract property, the raw witness name is preserved
+            # and the mapping is marked uncertain instead of guessing.
+            if contract.clock is not None:
+                clock_state_value: str | None = f"{contract.clock.name} {contract.clock.edge}"
+            else:
+                clock_state_value = None
+            if contract.reset is not None:
+                sync_word = "synchronous" if contract.reset.synchronous else "asynchronous"
+                reset_state_value: str | None = (
+                    f"{contract.reset.name} {contract.reset.polarity} {sync_word}"
+                )
+            else:
+                reset_state_value = "none - no reset port in contract"
+            if matched_contract_prop is not None and property_source:
+                expected_value: str | None = f"{matched_contract_prop}: {property_source}"
+            else:
+                required_bits = [b for b in [*contract.behavior, *contract.invariants] if str(b).strip()]
+                joined = "; ".join(str(b).strip() for b in required_bits)[:1500]
+                expected_value = (
+                    f"Contract requires: {joined}" if joined else None
+                )
+                if last_report.get("failing_property") and matched_contract_prop is None and expected_value:
+                    expected_value += (
+                        " (failing-property mapping uncertain: witness name "
+                        f"{last_report.get('failing_property')} did not match a contract property; "
+                        "raw evidence preserved)"
+                    )
+            observed_value: str | None = str(
+                last_report.get("details") or v_result.failure_reason or "verification failed"
+            )[:2000]
+            if last_report.get("failing_property") or last_report.get("step") is not None:
+                observed_value = (
+                    f"Property {last_report.get('failing_property')} failed "
+                    f"at step {last_report.get('step')}: {observed_value}"
+                )[:2000]
             evidence = VerificationFailureEvidence(
                 gate=str(last_report.get("gate", "verification gate")),
                 category=category,
@@ -1831,18 +2339,32 @@ class PhaseDriver:
                 attempt=repair_count + 1,
                 failing_test=str(last_report.get("failing_test")) if last_report.get("failing_test") else None,
                 cycle=int(cycle_v) if isinstance((cycle_v := last_report.get("cycle")), int) else None,
-                expected_behavior=str(last_report.get("expected_behavior")) if last_report.get("expected_behavior") else None,
-                observed_behavior=str(last_report.get("observed_behavior")) if last_report.get("observed_behavior") else None,
+                expected_behavior=expected_value,
+                observed_behavior=observed_value,
                 relevant_signals={k: v for k, v in last_report.get("relevant_signals", {}).items() if isinstance(k, str)} if isinstance(last_report.get("relevant_signals"), dict) else {},
-                reset_state=str(last_report.get("reset_state")) if last_report.get("reset_state") else None,
-                clock_state=str(last_report.get("clock_state")) if last_report.get("clock_state") else None,
+                reset_state=reset_state_value,
+                clock_state=clock_state_value,
                 property_source=property_source,
                 counterexample_trace=str(last_report.get("counterexample_trace")) if last_report.get("counterexample_trace") else None,
                 repair_history=repair_history[-3:],
             )
-            repair_prompt = VerificationRepairer.build_prompt(contract, current_rtl, evidence)
+            repair_prompt = VerificationRepairer.build_prompt(contract, current_rtl, evidence, format_block=self._format_block)
             repair_system_instruction = repair_prompt["system"]
             repair_guidance = repair_prompt["user"]
+            # C1: when the last repair was byte/normalized-identical, tell the
+            # model explicitly: resubmitting identical RTL can never succeed and
+            # wastes the bounded budget. The failed candidate and its evidence
+            # are preserved in the trace; the loop still honors existing retry
+            # limits and never claims recovery without verified acceptance.
+            if "UNCHANGED_CANDIDATE" in repair_history[-2:]:
+                repair_guidance = (
+                    "NOTICE: Your previous repair output was identical to the current RTL "
+                    "(byte-identical or whitespace/comment-only difference). Resubmitting it "
+                    "again cannot clear verification. You MUST make a real targeted logic change "
+                    "to the failing behavior described in the evidence below.\n\n" + repair_guidance
+                )
+            # EDA failure (not a parse failure): parse-budget gate must not fire.
+            self._last_failure_was_parse = False
             repair_history.append(category)
 
 
@@ -1941,6 +2463,9 @@ __all__ = [
     "LENIENT_KNOWN_KEYS",
     "_parse_model_code_response",
     "ModelResponseParseError",
+    "_sha256_text",
+    "_normalize_rtl_for_identity",
+    "_candidate_identity",
     "OpenRouterModelRegistry",
     "OpenRouterModelRegistryError",
     "fetch_openrouter_free_models",

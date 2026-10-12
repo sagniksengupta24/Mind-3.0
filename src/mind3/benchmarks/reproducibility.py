@@ -342,6 +342,11 @@ def execute_full_benchmark(
     required_min_tasks: int = 100,
     diagnostic: bool = False,
     parser_mode: str = "strict",
+    decode_temperature: float = 0.0,
+    decode_seed: int | None = None,
+    decode_num_predict: int = 4096,
+    decode_num_ctx: int = 8192,
+    generation_format: str = "json",
 ) -> Path:
     """Run full benchmark, baselines, and emit all required artifacts in output_dir."""
     if parser_mode not in ("strict", "lenient"):
@@ -406,6 +411,11 @@ def execute_full_benchmark(
             base_url=base_url,
             liberty_path=liberty_path,
             parser_mode=parser_mode,
+            decode_temperature=decode_temperature,
+            decode_seed=decode_seed if decode_seed is not None else seed,
+            decode_num_predict=decode_num_predict,
+            decode_num_ctx=decode_num_ctx,
+            generation_format=generation_format,
         )
         cmp_report = baseline_runner.execute_comparison()
         execution_status = "COMPLETED"
@@ -503,6 +513,13 @@ def execute_full_benchmark(
         "tool_versions": tool_versions,
         "parser_mode": parser_mode,
         "parser_mode_note": "Benchmarks run with parser_mode='lenient' are not equivalent to parser_mode='strict' runs: lenient mode permits bounded recovery of malformed local-model output.",
+        "decode": {
+            "temperature": decode_temperature,
+            "seed": decode_seed if decode_seed is not None else seed,
+            "num_predict": decode_num_predict,
+            "num_ctx": decode_num_ctx,
+            "generation_format": generation_format,
+        },
     }
 
     # Write files
@@ -543,6 +560,13 @@ def execute_full_benchmark(
         "performance_claim_valid": is_release_eligible,
         "seed": seed,
         "parser_mode": parser_mode,
+        "decode": {
+            "temperature": decode_temperature,
+            "seed": decode_seed if decode_seed is not None else seed,
+            "num_predict": decode_num_predict,
+            "num_ctx": decode_num_ctx,
+            "generation_format": generation_format,
+        },
         "git_commit_sha": git_sha,
         "environment": {
             "platform": platform.system(),

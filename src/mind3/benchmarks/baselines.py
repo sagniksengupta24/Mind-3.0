@@ -137,6 +137,11 @@ class BaselineComparisonRunner:
         liberty_path: str | list[str] | None = None,
         artifact_root: Path | None = None,
         parser_mode: str = "strict",
+        decode_temperature: float = 0.0,
+        decode_seed: int | None = None,
+        decode_num_predict: int = 4096,
+        decode_num_ctx: int = 8192,
+        generation_format: str = "json",
     ) -> None:
         if parser_mode not in ("strict", "lenient"):
             raise ValueError(
@@ -152,6 +157,11 @@ class BaselineComparisonRunner:
         self.liberty_path = liberty_path
         self.artifact_root = Path(artifact_root).resolve() if artifact_root is not None else None
         self.parser_mode = parser_mode
+        self.decode_temperature = decode_temperature
+        self.decode_seed = decode_seed
+        self.decode_num_predict = decode_num_predict
+        self.decode_num_ctx = decode_num_ctx
+        self.generation_format = generation_format
 
     def _compute_run_hash(self, task_id: str, baseline: str, rtl: str) -> str:
         h = hashlib.sha256()
@@ -199,6 +209,11 @@ class BaselineComparisonRunner:
             api_key=self.api_key,
             base_url=self.base_url,
             parser_mode=self.parser_mode,
+            decode_temperature=self.decode_temperature,
+            decode_seed=self.decode_seed,
+            decode_num_predict=self.decode_num_predict,
+            decode_num_ctx=self.decode_num_ctx,
+            generation_format=self.generation_format,
         )
         return driver, verifier
 
@@ -459,6 +474,12 @@ class BaselineComparisonRunner:
             workspace=workspace, verifier=verifier, sandbox=None,
             model=self.model, provider=self.provider, max_repairs=3,
             api_key=self.api_key, base_url=self.base_url,
+            parser_mode=self.parser_mode,
+            decode_temperature=self.decode_temperature,
+            decode_seed=self.decode_seed,
+            decode_num_predict=self.decode_num_predict,
+            decode_num_ctx=self.decode_num_ctx,
+            generation_format=self.generation_format,
         )
         try:
             prompt = self._task_prompt(task)

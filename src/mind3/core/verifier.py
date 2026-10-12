@@ -6,8 +6,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
+import subprocess
+import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Literal
@@ -816,6 +819,46 @@ def _make_subprocess_diagnostic(
     return diag
 
 
+def _is_sby_workdir_copy(rel_parts: tuple, stem: str) -> bool:
+    """Detect SBY workdir copies (``<top>/src/<top>.sv``, ``<top>/model`` tree).
+
+    SBY materializes the design sources inside a workdir named after the top
+    module. Those copies re-declare the top module and must never be compiled
+    alongside the workspace RTL.
+    """
+    return len(rel_parts) >= 2 and rel_parts[0] == stem
+
+
+def _select_signoff_sources(resolved_ws: Path) -> list[Path]:
+    """Select RTL sources for signoff verification, excluding generated files.
+
+    Testbenches, formal artifacts, and Yosys synthesis outputs from previous
+    verify() passes (``*_netlist.v``) are excluded: the netlist re-declares
+    the top module and would otherwise make iverilog fail every repair turn
+    with a spurious duplicate-declaration error. SBY formal workdirs
+    (``<top>/src/``, ``<top>/model/``) are excluded for the same reason
+    (found in exp_c9_cdc_s43, arbiter_03 repair turn 2).
+    """
+    mind_internal = (resolved_ws / ".mind").resolve()
+    selected: list[Path] = []
+    for p in sorted(resolved_ws.rglob("*.[vs]*")):
+        if p.suffix not in (".v", ".sv"):
+            continue
+        if p.name.endswith(("_sva.sv", "_formal_top.sv", "_checker.sv", "_tb.sv", "_tb.v")):
+            continue
+        if p.name.endswith("_netlist.v"):
+            continue
+        if p.resolve().is_relative_to(mind_internal):
+            continue
+        rel_parts = p.relative_to(resolved_ws).parts
+        if any(part.startswith(".") for part in rel_parts):
+            continue
+        if _is_sby_workdir_copy(rel_parts, p.stem):
+            continue
+        selected.append(p)
+    return selected
+
+
 def detect_eda_tool_versions(runner: Any) -> dict[str, str]:
     """Inspect and record installed versions of all EDA binaries.
 
@@ -842,6 +885,159 @@ def detect_eda_tool_versions(runner: Any) -> dict[str, str]:
         except Exception:
             versions[name] = "missing"
     return versions
+
+
+# ── Gate 6 CDC implementation selection ────────────────────────────────────
+# Pinned structural checker version. tools/cdc_checker/__init__.py carries
+# the same version; tests/test_cdc_checker.py asserts equality so the two
+# can never drift silently.
+STRUCTURAL_CDC_VERSION = "1.0"
+# Pinned crux release evaluated for Gate 6 (2026-10-08: MISSING_SYNC error on
+# an unsynchronized clk_a->clk_b crossing, clean synchronized report on a 2FF
+# chain, both .v and .sv inputs). Fixtures: tests/fixtures/cdc_crux_*.json.
+CRUX_VERSION = "0.1.0"
+
+_CDC_EXTERNAL_CACHE: dict[str, Any] = {}
+
+
+def _repo_root() -> Path:
+    """Repository root derived from this file (robust to caller cwd)."""
+    return Path(__file__).resolve().parent.parent.parent.parent
+
+
+def has_external_yosys_cdc() -> bool:
+    """True when the installed yosys provides a real ``cdc`` command."""
+    if "available" in _CDC_EXTERNAL_CACHE:
+        return bool(_CDC_EXTERNAL_CACHE["available"])
+    yosys = shutil.which("yosys")
+    available = False
+    if yosys is not None:
+        try:
+            proc = subprocess.run(
+                [yosys, "-p", "help cdc"],
+                capture_output=True, text=True, timeout=30, check=False,
+            )
+            combined = f"{proc.stdout}\n{proc.stderr}".lower()
+            available = "no such command" not in combined and "unknown command" not in combined
+        except Exception:
+            available = False
+    _CDC_EXTERNAL_CACHE["available"] = available
+    return available
+
+
+def _crux_binary() -> str | None:
+    """Locate the crux CDC CLI: MIND3_CRUX_BIN override or PATH lookup."""
+    override = os.getenv("MIND3_CRUX_BIN")
+    if override:
+        direct = Path(override)
+        if direct.is_file():
+            return str(direct)
+        found = shutil.which(override)
+        if found:
+            return found
+        return None
+    return shutil.which("crux")
+
+
+def has_crux() -> bool:
+    """True when the crux CDC analyzer is installed and not opted out.
+
+    MIND3_CDC_NO_FALLBACK=1 also disables crux: crux is a fallback backend,
+    and the flag must block every fallback, not just the structural one.
+    """
+    if os.getenv("MIND3_CDC_NO_CRUX") == "1":
+        return False
+    if os.getenv("MIND3_CDC_NO_FALLBACK") == "1":
+        return False
+    return _crux_binary() is not None
+
+
+def select_cdc_implementation() -> tuple[str, str]:
+    """Choose the Gate 6 CDC backend: ("external"|"crux"|"structural", version).
+
+    A real, maintained external tool (yosys ``cdc``) is preferred when
+    present, then crux when installed. Otherwise the pinned structural checker
+    is used; this selection is announced at benchmark startup (never silent).
+    """
+    if has_external_yosys_cdc():
+        return "external", "yosys-cdc"
+    if has_crux():
+        return "crux", f"crux {CRUX_VERSION}"
+    return "structural", f"structural_cdc_checker {STRUCTURAL_CDC_VERSION}"
+
+
+def crux_report_to_verdict(report: dict[str, Any]) -> tuple[bool, str | None, list[str], str]:
+    """Map a crux JSON report to (gate_passed, error_category, violations, details).
+
+    Severity-error violations fail the gate (CDC_VIOLATION). Warning-only
+    findings (handshake-gated multi-bit, reconvergence) are recorded in the
+    details but do not fail: they describe tolerated-by-design patterns.
+    """
+    if not isinstance(report, dict) or ("crossings" not in report and "summary" not in report):
+        return False, "CDC_CHECKER_ERROR", [], "Gate 6: BLOCKED. Reason: crux report unreadable."
+    violations = [
+        f"{v.get('rule')}: {v.get('message')}"
+        for v in report.get("violations", [])
+        if isinstance(v, dict) and v.get("severity") == "error"
+    ]
+    warnings = [
+        f"{v.get('rule')}: {v.get('message')}"
+        for v in report.get("violations", [])
+        if isinstance(v, dict) and v.get("severity") not in (None, "error")
+    ]
+    summary = report.get("summary", {})
+    total = summary.get("total_crossings", len(report.get("crossings", [])))
+    synced = summary.get("synchronized", 0)
+    if violations:
+        return (
+            False,
+            "CDC_VIOLATION",
+            violations,
+            f"Crux CDC check failed ({len(violations)} error(s)): {'; '.join(violations)[:1500]}",
+        )
+    note = f" (+{len(warnings)} warning(s) noted)" if warnings else ""
+    return (
+        True,
+        None,
+        [],
+        f"Crux CDC check passed ({total} crossing(s) evaluated, {synced} synchronized){note}.",
+    )
+
+
+def describe_cdc_implementation() -> str:
+    """Human-readable CDC backend announcement for benchmark startup."""
+    kind, version = select_cdc_implementation()
+    if kind == "external":
+        return f"CDC implementation: external yosys cdc ({version})"
+    if kind == "crux":
+        return f"CDC implementation: crux CDC analyzer ({version})"
+    if os.getenv("MIND3_CDC_NO_FALLBACK") == "1":
+        return (
+            "CDC implementation: external tool unavailable; "
+            "structural fallback DISABLED (MIND3_CDC_NO_FALLBACK=1) — "
+            "Gate 6 will report BLOCKED"
+        )
+    return (
+        f"CDC implementation: external tool unavailable; fallback: {version} "
+        "(pinned; INCONCLUSIVE/ERROR never become PASS)"
+    )
+
+
+def run_cdc_preflight() -> list[str]:
+    """Execute the mandatory CDC fixture matrix; return failure descriptions."""
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "tools.cdc_checker", "--preflight"],
+            cwd=str(_repo_root()),
+            capture_output=True, text=True, timeout=300, check=False,
+        )
+    except Exception as exc:
+        return [f"preflight harness error: {exc}"]
+    if proc.returncode != 0:
+        lines = [ln for ln in (proc.stdout + "\n" + proc.stderr).splitlines() if ln.strip()]
+        return lines[-5:] if lines else ["preflight failed with no output"]
+    return []
+
 
 
 class SiliconSignoffVerifier(BaseVerifier):
@@ -989,16 +1185,9 @@ class SiliconSignoffVerifier(BaseVerifier):
         self.detected_versions = detect_eda_tool_versions(eda_runner)
         gate_reports: list[dict[str, Any]] = []
 
-        # Find all Verilog/SystemVerilog sources in workspace, excluding hidden dirs and .mind internal dirs
-        mind_internal = (resolved_ws / ".mind").resolve()
-        sources = [
-            p
-            for p in sorted(resolved_ws.rglob("*.[vs]*"))
-            if p.suffix in (".v", ".sv")
-            and not p.name.endswith(("_sva.sv", "_formal_top.sv", "_checker.sv", "_tb.sv", "_tb.v"))
-            and not p.resolve().is_relative_to(mind_internal)
-            and not any(part.startswith(".") for part in p.relative_to(resolved_ws).parts)
-        ]
+        # Find all Verilog/SystemVerilog sources in workspace (generated
+        # synthesis netlists excluded; see _select_signoff_sources).
+        sources = _select_signoff_sources(resolved_ws)
 
         if not sources:
             return VerificationResult(
@@ -2619,8 +2808,247 @@ class SiliconSignoffVerifier(BaseVerifier):
             return True, "async_inputs_declared"
         return False, "contract_declares_no_cdc"
 
+    def _run_gate6_structural_cdc(self, ws: Path) -> dict[str, Any]:
+        """Run the pinned structural CDC checker on the DUT source file.
+
+        Mirrors the external path: ``require_cdc=False`` does not skip the
+        analysis itself (it only relaxes signoff accounting downstream);
+        only an explicit ``MIND3_CDC_NO_FALLBACK=1`` blocks the fallback.
+        """
+        gate = "Gate 6: Yosys CDC Static Analysis"
+        if os.getenv("MIND3_CDC_NO_FALLBACK") == "1":
+            return {
+                "gate": gate,
+                "passed": False,
+                "exit_code": 3,
+                "stdout": "",
+                "stderr": "Structural CDC fallback disabled by MIND3_CDC_NO_FALLBACK=1.",
+                "details": "Gate 6: BLOCKED. Reason: CDC implementation unavailable (external yosys cdc missing, fallback disabled).",
+                "error_category": "CDC_TOOLING_UNAVAILABLE",
+                "cdc_violations": [],
+                "cdc": {"implementation": "none", "version": None, "reason": "fallback_disabled"},
+                "skipped": False,
+                "simulated": False,
+            }
+        dut = ws / f"{self.top_module}.sv"
+        if not dut.exists():
+            dut = ws / f"{self.top_module}.v"
+        if not dut.exists():
+            return {
+                "gate": gate,
+                "passed": False,
+                "exit_code": 3,
+                "stdout": "",
+                "stderr": f"DUT source file for top {self.top_module!r} not found in workspace.",
+                "details": "Gate 6: BLOCKED. Reason: CDC checker input missing.",
+                "error_category": "CDC_CHECKER_ERROR",
+                "cdc_violations": [],
+                "cdc": {"implementation": "structural_cdc_checker", "version": STRUCTURAL_CDC_VERSION},
+                "skipped": False,
+                "simulated": False,
+            }
+        report_path = ws / "cdc_report.json"
+        cmd = [sys.executable, "-m", "tools.cdc_checker", "--rtl", str(dut),
+               "--top", self.top_module, "--report", str(report_path)]
+        try:
+            proc = subprocess.run(
+                cmd, cwd=str(_repo_root()), capture_output=True, text=True,
+                timeout=300, check=False,
+            )
+        except Exception as exc:
+            return {
+                "gate": gate,
+                "passed": False,
+                "exit_code": 3,
+                "stdout": "",
+                "stderr": f"CDC checker harness error: {exc}",
+                "details": "Gate 6: BLOCKED. Reason: CDC checker could not execute.",
+                "error_category": "CDC_CHECKER_ERROR",
+                "cdc_violations": [],
+                "cdc": {"implementation": "structural_cdc_checker", "version": STRUCTURAL_CDC_VERSION},
+                "skipped": False,
+                "simulated": False,
+            }
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else {}
+        except Exception:
+            report = {}
+        status = report.get("status", "ERROR")
+        provenance = {
+            "implementation": "structural_cdc_checker",
+            "version": STRUCTURAL_CDC_VERSION,
+            "command": " ".join(cmd),
+            "report": str(report_path),
+            "external_tool": None,
+        }
+        self.detected_versions["cdc"] = f"structural_cdc_checker {STRUCTURAL_CDC_VERSION}"
+        violations = [
+            f"{c.get('source')} [{c.get('source_clock')}] -> {c.get('destination')} "
+            f"[{c.get('destination_clock')}]: {c.get('classification')}"
+            for c in report.get("crossings", [])
+            if c.get("severity") == "error"
+        ]
+        combined = f"{proc.stdout}\n{proc.stderr}".strip()
+        if proc.returncode == 0 and status == "PASS":
+            return {
+                "gate": gate,
+                "passed": True,
+                "exit_code": 0,
+                "stdout": combined,
+                "stderr": "",
+                "details": (
+                    f"Structural CDC check passed ({len(report.get('crossings', []))} "
+                    f"crossing(s) evaluated, all safe or none found)."
+                ),
+                "error_category": None,
+                "cdc_violations": [],
+                "cdc": provenance,
+                "skipped": False,
+                "simulated": False,
+            }
+        if proc.returncode == 1 or status == "FAIL":
+            return {
+                "gate": gate,
+                "passed": False,
+                "exit_code": proc.returncode or 1,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": f"Structural CDC check failed: {'; '.join(violations) or combined[-2000:]}",
+                "error_category": "CDC_VIOLATION",
+                "cdc_violations": violations,
+                "cdc": provenance,
+                "skipped": False,
+                "simulated": False,
+            }
+        if proc.returncode == 2 or status == "INCONCLUSIVE":
+            return {
+                "gate": gate,
+                "passed": False,
+                "exit_code": proc.returncode or 2,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    "Structural CDC check INCONCLUSIVE: the crossing set cannot be "
+                    f"proven safe ({combined[-2000:]}). Failing closed; not a PASS."
+                ),
+                "error_category": "CDC_INCONCLUSIVE",
+                "cdc_violations": [],
+                "cdc": provenance,
+                "skipped": False,
+                "simulated": False,
+            }
+        return {
+            "gate": gate,
+            "passed": False,
+            "exit_code": proc.returncode or 3,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "details": f"Gate 6: BLOCKED. Reason: CDC checker error ({combined[-2000:]}).",
+            "error_category": "CDC_CHECKER_ERROR",
+            "cdc_violations": [],
+            "cdc": provenance,
+            "skipped": False,
+            "simulated": False,
+        }
+
+    def _run_gate6_crux(self, sources: list[Path], ws: Path) -> dict[str, Any]:
+        """Run the crux CDC analyzer; map its JSON report to a gate verdict.
+
+        Mirrors the structural path: severity-error violations fail the gate
+        (CDC_VIOLATION), a clean report passes, and an unreadable report or
+        crashed run blocks the gate (never a silent substitution for PASS).
+        """
+        gate = "Gate 6: Yosys CDC Static Analysis"
+        binary = _crux_binary()
+        if binary is None:
+            return {
+                "gate": gate,
+                "passed": False,
+                "exit_code": 3,
+                "stdout": "",
+                "stderr": "Crux selected but no crux binary found at execution time.",
+                "details": "Gate 6: BLOCKED. Reason: crux backend unavailable.",
+                "error_category": "CDC_TOOLING_UNAVAILABLE",
+                "cdc_violations": [],
+                "cdc": {"implementation": "crux", "version": None, "reason": "binary_missing"},
+                "skipped": False,
+                "simulated": False,
+            }
+        report_path = ws / "cdc_crux_report.json"
+        src_args = [str(s.relative_to(ws)) for s in sources]
+        cmd = [binary, "--top", self.top_module, "--json-report", str(report_path), *src_args]
+        try:
+            proc = subprocess.run(
+                cmd, cwd=str(ws), capture_output=True, text=True,
+                timeout=300, check=False,
+            )
+        except Exception as exc:
+            return {
+                "gate": gate,
+                "passed": False,
+                "exit_code": 3,
+                "stdout": "",
+                "stderr": f"Crux harness error: {exc}",
+                "details": "Gate 6: BLOCKED. Reason: crux could not execute.",
+                "error_category": "CDC_CHECKER_ERROR",
+                "cdc_violations": [],
+                "cdc": {"implementation": "crux", "version": CRUX_VERSION},
+                "skipped": False,
+                "simulated": False,
+            }
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else {}
+        except Exception:
+            report = {}
+        report_version = str(report.get("version", ""))
+        if report_version and report_version != CRUX_VERSION:
+            return {
+                "gate": gate,
+                "passed": False,
+                "exit_code": 3,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    f"Gate 6: BLOCKED. Reason: crux version drift (pinned {CRUX_VERSION}, "
+                    f"ran {report_version})."
+                ),
+                "error_category": "CDC_CHECKER_ERROR",
+                "cdc_violations": [],
+                "cdc": {"implementation": "crux", "version": report_version},
+                "skipped": False,
+                "simulated": False,
+            }
+        gate_passed, category, violations, details = crux_report_to_verdict(report)
+        combined_exit = 0 if gate_passed else (proc.returncode or 1)
+        return {
+            "gate": gate,
+            "passed": gate_passed,
+            "exit_code": combined_exit,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "details": details,
+            "error_category": category,
+            "cdc_violations": violations,
+            "cdc": {
+                "implementation": "crux",
+                "version": CRUX_VERSION,
+                "command": " ".join(cmd),
+                "report": str(report_path),
+            },
+            "skipped": False,
+            "simulated": False,
+        }
+
     def _run_gate6_cdc_analysis(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
-        """Execute Yosys CDC static analysis to detect unregistered clock-domain crossings."""
+        """Execute CDC static analysis to detect unregistered clock-domain crossings.
+
+        Backend selection: a real external yosys ``cdc`` command is preferred
+        when present, then crux when installed; otherwise the pinned structural
+        checker runs (announced at startup, never a silent substitution).
+        Mapping: CDC PASS -> gate PASS, CDC FAIL -> gate FAIL, CDC
+        INCONCLUSIVE -> gate FAIL-closed (aborts, never PASS), CDC ERROR ->
+        gate BLOCKED.
+        """
         if self.require_cdc:
             required, reason = self._cdc_requirement()
             if not required:
@@ -2641,6 +3069,10 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "skipped": True,
                     "simulated": False,
                 }
+        if not has_external_yosys_cdc():
+            if has_crux():
+                return self._run_gate6_crux(sources, ws)
+            return self._run_gate6_structural_cdc(ws)
         src_args = [str(s.relative_to(ws)) for s in sources]
         yosys_cdc_script = (
             f"read_verilog -sv {' '.join(src_args)}; "

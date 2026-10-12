@@ -1,174 +1,120 @@
-# Mind 3.0: Fail-Closed RTL Generation & Verification Workbench
+# Mind 3.0 — Fail-Closed RTL Generation & Verification Workbench
 
-Mind 3.0 is a fail-closed workbench for generating small-to-medium SystemVerilog IP and checking it through an auditable verification pipeline. The intended sweet spot is blocks such as FIFOs, arbiters, counters, DMA/control blocks, bus peripherals, protocol adapters, and control FSMs.
+> **Brutal truth first:** the verification plumbing is real and genuinely
+> fail-closed. The generator scores **0%**. If you want a tool that writes
+> working Verilog today, this is not it. If you want a strict harness that
+> refuses to lie about broken RTL, that's exactly what this is.
 
-> [!IMPORTANT]
-> Mind 3.0 is **not** a foundry, production, or tapeout signoff system. A green `SiliconSignoffVerifier` result only means the configured live checks passed for that run. LLM generation remains non-deterministic; every performance claim must come from real, versioned benchmark evidence.
+Mind 3.0 generates small-to-medium SystemVerilog IP (FIFOs, arbiters,
+counters, FSMs, bus peripherals, protocol adapters) with an LLM, then checks
+it through a 10-phase pipeline and 6 verification gates. It would rather fail
+loudly than pass quietly.
 
-## 1. Implemented
-
-Mind 3.0 is an evidence-backed, fail-closed SystemVerilog IP generation and verification workbench. The implemented capabilities include:
-
-### Deterministic execution and evidence pipeline
-- **10-Phase Pipeline**: `INTAKE` → `ROUTE` → `SNAPSHOT` → `MODEL_CALL` → `PARSE` → `POLICY_CHECK` → `EXECUTE` → `OBSERVE` → `VERIFY` → `REPAIR_OR_FINISH` → `TRACE`.
-- **Audit Trails**: Every execution produces a hash-chained internal trace record (deterministic SHA-256 chain, tamper-evident but not a PKI/hardware attestation), preserved RTL, structured verification evidence, tool versions, and artifact hashes.
-- **Fail-Closed Gate Philosophy**:
-  ```text
-  REAL TOOL    → REAL RESULT
-  MISSING TOOL → EXPLICIT SKIP/BLOCK
-  MOCK         → NEVER PRESENTED AS VERIFIED
-  ```
-- **Bounded Repair**: Repair loops are constrained by budget, edit scope, and strict failure evidence; runaway rewrites are rejected.
-
-### Six validation gates
-- **Gate 1 — Elaboration & Syntax (Yosys)**: Full hierarchy elaboration, strict `$dlatch` / latch detection, and combinational loop detection.
-- **Gate 1b — LEC (Yosys)**: Logic equivalence checking for synthesis transformations (opt-in).
-- **Gate 3 — Simulation & Coverage (Verilator)**: Cycle-accurate C++ testbench execution with statement, toggle, and branch coverage measurement.
-- **Gate 2 — Formal Verification (SymbiYosys + SMT)**: Bounded Model Checking (BMC) with deterministic typed formal-property templates.
-- **Gate 4 — Static Timing Analysis (OpenSTA)**: Setup/hold slack validation against target technology Liberty (.lib) files.
-- **Gate 5 — Physical Signoff (OpenROAD)**: Opt-in macro placement and routing checks.
-- **Gate 6 — Clock Domain Crossing (Yosys CDC)**: Formal structural analysis of asynchronous clock crossings; missing CDC tooling fails closed.
-
-> [!NOTE]
-> **Execution Order & Reporting**:
-> Actual execution proceeds sequentially: Gate 1 → Gate 1b → Gate 3 → Gate 2 → Gate 4 → Gate 5 → Gate 6. Verification fails closed on the first violation. Consequently, if an earlier gate (such as Gate 3) fails, Gate 2 is not executed and is not recorded in the result reports.
-
-### 12-Category Failure Taxonomy
-Deterministic mapping from raw tool stderr/stdout and structured evidence into canonical machine-readable categories:
-`SPECIFICATION_ERROR`, `RTL_SYNTAX_ERROR`, `RTL_SEMANTIC_ERROR`, `SIMULATION_FAILURE`, `FORMAL_FAILURE`, `TIMING_FAILURE`, `CDC_FAILURE`, `COVERAGE_FAILURE`, `REPAIR_FAILURE`, `ENVIRONMENT_FAILURE`, `TIMEOUT`, `UNKNOWN`.
-
-### Negative-Control Suite
-16 intentionally broken designs with pre-declared expected failure gates located in `tests/negative_controls/`:
-1. `latch_inference.sv` (Gate 1: `LATCH_INFERRED`)
-2. `combinational_loop.sv` (Gate 1: `COMBINATIONAL_LOOP`)
-3. `incorrect_reset_behavior.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
-4. `reset_deassertion_problem.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
-5. `cdc_violation.sv` (Gate 6: `CDC_VIOLATION`)
-6. `fifo_overflow.sv` (Gate 3: `SIMULATION_FAILURE`)
-7. `fifo_underflow.sv` (Gate 3: `SIMULATION_FAILURE`)
-8. `off_by_one_counter.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
-9. `incorrect_handshake.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
-10. `incorrect_fsm_transition.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
-11. `width_truncation.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
-12. `signed_unsigned_error.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
-13. `timing_violation.sv` (Gate 4: `TIMING_SLACK_VIOLATION`)
-14. `false_formal.sv` (Gate 2: `FORMAL_INVARIANT_BREACH`)
-15. `sim_behavioral_failure.sv` (Gate 3: `SIMULATION_FAILURE`)
-16. `coverage_deficit.sv` (Gate 3: `COVERAGE_DEFICIT`)
-
-### Real Held-Out Benchmark Framework
-- **Heldout-v1 Suite**: 120 real RTL tasks (`benchmarks/heldout/tasks.jsonl`) with immutable SHA-256 manifest (`bae56a8db36a0f3d47f6bef1c2ec325bdd1e14dd16addb68461a1b59dbdd2c24`).
-- **13 Design Families**: Counters, FIFOs, Arbiters, FSMs, UART, SPI, Register interfaces, APB peripherals, AXI interfaces, DMA blocks, CDC-sensitive modules, Reset-heavy designs, Protocol adapters.
-- **Adversarial Scenarios**: Boundary conditions, simultaneous read/write, mid-operation reset, handshake races, signed arithmetic, and parameter width edge cases.
-- **Fixture Separation**: 50 development fixtures in `benchmarks/transcripts/` are strictly isolated from held-out benchmark evaluation.
-
-### Three Baselines Comparison
-Automated comparison across identical tasks and seeds:
-- **Baseline A (Direct 1-shot)**: Spec → Model → RTL → Verification (no repair).
-- **Baseline B (Naive repair)**: Spec → Model → RTL → Verification → Unstructured Repair → Verification.
-- **Mind 3.0**: Spec → Contract Analysis → RTL → Independent Verification → Structured Evidence → Bounded Repair → Release Gate.
-
-### Release Gate & Human Approval Hard Gate
-Enforced via `ArtifactReleaseBundle` in `src/mind3/core/release.py`. A release bundle requires all 8 immutable components:
-1. `bundle_id`
-2. `rtl`
-3. `specification`
-4. `verification_evidence`
-5. `tool_versions`
-6. `run_id`
-7. `commit_sha`
-8. `evidence_hash` + cryptographic `approval_record`
-Any missing, altered, or unapproved component immediately blocks release.
+**This is NOT foundry signoff. NOT tapeout-ready. NOT production EDA.**
+A green `SiliconSignoffVerifier` result means "the configured live checks
+passed on this run" — nothing more.
 
 ---
 
-## 2. Verified Locally
+## 1. The honest scoreboard
 
-The following capabilities have been genuinely executed and verified on the local host environment:
+| What | Result | Verdict |
+|---|---|---|
+| Full pytest suite (macOS host) | **297 passed, 5 skipped** | Real. Zero failures. Skips are env-gated (no OpenROAD, no `bwrap` on Mac, no PDK). |
+| Docker `mind3-test` (no EDA) | **199 passed, 13 skipped** | Real. EDA tests skip without a Linux EDA stack. |
+| EDA smoke (Yosys 0.69+post, Verilator 5.052, SBY 0.69 + Z3) | Pass | Real, on host. |
+| Negative controls (16 intentionally broken designs) | **14 caught at exact expected gate, 2 env-skipped** | The best evidence this repo has. The gates actually catch bugs. |
+| Generator, Stage 6 diagnostic (`ollama / qwen2.5-coder:7b`, strict parser, seed 42) | **0/20 dev, 0/42 heldout partial. 0% full-verified.** | Real, and terrible. ~95% of failures are `RESPONSE_PARSE_FAILURE` — the strict parser rejects the model's prose-wrapped output before any EDA tool even runs. |
+| Release-eligible benchmark (≥100 real heldout tasks) | **Never run. Does not exist.** | Do not quote any accuracy number for this project. There is none. |
+| Frontier models (GPT-4o, Claude, etc.) | **Never tested live** | Unknown. Anyone claiming otherwise is guessing. |
+| Gate 6 CDC | **Unverifiable.** `cdc` command missing from Homebrew Yosys AND pinned OSS-CAD `2026-09-29` linux-arm64. Always `CDC_TOOLING_UNAVAILABLE`. | Fails closed correctly, but CDC is effectively untested. |
+| Gate 5 OpenROAD / Sky130 PDK | **Never executed on Mac. `[PENDING-HUMAN]`.** | Code exists. Evidence doesn't. |
+| Formal (Gate 2) | BMC depth-25 subset only. No liveness, no unbounded proofs, partial vacuity detection. | Honest but narrow. |
 
-- **Full Pytest Suite**: **297 passed, 5 skipped** on the macOS host (environment skips: OpenROAD binary missing, `bwrap` Linux-only, SkyWater PDK-gated canaries). Zero failures. Inside the `mind3-test` Docker container (no EDA stack): 199 passed, 13 skipped.
-- **Security & Anti-Tamper Tests**: Verified rejection of tampered evidence dictionaries, forged approval hashes, replayed stale hashes, missing release components, and mock results masquerading as verified (`tests/test_integrity_and_adversarial.py`).
-- **Reproducibility Test Suite**: Verified deterministic run hashing, manifest verification, and baseline metrics computation (`tests/test_benchmark_reproducibility.py`).
-- **EDA Toolchain Smoke Test**: Live probe via `./bin/mind3 smoke-test` verifying local binaries:
-  - Yosys `0.69+post` (elaboration & netlist optimization smoke verified)
-  - Verilator `5.052` (syntax & lint smoke verified)
-  - SymbiYosys `0.69` with Z3 SMT solver (BMC formal pass verified)
-- **Negative-Control Execution**: Ran live against host EDA tools (`./bin/mind3 negative-controls`). 14 negative controls caught at the exact expected failure gates; 2 cleanly skipped with explicit environment provenance.
-- **Held-Out Diagnostic Benchmark Runs (Stage 6)**: Live `ollama / qwen2.5-coder:7b` runs with the strict parser (seed 42): 20/20 real development transcripts (`artifacts/stage6_dev20/`) and a 42/120 partial heldout run (`artifacts/stage6_heldout/`), both 0 full-verified. Both are **diagnostic, not release-eligible** (release requires ≥100 real heldout tasks). Earlier `results/summary.json` figures describe an exploratory run, not live-inference evidence under the current runner, and are superseded by the Stage 6 diagnostic result.
-- **Packaging**: Wheel cleanly built via `pip wheel --no-deps --no-build-isolation -w dist .` yielding `dist/mind3-3.1.0-py3-none-any.whl`.
-- **Docker Test Container**: `mind3-test` image re-verified this stage (`docker run --rm mind3-test pytest -q`): 199 passed, 13 skipped (EDA-gated tests skip without a Linux EDA stack).
+**Bottom line:** plumbing ~solid, generator ~useless with the pinned default
+model, physical/CDC coverage ~missing. The 0% is a *measured* result, not a
+bug in measurement — the strict parser is doing its job, the model just
+doesn't emit clean RTL in the required shape.
 
 ---
 
-## 3. Requires EDA Environment
+## 2. What actually works
 
-The following features require the full Linux OSS CAD Suite environment and are cleanly skipped on macOS or unprovisioned hosts:
+- **Fail-closed gate philosophy, enforced in code — not slogans:**
+  `REAL TOOL → REAL RESULT / MISSING TOOL → EXPLICIT SKIP-BLOCK / MOCK → NEVER PRESENTED AS VERIFIED.`
+  The benchmark path hard-blocks mocks (`allow_mock_fallback=False`). The demo script (`examples/run_full_flow.py`) uses `allow_mock_fallback=True` — **do not copy that into evaluation code.**
+- **10-phase pipeline** (`INTAKE → ROUTE → SNAPSHOT → MODEL_CALL → PARSE → POLICY_CHECK → EXECUTE → OBSERVE → VERIFY → REPAIR_OR_FINISH → TRACE`) with SHA-256 hash-chained traces, tool versions, and artifact hashes. Tamper-evident, not PKI attestation.
+- **6 gates, executed in this order, fail-fast:** Gate 1 (Yosys elaboration + latch/loop) → 1b (LEC, opt-in) → 3 (Verilator sim + coverage) → 2 (SBY/Z3 BMC formal) → 4 (OpenSTA timing) → 5 (OpenROAD, opt-in) → 6 (CDC, fails closed without tooling).
+- **12-category failure taxonomy** — every failure maps to a machine-readable bucket (`SPECIFICATION_ERROR`, `RTL_SYNTAX_ERROR`, …, `TIMEOUT`, `UNKNOWN`). No silent failures.
+- **Bounded repair loop** — budget + edit-scope capped. It won't rewrite itself into oblivion.
+- **Release gate** (`ArtifactReleaseBundle`): 8 immutable fields + human approval hash bound to the exact `benchmark_summary.json` SHA. Missing/altered/unapproved = blocked. Exporter refuses to run without threshold + hash match.
+- **Reproducibility:** task-set SHA manifest (heldout-v1: 120 tasks, `bae56a8d…`), Wilson CIs, isolated workspaces, same-task-set baseline rejection.
+- **Sandboxing:** Bubblewrap `--unshare-all` on Linux, Seatbelt `sandbox-exec` on macOS. Fails closed if the sandbox is missing. No silent unsandboxed fallback.
 
-- **OpenSTA / Gate 4 Timing**: Requires `sta` / `opensta` binary and target Liberty (.lib) libraries.
-- **OpenROAD / Gate 5 Physical**: Requires `openroad` binary and SkyWater 130nm / equivalent PDK flow.
-- **Yosys CDC / Gate 6**: Requires a Yosys build exposing the `cdc` command. Executed Stage 5 evidence shows it absent from both the macOS Homebrew build and the pinned OSS CAD Suite `2026-09-29` linux-arm64 build (`yosys -p "help cdc"` → `No such command or cell type: cdc` in both); other builds untested. Gate 6 fails closed as `CDC_TOOLING_UNAVAILABLE` when absent.
-- **Bubblewrap Sandbox**: Requires Linux kernel user namespace support (`bwrap`).
+## 3. What's broken / missing / misleading
 
-For a fully provisioned environment, build and run via Docker:
+1. **The generator doesn't generate.** With `qwen2.5-coder:7b` + strict parser, output is prose-wrapped modules the parser correctly rejects. Lenient mode exists but is unmeasured — no, switching to lenient doesn't fix the score, it just changes what you're measuring.
+2. **No release-eligible evidence exists.** Anything in `results/summary.json` from before Stage 6 is exploratory and superseded. The only live-inference numbers are the 0/20 + 0/42 diagnostics.
+3. **`examples/run_full_flow.py` will mislead you.** Hardcoded FIFO demo, mock fallback allowed. Fine as a plumbing demo, garbage as a benchmark.
+4. **`cli.py` docstring lied.** It advertised `bundle export` / `verify` subcommands that don't exist — fixed 2026-10-08 to list the real CLI (`benchmark`, `smoke-test`, `negative-controls` only).
+5. **`FINAL_VERIFICATION_AUDIT.md` is stale** (claims 176/4, superseded by 297/5 + Stage 6). Read it as history, not truth.
+6. **`MIND_TASK.md` / `MIND_STATE.md` are agent scaffolding**, not user docs.
+7. **No `LICENSE` ships.** `[PENDING-HUMAN]` — owner must pick terms. Assume all-rights-reserved until then.
+8. **`.gitignore` leaks.** `results/`, `artifacts/*` (except `runs/`), `*.whl`, `.env` are not ignored. Clean before you commit.
+9. **`Dockerfile.eda` defaults to non-EDA tests** (`CMD pytest -q -m 'not eda'`). The EDA image doesn't run EDA tests unless you override the command.
+10. **Heldout cleanliness is `[UNVERIFIED]`** — the 20 dev tasks overlap the 120 heldout tasks and ran live first. Don't claim heldout purity.
+
+See `KNOWN_LIMITATIONS.md` — it is normative. Any claim contradicting it is a bug in the claim.
+
+---
+
+## 4. Quickstart
+
+**Requirements:** Python ≥3.11, plus EDA binaries on PATH for live gates: `yosys`, `sby`, `verilator`, `sta`/`opensta` for timing. Linux + `bwrap` for sandboxing and Gates 4–6. Gate 4 (timing) additionally needs a real PDK liberty file passed via `--liberty` (e.g. Sky130) — the 4.8KB stub in `src/mind3/pdata/` breaks Yosys ABC mapping; without it Gate 4 reports `ENVIRONMENT_FAILURE` by design.
+
 ```bash
+pip install -e '.[dev]'
+
+# Sanity: do tools exist and work?
+./bin/mind3 smoke-test
+
+# Fast suite, no EDA needed:
+python -m pytest -q -m 'not eda'
+
+# Full suite, pinned Linux EDA host only:
+python -m pytest -q
+
+# Do the gates catch known-bad RTL?
+./bin/mind3 negative-controls
+./bin/mind3 negative-controls --require-live   # fail if any skip
+
+# Readiness verdict (returns `experimental` without live EDA — by design):
+tools/check_readiness.sh
+MIND3_RUN_LIVE_EDA=1 tools/check_readiness.sh  # live env only
+```
+
+**Provision EDA (Linux):**
+
+```bash
+python tools/install_oss_cad_suite.py --tag 2026-09-29
+# or
 docker build -f Dockerfile.eda -t mind3-eda .
 ```
 
----
-
-## 4. Benchmark Results
-
-Stage 6 diagnostic evidence (`ollama / qwen2.5-coder:7b`, strict parser, seed 42) — **diagnostic, NOT release-eligible**:
-
-| Metric | Development-20 (20 real transcripts) | Heldout partial (42/120 real transcripts) |
-|---|---|---|
-| **Initial pass** | 0/20 (0.0%, Wilson CI [0.0%, 16.1%]) | 0/42 (0.0%, Wilson CI [0.0%, 8.4%]) |
-| **Functional pass** | 0/20 | 0/42 |
-| **Full verified pass** | **0/20** | **0/42** |
-| **Repair success** | 0/20 | 0/42 |
-| **Failure split** | 19 `RESPONSE_PARSE_FAILURE`, 1 `SPECIFICATION_ERROR` | 41 `RESPONSE_PARSE_FAILURE`, 1 `SPECIFICATION_ERROR` |
-| **Evidence tier** | `diagnostic` | `diagnostic` |
-
-Release eligibility requires ≥100 real heldout tasks plus the Stage 2b thresholds; it is not established. Do not read the 20/42 diagnostic figures as a final accuracy claim. The strict parser rejects this model's typical formatting (prose-wrapped modules), which dominates the failure split; see `docs/parser_modes.md` and `KNOWN_LIMITATIONS.md`.
-
----
-
-## 5. Not Yet Demonstrated
-
-To maintain strict scientific integrity, the following claims are **not** made:
-
-- **Foundry Signoff / Tapeout Ready**: Mind 3.0 is an RTL generation and verification workbench, not an ASIC tapeout signoff tool.
-- **Physical Closure on Complex SoCs**: Automated placement, routing, and DRC/LVS closure on multi-million gate hierarchies has not been evaluated.
-- **Unconstrained Asynchronous CDC Closure**: Asynchronous crossings without explicit SDC constraints or synchronization templates are not guaranteed.
-- **Frontier LLM Live Pass Rate**: Live API inference across paid proprietary models (e.g., Claude 3.5 Sonnet, GPT-4o) on the full 120-task suite without mock provider mediation remains to be executed in an automated evaluation harness with live API keys.
-
-The current workflow pins the OSS CAD Suite release tag `2026-09-29` (see https://github.com/YosysHQ/oss-cad-suite-build/releases/tag/2026-09-29).
-
-## Benchmark usage
-
-Dry-run the live environment check:
+**Benchmarks (prepared Linux host + Ollama running):**
 
 ```bash
 python -m mind3.benchmarks.runner --dry-run
-```
-
-Require every live prerequisite:
-
-```bash
 python -m mind3.benchmarks.runner --dry-run --require-live
-```
 
-Run real tasks on a prepared Linux host:
-
-```bash
 python -m mind3.benchmarks.runner \
-  --model "your-model" \
+  --model "qwen2.5-coder:7b" \
   --provider "ollama" \
   --max-repairs 3 \
   --min-tasks 100
 ```
 
-Evaluate an existing transcript directory without re-running generation:
+Evaluate existing transcripts without re-running generation:
 
 ```bash
 python -m mind3.benchmarks.runner \
@@ -177,78 +123,78 @@ python -m mind3.benchmarks.runner \
   --min-tasks 100
 ```
 
-Reports are written to `artifacts/benchmark_report/` as JSON, Markdown, and HTML. Same-task-set baselines can be supplied with `--baselines baselines.json`; different task-set hashes are rejected. A baseline row contains its name, exact task-set SHA-256, task count, measured functional/full-verified rates, and source.
+Reports land in `artifacts/benchmark_report/` (JSON + Markdown + HTML).
+Same-task-set baselines only — different task-set hashes are rejected.
 
-## Readiness checker
-
-```bash
-tools/check_readiness.sh
-```
-
-This intentionally returns **experimental** when live EDA has not been executed. For a live environment:
-
-```bash
-MIND3_RUN_LIVE_EDA=1 tools/check_readiness.sh
-```
-
-The readiness checker will not infer performance from unit tests or the 50 mock fixtures.
-
-### Human approval before release export
-
-A release evidence bundle requires a real benchmark result and a human approval file bound to the exact SHA-256 of `benchmark_summary.json`. The exporter refuses to run when the evidence threshold or approval hash does not match:
+**Release export (human gate — no bypass):**
 
 ```bash
 python scripts/create_release_approval_template.py
-# Replace reviewer / approval_id / approved_at in human_approval.json.
+# fill in reviewer / approval_id / approved_at in human_approval.json
 python scripts/export_verified_bundle.py --approval human_approval.json
 ```
 
-## Security boundary
+---
 
-Mind 3.0 requires sandboxed local execution (Bubblewrap on Linux; Seatbelt `sandbox-exec` on macOS) and does not silently downgrade to an unsandboxed executor. SSH-based remote EDA uses configured host-key pins rather than disabling host-key checks. Required EDA failures are explicit and fail closed.
-
-## Project structure
+## 5. Project structure
 
 ```text
-.
-├── benchmarks/
-│   ├── tasks.jsonl
-│   └── transcripts/                  # schema fixtures only; excluded from metrics
-├── docs/
-│   ├── benchmarks.md
-│   ├── performance-criteria.md
-│   └── phase4_readiness.md
-├── scripts/
-│   ├── run_negative_controls.py
-│   └── export_verified_bundle.py
-├── tools/
-│   ├── check_readiness.sh
-│   └── install_oss_cad_suite.py
-├── src/mind3/
-│   ├── benchmarks/runner.py
-│   ├── core/
-│   │   ├── contracts.py
-│   │   ├── driver.py
-│   │   ├── formal_templates.py
-│   │   ├── release.py
-│   │   └── verifier.py
-│   ├── sandbox/
-│   └── ...
-└── tests/
-    ├── negative_controls/
-    └── ...
+src/mind3/
+  core/verifier.py        # SiliconSignoffVerifier + all gates (THE authority — one impl per gate)
+  core/driver.py          # 10-phase pipeline, strict parser, repair loop, hash-chained trace
+  core/contracts.py       # InterfaceContract, RTL + harness generators (SVA bind, SBY cfg, Verilator TB, SDC)
+  core/formal_templates.py# Typed BMC property DSL (depth 25; unsupported → UNSUPPORTED_FORMAL_PROPERTY)
+  core/failure_taxonomy.py# 12 failure categories
+  core/release.py         # ArtifactReleaseBundle (8 fields + approval hash binding)
+  core/power.py, dft.py, assurance.py, cache.py, dataset.py
+  benchmarks/runner.py + reproducibility.py + baselines.py
+  sandbox/bwrap.py (Linux) / macos.py (Seatbelt) / remote_eda.py / eda_commercial.py
+  eda/smoke_test.py + tcl_templates.py
+  soc/interconnect.py | skills/registry,router,models.py | cli.py | pdata/sky130/
+benchmarks/
+  tasks.jsonl (50) | heldout/tasks.jsonl (120) + manifest | development-20/ (20) | transcripts/ (50 fixtures, NOT metrics)
+tests/ (30 files + negative_controls/ 16 broken designs + fixtures/)
+docs/ benchmarks.md, performance-criteria.md, parser_modes.md, gate2_formal.md, cdc_gate6.md, linux_verification.md
+tools/check_readiness.sh, install_oss_cad_suite.py
+scripts/ (20 one-off audit runners, not installed)
+skill/ (2 prompt packs: semiconductor-VLSI, industry-report-analyst)
+examples/run_full_flow.py   # DEMO ONLY — mock fallback on, do not benchmark with this
+bin/mind3                   # shim → python3 -m mind3.cli
 ```
 
-## Development
+Key config: `pyproject.toml` (`mind3==3.1.0`, deps only `httpx/pydantic/PyYAML`), `pytest.ini`, `pyrightconfig.json`.
 
-Python 3.11 is the project baseline. Run the non-EDA suite on a development machine without the live EDA stack:
+---
 
-```bash
-python -m pytest -q -m 'not eda'
-```
+## 6. Performance criteria (what "good" would look like)
 
-Run the complete suite on a Linux host with the pinned EDA environment:
+From `docs/performance-criteria.md` — none of these tiers have been reached:
 
-```bash
-python -m pytest -q
-```
+| Tier | Functional | Full-verified | Status |
+|---|---|---|---|
+| Experimental | — | — | **We are here.** |
+| Useful-specialist | ≥70% | ≥40% | Not reached (measured: 0%). |
+| Strong | ≥80% | ≥60% | Not reached. |
+| Tapeout-assist | ≥85% | ≥70% | Not reached — and still wouldn't mean tapeout signoff. |
+
+Release eligibility = ≥100 real heldout tasks + Stage 2b thresholds. Diagnostic runs (<100 tasks) don't count, no matter how good they look.
+
+## 7. Security boundary
+
+- Sandboxed execution required (bwrap / Seatbelt). No silent downgrade.
+- SSH remote EDA uses pinned host keys, never `StrictHostKeyChecking=no`.
+- `OPENROUTER_API_KEY` via env only. OpenRouter = WAN egress; loopback Ollama (`127.0.0.1:11434`) is the loopback-only default with `LOOPBACK_ONLY_NO_EGRESS` chain.
+- Path-traversal guards on. Tampered evidence / forged approvals / replayed hashes are rejected and tested (`tests/test_integrity_and_adversarial.py`).
+
+See `SECURITY.md`.
+
+---
+
+## 8. For the next AI reading this (what to do first)
+
+1. Read `KNOWN_LIMITATIONS.md` before believing any number in any other file.
+2. Run `./bin/mind3 smoke-test` and `python -m pytest -q -m 'not eda'` to ground yourself.
+3. To move the needle: fix the **generator→parser contract** (prompt template emits prose, strict parser wants exactly-one-module or JSON actions). That's where the 0% lives — not in the gates.
+4. Then run a real ≥100-task heldout evaluation with a capable model. Until that exists, there is no accuracy claim. Period.
+5. Don't "fix" Gate 6 by stubbing CDC. Either get a CDC-capable Yosys or keep `CDC_TOOLING_UNAVAILABLE` failing closed.
+6. Pick a `LICENSE`. Add `results/`, `artifacts/`, `*.whl`, `.env` to `.gitignore`. Fix the `cli.py` docstring. Delete or label `FINAL_VERIFICATION_AUDIT.md` as superseded.

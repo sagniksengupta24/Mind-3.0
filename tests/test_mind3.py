@@ -2748,7 +2748,7 @@ def test_silicon_pipeline_rtl_extraction_raw_rtl_with_content_comment(monkeypatc
         success = driver.run_silicon_pipeline("Synthesize comment_alu", liberty_path="sky130.lib")
         assert success is True
         written_content = (ws / "comment_alu.sv").read_text(encoding="utf-8")
-        assert written_content == raw_rtl_with_content_comment.strip()
+        assert written_content == raw_rtl_with_content_comment.strip() + "\n"
         assert "Header content block" in written_content
         assert "Payload content definition" in written_content
 
@@ -2933,7 +2933,9 @@ def test_gate5_openroad_binary_missing_with_require_pnr() -> None:
         assert gate5_report["error_category"] == "EDA_BINARY_MISSING"
 
 
-def test_gate6_cdc_violation_detection() -> None:
+def test_gate6_cdc_violation_detection(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """Gate 6 must detect and report CDC WARNING lines from Yosys output."""
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
@@ -2964,7 +2966,9 @@ def test_gate6_cdc_violation_detection() -> None:
         assert any("clk_a" in v for v in gate6_report["cdc_violations"])
 
 
-def test_gate6_cdc_clean() -> None:
+def test_gate6_cdc_clean(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """Gate 6 must pass cleanly when Yosys reports no CDC warnings."""
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
@@ -2990,7 +2994,9 @@ def test_gate6_cdc_clean() -> None:
         assert gate6_report["error_category"] is None
 
 
-def test_gate6_cdc_tooling_unavailable_distinction() -> None:
+def test_gate6_cdc_tooling_unavailable_distinction(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """Gate 6 must distinguish missing CDC command from real CDC violations."""
     # 1. Parser-level assertion: 'No such command or cell type: cdc' must not report violations
     raw_missing_cmd_log = (
@@ -4326,7 +4332,9 @@ def test_cdc_single_clock_no_async_explicit_contract_skipped() -> None:
     assert res["cdc_violations"] == []
 
 
-def test_cdc_single_clock_async_reset_requires_analysis() -> None:
+def test_cdc_single_clock_async_reset_requires_analysis(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """One clock + asynchronous reset -> CDC runs (tool invoked), clean output passes."""
     contract = _stage4_contract(async_inputs=[], synchronous=False)
     runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
@@ -4338,7 +4346,9 @@ def test_cdc_single_clock_async_reset_requires_analysis() -> None:
     assert res["error_category"] is None
 
 
-def test_cdc_single_clock_async_input_requires_analysis() -> None:
+def test_cdc_single_clock_async_input_requires_analysis(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """One clock + declared async input -> CDC runs even though reset is synchronous."""
     contract = _stage4_contract(async_inputs=["irq"], synchronous=True)
     runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
@@ -4347,7 +4357,9 @@ def test_cdc_single_clock_async_input_requires_analysis() -> None:
     assert res["passed"] is True
 
 
-def test_cdc_clock_count_never_decides() -> None:
+def test_cdc_clock_count_never_decides(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """The requirement decision ignores clock count; undeclared async state always requires CDC."""
     from mind3.core.verifier import SiliconSignoffVerifier
     with_clock = SiliconSignoffVerifier(top_module="t", contract=_stage4_contract(async_inputs=None, with_clock=True))
@@ -4361,7 +4373,9 @@ def test_cdc_clock_count_never_decides() -> None:
     assert len(runner.commands) == 1
 
 
-def test_cdc_missing_tool_yields_tooling_unavailable() -> None:
+def test_cdc_missing_tool_yields_tooling_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """Required CDC + absent 'cdc' command -> FAIL with CDC_TOOLING_UNAVAILABLE, never PASS."""
     contract = _stage4_contract(async_inputs=None)
     runner = _Stage4Runner(stdout="No such command or cell type: cdc\n", stderr="", returncode=0)
@@ -4372,7 +4386,9 @@ def test_cdc_missing_tool_yields_tooling_unavailable() -> None:
     assert "CDC command" in res["details"] or "cdc" in res["details"].lower()
 
 
-def test_cdc_violation_reports_evidence() -> None:
+def test_cdc_violation_reports_evidence(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """Tool-reported crossing -> FAIL with CDC_VIOLATION and preserved tool evidence."""
     contract = _stage4_contract(async_inputs=["data_b"])
     runner = _Stage4Runner(stdout="[cdc] warning: unregistered crossing from clk_a to clk_b\n", returncode=0)
@@ -4383,7 +4399,9 @@ def test_cdc_violation_reports_evidence() -> None:
     assert "clk_a" in res["cdc_violations"][0]
 
 
-def test_cdc_tool_error_yields_analysis_failed() -> None:
+def test_cdc_tool_error_yields_analysis_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """Tool crash (nonzero exit, no violation markers) -> FAIL with CDC_ANALYSIS_FAILED."""
     contract = _stage4_contract(async_inputs=None)
     runner = _Stage4Runner(stdout="", stderr="ERROR: hierarchy check failed for top\n", returncode=1)
@@ -4392,7 +4410,9 @@ def test_cdc_tool_error_yields_analysis_failed() -> None:
     assert res["error_category"] == "CDC_ANALYSIS_FAILED"
 
 
-def test_cdc_explicit_opt_out_recorded_distinctly() -> None:
+def test_cdc_explicit_opt_out_recorded_distinctly(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """require_cdc=False skips are recorded as explicit opt-outs, distinct from contract skips."""
     contract = _stage4_contract(async_inputs=None)
     runner = _Stage4Runner(stdout="", stderr="yosys: command not found\n", returncode=127)
@@ -4404,7 +4424,9 @@ def test_cdc_explicit_opt_out_recorded_distinctly() -> None:
     assert res["cdc_skip_reason"] != "contract_declares_no_cdc"
 
 
-def test_cdc_pass_requires_actual_execution() -> None:
+def test_cdc_pass_requires_actual_execution(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """PASS occurs only when the tool actually ran and reported clean."""
     contract = _stage4_contract(async_inputs=["irq"])
     runner = _Stage4Runner(stdout="Checking CDC...\nCDC check complete: 0 violations.\n", returncode=0)
@@ -4415,7 +4437,9 @@ def test_cdc_pass_requires_actual_execution() -> None:
     assert res["cdc_violations"] == []
 
 
-def test_cdc_gate_always_has_explicit_state_in_orchestration() -> None:
+def test_cdc_gate_always_has_explicit_state_in_orchestration(monkeypatch: pytest.MonkeyPatch) -> None:
+    # External yosys-cdc backend pinned: mocked external tool path.
+    monkeypatch.setattr("mind3.core.verifier.has_external_yosys_cdc", lambda: True)
     """Through verify(), a failing Gate 6 is recorded with explicit FAIL status (never NOT_RUN/PASS)."""
     import tempfile
     from pathlib import Path

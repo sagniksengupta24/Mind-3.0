@@ -60,3 +60,8 @@
 - Standing nuisance (not fixed): every full-suite run re-executes the V0/V1
   soundness tests, which rewrite `v0/v1_results.json` SBY timestamp tails and
   dirty the tree. Follow-up: write result JSONs only on verdict change.
+
+## S2 (golden review package)
+- Wrote `results/v4/reports/goldens_for_review.md`: six goldens reprinted
+  verbatim (machine-checked against `tests/golden/`) with the spec fields each
+  was written from. Goldens unaltered.

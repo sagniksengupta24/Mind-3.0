@@ -14,6 +14,7 @@ import os
 import shutil
 import statistics
 import subprocess
+import sys
 import tempfile
 import time
 from collections import Counter, deque
@@ -91,6 +92,12 @@ class BenchmarkTranscript(BaseModel):
     duration_seconds: float | None = None
     environment: dict[str, Any] = Field(default_factory=dict)
     artifact_hashes: dict[str, str] = Field(default_factory=dict)
+    # R2 harness fields (runner-side only; verifier untouched).
+    # env_blocked marks tool/environment failures so reports do not attribute
+    # them to the model. cdc_backend records which Gate-6 backend produced the
+    # result ("structural-only" when the structural fallback ran).
+    env_blocked: bool = False
+    cdc_backend: str | None = None
 
 
 class BenchmarkBaseline(BaseModel):
@@ -180,6 +187,10 @@ class BenchmarkRunSummary(BaseModel):
     tool_versions: dict[str, str]
     baseline_comparisons: list[dict[str, Any]] = Field(default_factory=list)
     methodology: dict[str, Any]
+    # R2 harness fields: count of env-blocked transcripts and per-backend counts
+    # for Gate-6 CDC results.
+    env_blocked_count: int = 0
+    cdc_backend_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class BenchmarkRunner:
@@ -339,6 +350,8 @@ class BenchmarkRunner:
             duration_seconds=None,
             environment=environment,
             artifact_hashes=artifact_hashes,
+            env_blocked=is_env_blocked_outcome(final_outcome),
+            cdc_backend=cdc_backend_of(environment),
         )
 
     def persist_transcript(self, transcript: BenchmarkTranscript) -> Path:
@@ -450,6 +463,8 @@ class BenchmarkRunner:
                 contract=contract.model_dump(mode="json"),
                 final_outcome={"passed": False, "status": "RUN_EXCEPTION", "error": str(exc), "error_category": "ENVIRONMENT_FAILURE"},
                 environment={"eda_versions": verifier.detected_versions, "exception_type": type(exc).__name__},
+                env_blocked=True,
+                cdc_backend=cdc_backend_of({"eda_versions": verifier.detected_versions}),
             )
         finally:
             driver.close()
@@ -495,7 +510,15 @@ class BenchmarkRunner:
         verified = [t for t in real if bool(t.final_outcome.get("passed")) and bool(t.final_outcome.get("silicon_verified"))]
         repaired = [t for t in real if bool(t.final_outcome.get("passed")) and not _initial_passed(t)]
         turns = [int(v) for t in real if isinstance((v := t.final_outcome.get("turns_taken")), int)]
-        failure_categories = Counter(t.gate_failure_category or str(t.final_outcome.get("error_category") or "NONE") for t in real)
+        # R2: tool/environment problems are reported as "env-blocked" so they are
+        # never attributed to the model. This only re-labels transcripts whose
+        # final outcome already records an environment failure category.
+        failure_categories = Counter(
+            "env-blocked" if t.env_blocked else (t.gate_failure_category or str(t.final_outcome.get("error_category") or "NONE"))
+            for t in real
+        )
+        env_blocked_count = sum(1 for t in real if t.env_blocked)
+        cdc_backend_counts = dict(Counter(t.cdc_backend if t.cdc_backend else "not-recorded" for t in real))
         tool_versions: dict[str, str] = {}
         for t in real:
             versions = t.environment.get("eda_versions", {})
@@ -538,6 +561,8 @@ class BenchmarkRunner:
             model_counts=dict(Counter(t.model for t in real)),
             provider_counts=dict(Counter(t.provider for t in real)),
             tool_versions=tool_versions,
+            env_blocked_count=env_blocked_count,
+            cdc_backend_counts=cdc_backend_counts,
             methodology={
                 "initial_pass": "final result passes on turn 0 without repair",
                 "functional_pass": "final Gate 3 coverage succeeds as part of the signoff chain",
@@ -545,6 +570,8 @@ class BenchmarkRunner:
                 "repair_success": "final success occurred after at least one repair turn",
                 "confidence_interval": "95% Wilson binomial interval",
                 "fixtures_excluded_from_metrics": True,
+                "env_blocked": "transcripts whose final outcome records a tool/environment failure are counted as env-blocked, never attributed to the model",
+                "cdc_backend": "Gate-6 results are labeled structural-only when the pinned structural fallback ran",
                 "minimum_claim_tasks": 100,
                 "specialist_thresholds": {"functional": 0.70, "full_verified": 0.40},
                 "strong_thresholds": {"functional": 0.80, "full_verified": 0.60},
@@ -601,6 +628,11 @@ class BenchmarkRunner:
             f"- Transcripts observed: {summary.transcript_count}",
             f"- Real generation outputs included in metrics: {summary.actual_real_transcripts}",
             f"- Fixtures excluded: {summary.fixture_count}",
+            f"- Env-blocked (tool/environment, not model): {summary.env_blocked_count}",
+            "",
+            "## Gate-6 CDC backends",
+            f"- {', '.join(f'`{k}`: {v}' for k, v in sorted(summary.cdc_backend_counts.items())) if summary.cdc_backend_counts else 'no CDC backend records'}",
+            "",
             f"- Required minimum tasks: {summary.required_min_tasks}",
             f"- Caveat: *{summary.caveat}*",
             "",
@@ -660,7 +692,7 @@ class BenchmarkRunner:
 <p class=\"muted\">Generated: <code>{esc(summary.generated_at)}</code><br>Task-set SHA-256: <code>{esc(summary.task_set_sha256)}</code></p>
 <h2>Evidence scope</h2>
 <p>Evidence tier: <b>{esc(summary.evidence_tier)}</b> | Live provenance: <b>{esc(summary.live_provenance)}</b></p>
-<p>Observed transcripts: <b>{summary.transcript_count}</b>; real generation outputs used for metrics: <b>{summary.actual_real_transcripts}</b>; fixtures excluded: <b>{summary.fixture_count}</b>; required min tasks: <b>{summary.required_min_tasks}</b>.</p>
+<p>Observed transcripts: <b>{summary.transcript_count}</b>; real generation outputs used for metrics: <b>{summary.actual_real_transcripts}</b>; fixtures excluded: <b>{summary.fixture_count}</b>; required min tasks: <b>{summary.required_min_tasks}</b>; env-blocked (tool/environment, not model): <b>{summary.env_blocked_count}</b>.</p>
 <p><em>{esc(summary.caveat)}</em></p>
 <h2>Metrics</h2>
 <table><thead><tr><th>Metric</th><th>Count</th><th>Rate</th><th>95% CI</th></tr></thead><tbody>{html_rows}</tbody></table>
@@ -722,6 +754,129 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+# ── R2 harness helpers: holdout seal + result-field classification ────────────
+# Runner/CLI-side only. Verifier code, thresholds, and gate semantics are untouched.
+
+class HoldoutSealError(RuntimeError):
+    """Raised when a holdout task path is used without a valid explicit unseal."""
+
+
+def is_holdout_path(path: Path | str) -> bool:
+    """True if any component of the resolved path names a holdout set.
+
+    Name-based only (no file contents are read), so the seal itself can never
+    leak heldout task details. Matches `heldout`, `heldout-v2`, etc.
+    """
+    try:
+        parts = Path(path).resolve().parts
+    except OSError:
+        parts = Path(path).parts
+    return any("heldout" in part.lower() for part in parts)
+
+
+def _seal_tasks_file(tasks_path: Path) -> Path:
+    """Resolve the tasks JSONL file for a --tasks/--suite path."""
+    p = tasks_path.resolve()
+    if p.is_file():
+        return p
+    candidate = p / "tasks.jsonl"
+    if candidate.is_file():
+        return candidate
+    raise HoldoutSealError(f"holdout seal: tasks file not found under {tasks_path}")
+
+
+def check_holdout_seal(tasks_path: Path | str | None, *, unseal: bool) -> dict[str, Any]:
+    """Fail-closed guard for holdout task sets. Returns a seal record dict.
+
+    - Non-holdout paths: always allowed, no manifest consulted (dev path untouched).
+    - Holdout paths: refused unless `unseal` is True AND a `manifest.json` next to
+      the tasks file records a SHA-256 (`tasks_sha256` or `task_set_sha256`) that
+      exactly matches the tasks file. Missing/mismatched/unreadable manifest refuses.
+    """
+    if tasks_path is None:
+        return {"holdout": False, "sealed": False, "unsealed": False}
+    if not is_holdout_path(tasks_path):
+        return {"holdout": False, "sealed": False, "unsealed": False}
+    if not unseal:
+        raise HoldoutSealError(
+            f"refusing holdout task path without explicit --unseal: {tasks_path}"
+        )
+    tasks_file = _seal_tasks_file(Path(tasks_path))
+    base = tasks_file.parent
+    manifest_path = base / "manifest.json"
+    if not manifest_path.is_file():
+        raise HoldoutSealError(
+            f"refusing unsealed holdout run: manifest.json missing next to {tasks_file}"
+        )
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise HoldoutSealError(f"refusing unsealed holdout run: unreadable manifest: {exc}")
+    recorded = manifest.get("tasks_sha256") or manifest.get("task_set_sha256")
+    actual = sha256_file(tasks_file)
+    if not recorded or recorded != actual:
+        raise HoldoutSealError(
+            "refusing unsealed holdout run: manifest hash mismatch "
+            f"(recorded={recorded!r} actual={actual!r})"
+        )
+    return {"holdout": True, "sealed": True, "unsealed": True, "task_set_sha256": actual}
+
+
+_ENV_BLOCKED_ERROR_CATEGORIES = frozenset({"ENVIRONMENT_FAILURE"})
+
+
+def is_env_blocked_outcome(final_outcome: dict[str, Any]) -> bool:
+    """True when a final outcome records a tool/environment failure (not the model)."""
+    if not isinstance(final_outcome, dict):
+        return False
+    return str(final_outcome.get("error_category", "")) in _ENV_BLOCKED_ERROR_CATEGORIES
+
+
+def cdc_backend_of(environment: dict[str, Any] | None) -> str | None:
+    """Classify which Gate-6 CDC backend produced a result.
+
+    Returns "structural-only" when the pinned structural fallback ran, "external"
+    when an external CDC tool version is recorded, else None (Gate 6 not reached
+    or backend unrecorded). Read from runner-side environment metadata only.
+    """
+    if not isinstance(environment, dict):
+        return None
+    versions = environment.get("eda_versions")
+    if not isinstance(versions, dict):
+        return None
+    marker = str(versions.get("cdc", ""))
+    if not marker:
+        return None
+    if "structural" in marker.lower():
+        return "structural-only"
+    return "external"
+
+
+# Files whose silent modification during a run must fail loudly (rule 5):
+# verifier code, gate configs/thresholds, and the holdout seal inputs.
+# Recorded per baseline run (R4/R10); generator/repair/template code must never
+# write to these paths.
+VERIFIER_PINNED_PATHS = (
+    "src/mind3/core/verifier.py",
+    "src/mind3/core/formal_templates.py",
+    "src/mind3/core/contracts.py",
+)
+
+
+def verifier_checksum_snapshot(repo_root: Path | str | None = None) -> dict[str, str]:
+    """SHA-256 over the pinned verifier/config files. Missing files are recorded
+    with a 'missing:' prefix (fail-closed signal for the caller), never silently skipped."""
+    root = Path(repo_root).resolve() if repo_root is not None else Path(__file__).resolve().parents[3]
+    snapshot: dict[str, str] = {}
+    for rel in VERIFIER_PINNED_PATHS:
+        path = root / rel
+        if path.is_file():
+            snapshot[rel] = sha256_file(path)
+        else:
+            snapshot[rel] = f"missing:{rel}"
+    return snapshot
 
 
 def _initial_passed(t: BenchmarkTranscript) -> bool:
@@ -798,6 +953,7 @@ def _cli() -> int:
     parser.add_argument("--baselines", type=Path, default=None, help="JSON array of baselines measured on the exact same task-set hash")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--require-live", action="store_true")
+    parser.add_argument("--unseal", action="store_true", help="Explicitly permit a holdout task path (requires a matching manifest hash; dev paths are unaffected)")
     parser.add_argument("--parser-mode", choices=("strict", "lenient"), default="strict", help="Model-response parser mode: strict (default) accepts only WriteFileAction, fenced blocks, repair patches, or exactly one module; lenient additionally permits bounded recovery of malformed local-model output and is recorded in traces and summaries")
     parser.add_argument("--decode-temperature", type=float, default=0.0, help="Ollama sampling temperature (default 0.0, deterministic)")
     parser.add_argument("--decode-seed", type=int, default=None, help="Ollama sampling seed (default None = server default; supply 42/43/44 for pinned multi-seed runs)")
@@ -805,6 +961,12 @@ def _cli() -> int:
     parser.add_argument("--decode-num-ctx", type=int, default=8192, help="Ollama context window (anti-prompt-truncation guard)")
     parser.add_argument("--generation-format", choices=("json", "text", "json-schema"), default="json", help="Ollama format for generation/repair calls: json (default, current behavior), text (Track F, no constraint), json-schema (Track J, WriteFileAction schema)")
     args = parser.parse_args()
+
+    try:
+        check_holdout_seal(args.tasks, unseal=args.unseal)
+    except HoldoutSealError as exc:
+        print(f"HOLDOUT_SEAL_REFUSAL: {exc}", file=sys.stderr)
+        return 2
 
     runner = BenchmarkRunner(tasks_file=args.tasks, transcripts_dir=args.transcripts)
     tasks = runner.load_tasks()

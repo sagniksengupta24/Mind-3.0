@@ -1,9 +1,15 @@
 """Command-line interface for Mind 3.0.
 
 Provides:
-- `mind3 benchmark --suite heldout --seed 42`
+- `mind3 benchmark --suite development-20 --seed 42`
 - `mind3 smoke-test`
 - `mind3 negative-controls`
+- `mind3 bundle export --approval <file>`
+- `mind3 verify --workspace <path>`
+
+Holdout suites are sealed by convention AND by code: a suite path naming a
+holdout set is refused unless `--unseal` is passed and the suite manifest hash
+matches the tasks file (see `mind3.benchmarks.runner.check_holdout_seal`).
 """
 
 from __future__ import annotations
@@ -26,6 +32,12 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
             print(f"Error: benchmark suite directory not found: {suite_dir}", file=sys.stderr)
             return 1
 
+    try:
+        from .benchmarks.runner import check_holdout_seal
+        check_holdout_seal(suite_dir, unseal=getattr(args, "unseal", False))
+    except Exception as exc:
+        print(f"HOLDOUT_SEAL_REFUSAL: {exc}", file=sys.stderr)
+        return 2
     out_dir = Path(args.output).resolve() if args.output else repo_root / "results"
     print(f"=== Mind 3.0 Benchmark Execution ===")
     print(f"Suite: {suite_dir}")
@@ -104,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # benchmark
     p_bench = subparsers.add_parser("benchmark", help="Run reproducible RTL benchmark suite")
-    p_bench.add_argument("--suite", default="heldout", help="Benchmark suite name under benchmarks/ (heldout, heldout-v2, development-20) or a direct path")
+    p_bench.add_argument("--suite", default="development-20", help="Benchmark suite name under benchmarks/ (default: development-20; heldout suites require --unseal plus a matching manifest hash) or direct path")
     p_bench.add_argument("--seed", type=int, default=42, help="Deterministic random seed")
     p_bench.add_argument("--model", default="qwen2.5-coder:7b", help="Model identifier")
     p_bench.add_argument("--provider", choices=("ollama", "openrouter", "mock"), default="ollama", help="LLM provider; mock is evidence-blocked and never counts as benchmark performance")
@@ -121,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     p_bench.add_argument("--decode-num-predict", type=int, default=4096, help="Ollama max completion tokens (anti-truncation guard)")
     p_bench.add_argument("--decode-num-ctx", type=int, default=8192, help="Ollama context window (anti-prompt-truncation guard)")
     p_bench.add_argument("--generation-format", choices=("json", "text", "json-schema"), default="json", help="Ollama format for generation/repair calls: json (default), text (Track F), json-schema (Track J)")
+    p_bench.add_argument("--unseal", action="store_true", help="Explicitly permit a holdout suite path (requires a matching manifest hash)")
     p_bench.set_defaults(func=cmd_benchmark)
 
     # smoke-test

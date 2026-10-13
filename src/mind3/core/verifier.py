@@ -1040,6 +1040,29 @@ def run_cdc_preflight() -> list[str]:
 
 
 
+def _design_has_branch_points(top_source: Path, extra_sources: list[Path] | None = None) -> bool:
+    """Deterministic static check: does the design contain branch constructs?
+
+    Strips line/block comments, then looks for if/case/casex/casez/for/while/
+    forever/repeat keywords or a ternary `?` in the top-module source (plus
+    any extra non-generated sources). Used only for the P7 zero-branch rule.
+    """
+    candidates = [top_source] + [p for p in (extra_sources or []) if p != top_source]
+    for path in candidates:
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        code = re.sub(r"/\*.*?\*/", " ", text, flags=re.DOTALL)
+        code = re.sub(r"//[^\n]*", " ", code)
+        if re.search(r"\b(if|case|casex|casez|for|while|forever|repeat)\b", code):
+            return True
+        if re.search(r"\?", code):
+            return True
+    return False
+
+
+
 class SiliconSignoffVerifier(BaseVerifier):
     """6-gate hierarchical RTL verification pipeline with optional physical checks.
 
@@ -1915,6 +1938,16 @@ class SiliconSignoffVerifier(BaseVerifier):
 
     def _run_gate2_formal_sby(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
         """Execute SymbiYosys Bounded Model Checking formal verification using typed bounded-property templates (a supported subset of SVA)."""
+        from .formal_templates import tautology_audit_for_contract
+
+        try:
+            _taut_audit = tautology_audit_for_contract(
+                list(getattr(self.contract, "formal_properties", []) or []),
+                list(getattr(self.contract, "sva_properties", []) or []),
+            )
+            dropped_names: list[str] = list(_taut_audit.get("dropped", []))
+        except Exception:
+            dropped_names = []
         preferred = ws / f"{self.top_module}.sby"
         sby_candidates = sorted(
             (p for p in ws.glob("*.sby") if not p.name.endswith("_cover.sby")),
@@ -1924,7 +1957,7 @@ class SiliconSignoffVerifier(BaseVerifier):
         generated_harness = False
         if not sby_files and self.contract is not None:
             from .contracts import VerificationHarnessGenerator, UnsupportedFormalPropertyError
-            from .formal_templates import UnsupportedFormalTemplate
+            from .formal_templates import NoGenuineProperty, UnsupportedFormalTemplate
             structured_props = list(getattr(self.contract, "formal_properties", []) or [])
             legacy_props = list(getattr(self.contract, "sva_properties", []) or [])
             if not structured_props and not legacy_props:
@@ -1939,6 +1972,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                         "error_category": "EMPTY_FORMAL_PROPERTY_SET",
                         "skipped": False,
                         "simulated": False,
+                        "dropped_tautologies": dropped_names,
                     }
             else:
                 try:
@@ -1958,6 +1992,23 @@ class SiliconSignoffVerifier(BaseVerifier):
                         "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
                         "skipped": False,
                         "simulated": False,
+                        "dropped_tautologies": dropped_names,
+                    }
+                except NoGenuineProperty as exc:
+                    return {
+                        "gate": "Gate 2: SymbiYosys Formal Property Verification",
+                        "passed": False,
+                        "exit_code": 1,
+                        "stdout": "",
+                        "stderr": str(exc),
+                        "details": (
+                            "Gate 2 formal verification rejected: no genuine "
+                            f"property remains ({exc})."
+                        ),
+                        "error_category": "NO_GENUINE_PROPERTY",
+                        "skipped": False,
+                        "simulated": False,
+                        "dropped_tautologies": dropped_names,
                     }
                 sva_bind_path = ws / f"{self.top_module}_sva.sv"
                 sva_bind_path.write_text(sva_bind_code, encoding="utf-8")
@@ -1983,6 +2034,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "error_category": "MISSING_VERIFICATION_ARTIFACT",
                     "skipped": False,
                     "simulated": False,
+                    "dropped_tautologies": dropped_names,
                 }
             return {
                 "gate": "Gate 2: SymbiYosys Formal Property Verification",
@@ -1994,6 +2046,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "error_category": None,
                 "skipped": True,
                 "simulated": False,
+                "dropped_tautologies": dropped_names,
             }
 
         cmd = ["sby", "-f", str(sby_files[0].relative_to(ws))]
@@ -2015,6 +2068,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     ),
                     "error_category": "EDA_BINARY_MISSING",
                     "simulated": False,
+                    "dropped_tautologies": dropped_names,
                 }
             return {
                 "gate": "Gate 2: SymbiYosys Formal Property Verification",
@@ -2026,6 +2080,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "error_category": None,
                 "simulated": True,
                 "skipped": False,
+                "dropped_tautologies": dropped_names,
             }
 
         if proc.returncode != 0 or "Assert failed" in combined or "FAIL" in combined:
@@ -2039,6 +2094,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "details": f"Formal property construct unsupported by toolchain: {combined[:300]}",
                     "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
                     "simulated": False,
+                    "dropped_tautologies": dropped_names,
                 }
 
             # Parse counterexample timestamp (supports legacy 'step X FAILED' and modern SBY 'step X')
@@ -2099,6 +2155,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "property_source": property_source,
                 "counterexample_trace": counterexample_trace,
                 "simulated": False,
+                "dropped_tautologies": dropped_names,
             }
 
         # Assert job passed. A passing implication whose antecedent was never
@@ -2125,6 +2182,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "vacuity": vacuity,
                 "simulated": False,
                 "skipped": False,
+                "dropped_tautologies": dropped_names,
             }
         if vacuity["status"] == "COVER_ERROR":
             return {
@@ -2142,6 +2200,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "vacuity": vacuity,
                 "simulated": False,
                 "skipped": False,
+                "dropped_tautologies": dropped_names,
             }
         if vacuity["status"] == "EXERCISED":
             exercise_note = (
@@ -2164,6 +2223,7 @@ class SiliconSignoffVerifier(BaseVerifier):
             "vacuity": vacuity,
             "simulated": False,
             "skipped": False,
+            "dropped_tautologies": dropped_names,
         }
 
     def _run_gate3_coverage(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
@@ -2364,6 +2424,65 @@ class SiliconSignoffVerifier(BaseVerifier):
             branch_cov = 100.0 if is_mock_env else 0.0
         if toggle_cov is None:
             toggle_cov = 100.0 if is_mock_env else 0.0
+
+        # P7 zero-branch rule (MIND3_GATE_FIXES, default ON): a design with no
+        # branch constructs cannot produce branch coverage; the branch criterion
+        # is then NOT_APPLICABLE (both counts still recorded) while the toggle
+        # threshold is unchanged. Designs with branches keep exact thresholds.
+        from .formal_templates import gate_fixes_enabled
+
+        branch_applicable = True
+        if gate_fixes_enabled() and not is_mock_env:
+            generated_names = ("_sva.sv", "_formal_top.sv", "_cover.sv", "_cover_top.sv")
+            rtl_sources = [
+                s for s in sources
+                if s.suffix in {".v", ".sv"} and not s.name.endswith(generated_names)
+            ]
+            top_source = next(
+                (s for s in rtl_sources if s.stem == self.top_module), None
+            )
+            if top_source is not None:
+                branch_applicable = _design_has_branch_points(
+                    ws / top_source.name
+                    if not top_source.is_absolute()
+                    else top_source,
+                    [s if s.is_absolute() else ws / s.name for s in rtl_sources],
+                )
+        if not branch_applicable:
+            if toggle_cov < self.min_toggle_coverage:
+                return {
+                    "gate": "Gate 3: Verilator Coverage Signoff",
+                    "passed": False,
+                    "exit_code": 1,
+                    "stdout": proc.stdout,
+                    "stderr": proc.stderr,
+                    "details": (
+                        f"Coverage deficit: branch NOT_APPLICABLE (design has no branches; "
+                        f"branch={branch_cov:.1f}%), toggle={toggle_cov:.1f}% "
+                        f"(min {self.min_toggle_coverage}%)."
+                    ),
+                    "error_category": "COVERAGE_DEFICIT",
+                    "metrics": {"branch": branch_cov, "toggle": toggle_cov,
+                                "branch_applicable": False},
+                    "simulated": False,
+                }
+            return {
+                "gate": "Gate 3: Verilator Coverage Signoff",
+                "passed": True,
+                "exit_code": 0,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    f"Coverage signoff criteria satisfied: branch NOT_APPLICABLE "
+                    f"(design has no branches; branch={branch_cov:.1f}%), "
+                    f"toggle={toggle_cov:.1f}%."
+                ),
+                "metrics": {"branch": branch_cov, "toggle": toggle_cov,
+                            "branch_applicable": False},
+                "error_category": None,
+                "simulated": False,
+                "skipped": False,
+            }
 
         if branch_cov < self.min_branch_coverage or toggle_cov < self.min_toggle_coverage:
             return {

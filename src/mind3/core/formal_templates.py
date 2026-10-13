@@ -9,6 +9,7 @@ otherwise the property fails closed.
 from __future__ import annotations
 
 from enum import StrEnum
+import os
 import re
 from typing import Any
 
@@ -346,6 +347,158 @@ def _guard(prop: FormalPropertySpec, *, references_reset: bool = False) -> str:
     return f"!init && {inactive}"
 
 
+_GATE_FIXES_OFF_VALUES = frozenset({"0", "false", "no", "off"})
+
+
+def gate_fixes_enabled() -> bool:
+    """MIND3_GATE_FIXES master flag for P3/P5/P6/P7 (default ON).
+
+    Read at call time (never cached) so tests can toggle it per case.
+    Empty/unset means ON; 0/false/no/off means OFF (exact V0/V1 behavior).
+    """
+    return os.environ.get("MIND3_GATE_FIXES", "").strip().lower() not in _GATE_FIXES_OFF_VALUES
+
+
+class NoGenuineProperty(ValueError):
+    """Raised when every specified property was dropped as vacuous-by-text."""
+
+
+def _strip_outer_parens(expr: str) -> str:
+    e = expr.strip()
+    while len(e) >= 2 and e.startswith("(") and e.endswith(")"):
+        depth = 0
+        balanced = True
+        for i, ch in enumerate(e):
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0 and i != len(e) - 1:
+                    balanced = False
+                    break
+        if not balanced or depth != 0:
+            break
+        e = e[1:-1].strip()
+    return e
+
+
+def _split_top_level(expr: str, op: str) -> list[str]:
+    """Split on operator occurrences outside parentheses (post-validation text)."""
+    parts: list[str] = []
+    depth = 0
+    cur: list[str] = []
+    i = 0
+    while i < len(expr):
+        ch = expr[i]
+        if ch == "(":
+            depth += 1
+            cur.append(ch)
+            i += 1
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            i += 1
+        elif depth == 0 and expr.startswith(op, i):
+            parts.append("".join(cur))
+            cur = []
+            i += len(op)
+        else:
+            cur.append(ch)
+            i += 1
+    parts.append("".join(cur))
+    return parts
+
+
+def is_tautology_expression(expr: str) -> bool:
+    """Structural tautology check (P3): `x == x`, `a || !a` / `!a || a`.
+
+    Deterministic and conservative: only exact self-equality and two-operand
+    negation pairs (prefix `!` or `~`) count. Anything else returns False.
+    """
+    e = _strip_outer_parens(expr.strip())
+    if not e:
+        return False
+    eq = _split_top_level(e, "==")
+    if len(eq) == 2:
+        left, right = eq[0].strip(), eq[1].strip()
+        if left and left == right:
+            return True
+    ors = _split_top_level(e, "||")
+    if len(ors) == 2:
+        left = _strip_outer_parens(ors[0].strip())
+        right = _strip_outer_parens(ors[1].strip())
+
+        def _negated(a: str, b: str) -> bool:
+            return (
+                a.startswith("!")
+                and a[1:].strip() == b
+                or a.startswith("~")
+                and a[1:].strip() == b
+            )
+
+        if left and right and (_negated(left, right) or _negated(right, left)):
+            return True
+    return False
+
+
+def _reset_asserted_form(prop: FormalPropertySpec) -> str | None:
+    """Source-text form of 'reset asserted' for this property, if any."""
+    if prop.reset is None:
+        return None
+    name, polarity = prop.reset.split(":", 1)
+    return f"!{name}" if polarity == "active_low" else name
+
+
+def _is_reset_asserted_antecedent(prop: FormalPropertySpec) -> bool:
+    """P5 detection: implication whose antecedent is exactly reset-asserted."""
+    if prop.kind not in (
+        FormalTemplateKind.SAME_CYCLE_IMPLICATION,
+        FormalTemplateKind.NEXT_CYCLE_IMPLICATION,
+    ):
+        return False
+    if prop.antecedent is None or prop.reset is None:
+        return False
+    target = _reset_asserted_form(prop)
+    candidate = _strip_outer_parens(prop.antecedent.strip())
+    return bool(target) and candidate == target
+
+
+_P6_KINDS = frozenset({
+    FormalTemplateKind.NEXT_CYCLE_IMPLICATION,
+    FormalTemplateKind.PAST_EQUALS,
+    FormalTemplateKind.PAST_STABLE,
+    FormalTemplateKind.PAST_EXPRESSION,
+})
+
+
+def _render_guard(prop: FormalPropertySpec, *, references_reset: bool = False) -> str:
+    """Guard renderer shared by the assert and cover paths (P5/P6).
+
+    Guards must match exactly between assertion and cover point. With
+    MIND3_GATE_FIXES on: P5 renders reset-asserted antecedents with an
+    init-only guard so reset behavior is genuinely checked; P6 additionally
+    requires reset deasserted in the previous cycle for $past/|=> properties
+    so the first cycle after reset is not compared against reset-held state.
+    P5 takes precedence over P6 for reset-antecedent properties. Flag off (or
+    inapplicable): byte-identical to the legacy `_guard`.
+    """
+    if prop.clock is None:
+        return "1'b1"
+    if gate_fixes_enabled() and prop.reset is not None:
+        if _is_reset_asserted_antecedent(prop):
+            return "!init"
+        if prop.kind in _P6_KINDS:
+            reset_name, polarity = prop.reset.split(":", 1)
+            prev_quiet = (
+                f"$past({reset_name})"
+                if polarity == "active_low"
+                else f"$past(!{reset_name})"
+            )
+            base = _guard(prop, references_reset=references_reset)
+            return f"({base}) && {prev_quiet}"
+    return _guard(prop, references_reset=references_reset)
+
+
 def compile_formal_property(prop: FormalPropertySpec) -> str:
     """Render a typed property as deterministic procedural SystemVerilog."""
     if prop.clock is None:
@@ -357,7 +510,7 @@ def compile_formal_property(prop: FormalPropertySpec) -> str:
         reset_name in (field or "")
         for field in (prop.antecedent, prop.consequent, prop.expression, prop.signal, prop.value)
     ))
-    g = _guard(prop, references_reset=references_reset)
+    g = _render_guard(prop, references_reset=references_reset)
 
     if prop.kind == FormalTemplateKind.BOOLEAN:
         return f"  // [MIND3-TEMPLATE:boolean] {prop.name}\n  {event} begin\n    if ({g}) assert ({prop.expression});\n  end\n"
@@ -415,6 +568,53 @@ def compile_formal_property(prop: FormalPropertySpec) -> str:
     raise UnsupportedFormalTemplate(f"No renderer exists for {prop.kind}")
 
 
+def _tautology_checked_expression(prop: FormalPropertySpec) -> str | None:
+    """Boolean text subject to P3 dropping, or None when inapplicable."""
+    if prop.kind == FormalTemplateKind.BOOLEAN:
+        return prop.expression
+    if prop.kind == FormalTemplateKind.PAST_EXPRESSION:
+        return prop.expression
+    return None
+
+
+def tautology_audit_for_contract(
+    structured: list[FormalPropertySpec],
+    legacy: list[Any],
+    default_clock: str | None = "clk",
+    default_reset: str | None = "rst_n:active_low",
+) -> dict[str, Any]:
+    """P3 audit: which specified properties are vacuous-by-text tautologies.
+
+    Total function: legacy entries that cannot be classified are skipped here
+    (the harness build still fails closed on them first). Returns
+    {"total", "dropped", "kept"} where dropped holds property names.
+    """
+    dropped: list[str] = []
+    total = len(structured) + len(legacy)
+    for prop in structured:
+        if not gate_fixes_enabled():
+            break
+        text = _tautology_checked_expression(prop)
+        if text is not None and is_tautology_expression(text):
+            dropped.append(prop.name)
+    for prop in legacy:
+        if not gate_fixes_enabled():
+            break
+        try:
+            classified = classify_legacy_property(
+                name=getattr(prop, "name", "?"),
+                raw_expression=getattr(prop, "property_expr", ""),
+                default_clock=default_clock,
+                default_reset=default_reset,
+            )
+        except (UnsupportedFormalTemplate, ValueError):
+            continue
+        text = _tautology_checked_expression(classified)
+        if text is not None and is_tautology_expression(text):
+            dropped.append(getattr(prop, "name", "?"))
+    return {"total": total, "dropped": dropped, "kept": total - len(dropped)}
+
+
 def compile_contract_properties(
     structured: list[FormalPropertySpec],
     legacy: list[Any],
@@ -426,6 +626,18 @@ def compile_contract_properties(
     audit: list[dict[str, Any]] = []
     if structured:
         for prop in structured:
+            if gate_fixes_enabled():
+                text = _tautology_checked_expression(prop)
+                if text is not None and is_tautology_expression(text):
+                    audit.append({
+                        "name": prop.name,
+                        "kind": prop.kind.value,
+                        "source": "structured_template",
+                        "supported": False,
+                        "dropped": True,
+                        "drop_reason": "tautology",
+                    })
+                    continue
             compiled.append(compile_formal_property(prop))
             audit.append({
                 "name": prop.name,
@@ -433,6 +645,10 @@ def compile_contract_properties(
                 "source": "structured_template",
                 "supported": True,
             })
+        if (structured or legacy) and not compiled:
+            raise NoGenuineProperty(
+                "Every specified property was dropped as vacuous-by-text."
+            )
         return "\n".join(compiled), audit
 
     for prop in legacy:
@@ -446,6 +662,18 @@ def compile_contract_properties(
             default_clock=prop_default_clock,
             default_reset=prop_default_reset,
         )
+        if gate_fixes_enabled():
+            text = _tautology_checked_expression(classified)
+            if text is not None and is_tautology_expression(text):
+                audit.append({
+                    "name": prop.name,
+                    "kind": classified.kind.value,
+                    "source": "legacy_bounded_classifier",
+                    "supported": False,
+                    "dropped": True,
+                    "drop_reason": "tautology",
+                })
+                continue
         compiled.append(compile_formal_property(classified))
         audit.append({
             "name": prop.name,
@@ -453,6 +681,10 @@ def compile_contract_properties(
             "source": "legacy_bounded_classifier",
             "supported": True,
         })
+    if (structured or legacy) and not compiled:
+        raise NoGenuineProperty(
+            "Every specified property was dropped as vacuous-by-text."
+        )
     return "\n".join(compiled), audit
 
 
@@ -480,7 +712,7 @@ def compile_cover_point(prop: FormalPropertySpec) -> tuple[str, str] | None:
         reset_name in (field or "")
         for field in (prop.antecedent, prop.consequent, prop.expression, prop.signal, prop.value)
     ))
-    guard = _guard(prop, references_reset=references_reset)
+    guard = _render_guard(prop, references_reset=references_reset)
     if prop.kind == FormalTemplateKind.SAME_CYCLE_IMPLICATION:
         return (prop.antecedent or "", guard)
     return (f"$past({prop.antecedent})", guard)
@@ -490,8 +722,12 @@ __all__ = [
     "FormalTemplateKind",
     "FormalPropertySpec",
     "UnsupportedFormalTemplate",
+    "NoGenuineProperty",
     "classify_legacy_property",
     "compile_formal_property",
     "compile_contract_properties",
     "compile_cover_point",
+    "gate_fixes_enabled",
+    "is_tautology_expression",
+    "tautology_audit_for_contract",
 ]

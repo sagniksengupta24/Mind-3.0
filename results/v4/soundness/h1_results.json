@@ -1,0 +1,315 @@
+[
+  {
+    "test": "full_contract",
+    "task": "arbiter_02",
+    "passed": true,
+    "cat": null,
+    "dropped": [],
+    "detail": "Bounded BMC to depth 25: zero invariant counterexamples. All 1 implication antecedent(s) reached within bound (reachability depth 25)."
+  },
+  {
+    "test": "full_contract",
+    "task": "fifo_01",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": [],
+    "detail": "Formal invariant violated at cycle step T=2. Assertion: h1_fifo_01_formal_top.sva._witness_.check_assert_h1_fifo_01_sva_sv_28_11. Trace: h1_fifo_01/engine_0/trace.vcd."
+  },
+  {
+    "test": "full_contract",
+    "task": "fsm_heldout_04",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": [],
+    "detail": "Formal invariant violated at cycle step T=2. Assertion: h1_fsm_heldout_04_formal_top.sva._witness_.check_assert_h1_fsm_heldout_04_sva_sv_27_10. Trace: h1_fsm_heldout_04/engine_0/trace.vcd."
+  },
+  {
+    "test": "full_contract",
+    "task": "reset_02",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": [
+      "contract_property_2"
+    ],
+    "detail": "Formal invariant violated at cycle step T=2. Assertion: h1_reset_02_formal_top.sva._witness_.check_assert_h1_reset_02_sva_sv_19_5. Trace: h1_reset_02/engine_0/trace.vcd."
+  },
+  {
+    "test": "full_contract",
+    "task": "apb_01",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": [
+      "contract_property_2"
+    ],
+    "detail": "Formal invariant violated at cycle step T=2. Assertion: h1_apb_01_formal_top.sva._witness_.check_assert_h1_apb_01_sva_sv_19_5. Trace: h1_apb_01/engine_0/trace.vcd."
+  },
+  {
+    "test": "counter04_fail_closed",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "detail": "Formal invariant violated at cycle step T=2. Assertion: h1_counter_04_formal_top.sva._witness_.check_assert_h1_counter_04_sva_sv_17_5. Trace: h1_counter_04/engine_0/trace.vcd."
+  },
+  {
+    "test": "single_prop",
+    "task": "counter_04",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> q == 8",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "counter_04",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) q[7:1] == $past(q",
+    "passed": false,
+    "cat": "UNSUPPORTED_FORMAL_PROPERTY",
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "arbiter_02",
+    "prop": "assert property (@(posedge clk) req[0] |-> gnt[0]);",
+    "passed": true,
+    "cat": null,
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "arbiter_02",
+    "prop": "assert property (@(posedge clk) $onehot0(gnt));",
+    "passed": true,
+    "cat": null,
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "fifo_01",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) !(full && empty))",
+    "passed": true,
+    "cat": null,
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "fifo_01",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> empty ",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "fsm_heldout_04",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) stuffed |-> dout ",
+    "passed": true,
+    "cat": null,
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "fsm_heldout_04",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> !stuff",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "reset_02",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_da",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "reset_02",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_d",
+    "passed": false,
+    "cat": "NO_GENUINE_PROPERTY",
+    "dropped": [
+      "contract_property_1"
+    ]
+  },
+  {
+    "test": "single_prop",
+    "task": "apb_01",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_da",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "dropped": []
+  },
+  {
+    "test": "single_prop",
+    "task": "apb_01",
+    "prop": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_d",
+    "passed": false,
+    "cat": "NO_GENUINE_PROPERTY",
+    "dropped": [
+      "contract_property_1"
+    ]
+  },
+  {
+    "test": "mutant",
+    "mutant": "apb_01__halfreset.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "apb_01__noreset.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "COVERAGE_BUILD_FAILURE",
+    "first_real_fail": "Gate 3: Verilator Coverage Signoff",
+    "first_real_cat": "COVERAGE_BUILD_FAILURE"
+  },
+  {
+    "test": "mutant",
+    "mutant": "apb_01__wrongreset.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "arbiter_02__double.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "arbiter_02__priority.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "arbiter_02__stuck.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "counter_04__offbyone.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "counter_04__stuck.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "COVERAGE_DEFICIT",
+    "first_real_fail": "Gate 3: Verilator Coverage Signoff",
+    "first_real_cat": "COVERAGE_DEFICIT"
+  },
+  {
+    "test": "mutant",
+    "mutant": "counter_04__wrongreset.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "fifo_01__emptyhigh.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "COVERAGE_DEFICIT",
+    "first_real_fail": "Gate 3: Verilator Coverage Signoff",
+    "first_real_cat": "COVERAGE_DEFICIT"
+  },
+  {
+    "test": "mutant",
+    "mutant": "fifo_01__fullhigh.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "COVERAGE_DEFICIT",
+    "first_real_fail": "Gate 3: Verilator Coverage Signoff",
+    "first_real_cat": "COVERAGE_DEFICIT"
+  },
+  {
+    "test": "mutant",
+    "mutant": "fifo_01__noreset.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "COVERAGE_BUILD_FAILURE",
+    "first_real_fail": "Gate 3: Verilator Coverage Signoff",
+    "first_real_cat": "COVERAGE_BUILD_FAILURE"
+  },
+  {
+    "test": "mutant",
+    "mutant": "fsm_heldout_04__nostuff.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "COVERAGE_DEFICIT",
+    "first_real_fail": "Gate 3: Verilator Coverage Signoff",
+    "first_real_cat": "COVERAGE_DEFICIT"
+  },
+  {
+    "test": "mutant",
+    "mutant": "fsm_heldout_04__stuffone.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "fsm_heldout_04__stuffstuck.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "reset_02__halfreset.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "mutant",
+    "mutant": "reset_02__noreset.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "COVERAGE_BUILD_FAILURE",
+    "first_real_fail": "Gate 3: Verilator Coverage Signoff",
+    "first_real_cat": "COVERAGE_BUILD_FAILURE"
+  },
+  {
+    "test": "mutant",
+    "mutant": "reset_02__wrongreset.sv",
+    "pipeline_passed": false,
+    "pipeline_cat": "FORMAL_INVARIANT_BREACH",
+    "first_real_fail": "Gate 2: SymbiYosys Formal Property Verification",
+    "first_real_cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "p6_late_bug",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH"
+  },
+  {
+    "test": "flag_off_harness",
+    "sva_match": true,
+    "wrap_match": true,
+    "sby_match": true
+  },
+  {
+    "test": "flag_on_harness",
+    "differs": true
+  },
+  {
+    "test": "checksum",
+    "stable": true
+  }
+]

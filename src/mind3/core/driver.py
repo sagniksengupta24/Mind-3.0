@@ -2047,6 +2047,10 @@ class PhaseDriver:
         current_rtl_path = self.workspace / f"{contract.module_name}.sv"
         current_rtl = current_rtl_path.read_text(encoding="utf-8") if current_rtl_path.exists() else ""
         stage_limits = {"compile": 3, "simulation": 3, "formal": 3, "timing": self.max_repairs, "other": self.max_repairs}
+        # Keep the stage that produced the pending repair request. Previously the
+        # next loop iteration reset every repair to "compile", even after a formal
+        # or simulation failure, making traces and stage-specific budgets misleading.
+        pending_stage_key = "compile"
         initial_failure = repair_guidance is not None
 
         while True:
@@ -2055,7 +2059,7 @@ class PhaseDriver:
             if repair_guidance is not None:
                 current_rtl_path = self.workspace / f"{contract.module_name}.sv"
                 current_rtl = current_rtl_path.read_text(encoding="utf-8") if current_rtl_path.exists() else ""
-                stage_key = "compile"
+                stage_key = pending_stage_key
                 # C6: parse budget is checked BEFORE spending another model
                 # call, so total parse attempts never exceed PARSE_MAX_ATTEMPTS.
                 if self._parse_attempts >= PARSE_MAX_ATTEMPTS:
@@ -2351,6 +2355,7 @@ class PhaseDriver:
             repair_prompt = VerificationRepairer.build_prompt(contract, current_rtl, evidence, format_block=self._format_block)
             repair_system_instruction = repair_prompt["system"]
             repair_guidance = repair_prompt["user"]
+            pending_stage_key = stage_key
             # C1: when the last repair was byte/normalized-identical, tell the
             # model explicitly: resubmitting identical RTL can never succeed and
             # wastes the bounded budget. The failed candidate and its evidence

@@ -1,0 +1,15 @@
+[
+  {
+    "test": "timeout_category",
+    "passed": false,
+    "cat": "FORMAL_TIMEOUT",
+    "detail": "Gate 2 formal check did not finish within 5s (formal check did not finish; no counterexample).",
+    "wall": 5.0
+  },
+  {
+    "test": "flag_off_label",
+    "passed": false,
+    "cat": "FORMAL_INVARIANT_BREACH",
+    "new_keys": []
+  }
+]

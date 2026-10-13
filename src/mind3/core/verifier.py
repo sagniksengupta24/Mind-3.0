@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Literal
@@ -1063,6 +1064,33 @@ def _design_has_branch_points(top_source: Path, extra_sources: list[Path] | None
 
 
 
+P8_DEFAULT_SBY_TIMEOUT_S = 240
+P8_MAX_SBY_TIMEOUT_S = 240
+
+
+def _gate2_timeout_sec() -> int:
+    """P8: configurable Gate-2 SBY timeout (seconds).
+
+    MIND3_GATE_FIXES off reproduces the 60s limit exactly. Otherwise
+    MIND3_SBY_TIMEOUT_S overrides within (0, P8_MAX_SBY_TIMEOUT_S];
+    empty/invalid values yield the measured default. Hard cap 240.
+    """
+    from .formal_templates import gate_fixes_enabled
+
+    if not gate_fixes_enabled():
+        return 60
+    raw = os.environ.get("MIND3_SBY_TIMEOUT_S", "").strip()
+    if raw:
+        try:
+            value = int(raw)
+        except ValueError:
+            value = 0
+        if value > 0:
+            return min(value, P8_MAX_SBY_TIMEOUT_S)
+    return P8_DEFAULT_SBY_TIMEOUT_S
+
+
+
 class SiliconSignoffVerifier(BaseVerifier):
     """6-gate hierarchical RTL verification pipeline with optional physical checks.
 
@@ -1938,8 +1966,9 @@ class SiliconSignoffVerifier(BaseVerifier):
 
     def _run_gate2_formal_sby(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:
         """Execute SymbiYosys Bounded Model Checking formal verification using typed bounded-property templates (a supported subset of SVA)."""
-        from .formal_templates import tautology_audit_for_contract
+        from .formal_templates import gate_fixes_enabled, tautology_audit_for_contract
 
+        fixes_on = gate_fixes_enabled()
         try:
             _taut_audit = tautology_audit_for_contract(
                 list(getattr(self.contract, "formal_properties", []) or []),
@@ -1948,6 +1977,11 @@ class SiliconSignoffVerifier(BaseVerifier):
             dropped_names: list[str] = list(_taut_audit.get("dropped", []))
         except Exception:
             dropped_names = []
+        # Strict flag-off exactness: V0/V1 reports carry none of the P3/P8
+        # reporting keys; they appear only with the fixes enabled.
+        gate_extra: dict[str, Any] = (
+            {"dropped_tautologies": dropped_names} if fixes_on else {}
+        )
         preferred = ws / f"{self.top_module}.sby"
         sby_candidates = sorted(
             (p for p in ws.glob("*.sby") if not p.name.endswith("_cover.sby")),
@@ -1972,7 +2006,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                         "error_category": "EMPTY_FORMAL_PROPERTY_SET",
                         "skipped": False,
                         "simulated": False,
-                        "dropped_tautologies": dropped_names,
+                        **gate_extra,
                     }
             else:
                 try:
@@ -1992,7 +2026,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                         "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
                         "skipped": False,
                         "simulated": False,
-                        "dropped_tautologies": dropped_names,
+                        **gate_extra,
                     }
                 except NoGenuineProperty as exc:
                     return {
@@ -2008,7 +2042,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                         "error_category": "NO_GENUINE_PROPERTY",
                         "skipped": False,
                         "simulated": False,
-                        "dropped_tautologies": dropped_names,
+                        **gate_extra,
                     }
                 sva_bind_path = ws / f"{self.top_module}_sva.sv"
                 sva_bind_path.write_text(sva_bind_code, encoding="utf-8")
@@ -2034,7 +2068,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "error_category": "MISSING_VERIFICATION_ARTIFACT",
                     "skipped": False,
                     "simulated": False,
-                    "dropped_tautologies": dropped_names,
+                    **gate_extra,
                 }
             return {
                 "gate": "Gate 2: SymbiYosys Formal Property Verification",
@@ -2046,12 +2080,36 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "error_category": None,
                 "skipped": True,
                 "simulated": False,
-                "dropped_tautologies": dropped_names,
+                **gate_extra,
             }
 
         cmd = ["sby", "-f", str(sby_files[0].relative_to(ws))]
-        proc = runner.run(cmd, timeout_sec=60)
+        sby_timeout = _gate2_timeout_sec()
+        gate_t0 = time.monotonic()
+        proc = runner.run(cmd, timeout_sec=sby_timeout)
+        gate2_wall_s = round(time.monotonic() - gate_t0, 1)
+        if fixes_on:
+            gate_extra["gate2_wall_s"] = gate2_wall_s
         combined = f"{proc.stdout}\n{proc.stderr}"
+
+        # P8: a Gate-2 timeout is its own fail-closed category (never a breach
+        # report). Repair evidence states the check did not finish and carries
+        # no counterexample fields. Flag off preserves the legacy behavior.
+        if fixes_on and proc.returncode == 124:
+            return {
+                "gate": "Gate 2: SymbiYosys Formal Property Verification",
+                "passed": False,
+                "exit_code": 124,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    f"Gate 2 formal check did not finish within {sby_timeout}s "
+                    "(formal check did not finish; no counterexample)."
+                ),
+                "error_category": "FORMAL_TIMEOUT",
+                "simulated": False,
+                **gate_extra,
+            }
 
         if proc.returncode != 0 and _is_binary_missing(proc, "sby"):
             if not self.allow_mock_fallback:
@@ -2068,7 +2126,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     ),
                     "error_category": "EDA_BINARY_MISSING",
                     "simulated": False,
-                    "dropped_tautologies": dropped_names,
+                    **gate_extra,
                 }
             return {
                 "gate": "Gate 2: SymbiYosys Formal Property Verification",
@@ -2080,7 +2138,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "error_category": None,
                 "simulated": True,
                 "skipped": False,
-                "dropped_tautologies": dropped_names,
+                **gate_extra,
             }
 
         if proc.returncode != 0 or "Assert failed" in combined or "FAIL" in combined:
@@ -2094,7 +2152,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                     "details": f"Formal property construct unsupported by toolchain: {combined[:300]}",
                     "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
                     "simulated": False,
-                    "dropped_tautologies": dropped_names,
+                    **gate_extra,
                 }
 
             # Parse counterexample timestamp (supports legacy 'step X FAILED' and modern SBY 'step X')
@@ -2155,7 +2213,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "property_source": property_source,
                 "counterexample_trace": counterexample_trace,
                 "simulated": False,
-                "dropped_tautologies": dropped_names,
+                **gate_extra,
             }
 
         # Assert job passed. A passing implication whose antecedent was never
@@ -2182,7 +2240,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "vacuity": vacuity,
                 "simulated": False,
                 "skipped": False,
-                "dropped_tautologies": dropped_names,
+                **gate_extra,
             }
         if vacuity["status"] == "COVER_ERROR":
             return {
@@ -2200,7 +2258,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "vacuity": vacuity,
                 "simulated": False,
                 "skipped": False,
-                "dropped_tautologies": dropped_names,
+                **gate_extra,
             }
         if vacuity["status"] == "EXERCISED":
             exercise_note = (
@@ -2209,6 +2267,9 @@ class SiliconSignoffVerifier(BaseVerifier):
             )
         else:
             exercise_note = f" Vacuity assessment: {vacuity['reason']}."
+        # P8(c): flag PASS results whose Gate-2 time exceeds half the timeout.
+        if fixes_on:
+            gate_extra["timeout_edge"] = gate2_wall_s > 0.5 * sby_timeout
         return {
             "gate": "Gate 2: SymbiYosys Formal Property Verification",
             "passed": True,
@@ -2223,7 +2284,7 @@ class SiliconSignoffVerifier(BaseVerifier):
             "vacuity": vacuity,
             "simulated": False,
             "skipped": False,
-            "dropped_tautologies": dropped_names,
+            **gate_extra,
         }
 
     def _run_gate3_coverage(self, runner: Any, sources: list[Path], ws: Path) -> dict[str, Any]:

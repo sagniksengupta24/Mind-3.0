@@ -1,0 +1,154 @@
+{
+ "runs": [
+  {
+   "task": "arbiter_02",
+   "run": 0,
+   "wall_s": 0.6,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "arbiter_02",
+   "run": 1,
+   "wall_s": 0.5,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "arbiter_02",
+   "run": 2,
+   "wall_s": 0.6,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "fifo_01",
+   "run": 0,
+   "wall_s": 60.0,
+   "passed": false,
+   "cat": "FORMAL_INVARIANT_BREACH",
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "fifo_01",
+   "run": 1,
+   "wall_s": 60.0,
+   "passed": false,
+   "cat": "FORMAL_INVARIANT_BREACH",
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "fifo_01",
+   "run": 2,
+   "wall_s": 60.0,
+   "passed": false,
+   "cat": "FORMAL_INVARIANT_BREACH",
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "fsm_heldout_04",
+   "run": 0,
+   "wall_s": 1.2,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "fsm_heldout_04",
+   "run": 1,
+   "wall_s": 1.1,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "fsm_heldout_04",
+   "run": 2,
+   "wall_s": 0.9,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "reset_02",
+   "run": 0,
+   "wall_s": 1.0,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "reset_02",
+   "run": 1,
+   "wall_s": 1.4,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "reset_02",
+   "run": 2,
+   "wall_s": 1.2,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "apb_01",
+   "run": 0,
+   "wall_s": 1.4,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "apb_01",
+   "run": 1,
+   "wall_s": 1.2,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "apb_01",
+   "run": 2,
+   "wall_s": 1.2,
+   "passed": true,
+   "cat": null,
+   "solver": "z3",
+   "depth": 25
+  },
+  {
+   "task": "fifo_01(direct-sby)",
+   "run": 0,
+   "wall_s": 110.9,
+   "passed": true,
+   "cat": "BMC-pass",
+   "solver": "z3",
+   "depth": 25,
+   "note": "harness via real builders; sby direct with 500s cap (gate caps at 60s)"
+  }
+ ],
+ "selection": {
+  "T": 240,
+  "rule": "smallest of {120,180,240} with every golden < T/2 in all runs; fifo true ~111s < 120",
+  "yices_boolector": "not installed - no comparison"
+ }
+}

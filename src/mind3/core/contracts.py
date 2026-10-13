@@ -1098,6 +1098,9 @@ class VerificationHarnessGenerator:
                 legacy=contract.sva_properties,
                 default_clock=clock_name if has_clock else None,
                 default_reset=default_reset if has_clock else None,
+                reset_synchronous=contract.reset.synchronous
+                if contract.reset is not None
+                else None,
             )
         except UnsupportedFormalTemplate:
             raise
@@ -1220,10 +1223,13 @@ class VerificationHarnessGenerator:
 
         implications: list[dict[str, Any]] = []
         unsupported: list[dict[str, Any]] = []
+        reset_synchronous = (
+            contract.reset.synchronous if contract.reset is not None else None
+        )
         for prop in list(contract.formal_properties or []):
             if prop.kind in (FormalTemplateKind.SAME_CYCLE_IMPLICATION, FormalTemplateKind.NEXT_CYCLE_IMPLICATION):
                 try:
-                    cover = compile_cover_point(prop)
+                    cover = compile_cover_point(prop, reset_synchronous=reset_synchronous)
                 except UnsupportedFormalTemplate as exc:
                     unsupported.append({"name": prop.name, "error": str(exc)})
                     continue
@@ -1249,7 +1255,7 @@ class VerificationHarnessGenerator:
                 continue
             if classified.kind in (FormalTemplateKind.SAME_CYCLE_IMPLICATION, FormalTemplateKind.NEXT_CYCLE_IMPLICATION):
                 try:
-                    cover = compile_cover_point(classified)
+                    cover = compile_cover_point(classified, reset_synchronous=reset_synchronous)
                 except UnsupportedFormalTemplate as exc:
                     unsupported.append({"name": prop.name, "error": str(exc)})
                     continue

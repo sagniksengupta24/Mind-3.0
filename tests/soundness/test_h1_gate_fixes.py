@@ -155,7 +155,11 @@ def test_h1_mutants_all_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.delenv(FLAG, raising=False)
     monkeypatch.setenv(FLAG, "1")
     files = sorted(MUTANT_DIR.glob("*__*.sv"))
-    assert len(files) >= 18, f"expected >=18 mutants, found {len(files)}"
+    assert len(files) >= 23, f"expected >=23 mutants, found {len(files)}"
+    # S3 halt ruling (owner option 1): fsm__halfreset is provably invisible to
+    # every stated formal property under approved P5b semantics; recorded but
+    # excluded from the exit count.
+    excluded = {"fsm_heldout_04__halfreset.sv"}
     survivors: list[str] = []
     for path in files:
         task_id = path.name.split("__")[0]
@@ -176,7 +180,10 @@ def test_h1_mutants_all_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
         _record({"test": "mutant", "mutant": path.name, "pipeline_passed": result.passed,
                  "pipeline_cat": result.error_category,
                  "first_real_fail": (first_real or {}).get("gate"),
-                 "first_real_cat": (first_real or {}).get("error_category")})
+                 "first_real_cat": (first_real or {}).get("error_category"),
+                 "exit_excluded": path.name in excluded})
+        if path.name in excluded:
+            continue
         if result.passed is not False:
             survivors.append(f"{path.name} SURVIVED the gate")
         elif first_real is None:

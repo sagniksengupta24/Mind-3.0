@@ -1,0 +1,45 @@
+[
+  {
+    "test": "sync_pass",
+    "task": "reset_02",
+    "passed": true,
+    "cat": null,
+    "detail": "Bounded BMC to depth 25: zero invariant counterexamples. All 1 implication antecedent(s) reached within bound (reachability depth 25)."
+  },
+  {
+    "test": "sync_pass",
+    "task": "apb_01",
+    "passed": true,
+    "cat": null,
+    "detail": "Bounded BMC to depth 25: zero invariant counterexamples. All 1 implication antecedent(s) reached within bound (reachability depth 25)."
+  },
+  {
+    "test": "sync_pass",
+    "task": "fifo_01",
+    "passed": true,
+    "cat": null,
+    "detail": "Bounded BMC to depth 25: zero invariant counterexamples. All 1 implication antecedent(s) reached within bound (reachability depth 25)."
+  },
+  {
+    "test": "sync_pass",
+    "task": "fsm_heldout_04",
+    "passed": true,
+    "cat": null,
+    "detail": "Bounded BMC to depth 25: zero invariant counterexamples. All 2 implication antecedent(s) reached within bound (reachability depth 25)."
+  },
+  {
+    "test": "async_gate1",
+    "passed": false,
+    "cat": "CLOCK_RESET_ERROR"
+  },
+  {
+    "test": "async_render",
+    "same_cycle": true,
+    "no_past": true
+  },
+  {
+    "test": "fifo_render_diff",
+    "differs": true,
+    "has_past_reset": true
+  }
+]

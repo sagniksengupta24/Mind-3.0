@@ -90,6 +90,14 @@ def mutants_for(task: str, golden: str) -> dict[str, tuple[str, str]]:
                       task, "fullhigh", "!(full && empty) and reset empty/full"),
                 "!(full && empty)",
             ),
+            "slowreset": (
+                _mark(_mutate(
+                    golden,
+                    "    if (!rst_n) begin\n      wr_ptr <= 3'd0;\n      rd_ptr <= 3'd0;\n      count  <= 4'd0;\n    end else begin",
+                    "    if (!rst_n) begin\n      wr_ptr <= 3'd0;\n      rd_ptr <= 3'd0;\n      count  <= count;\n    end else begin",
+                ), task, "slowreset", "!rst_n |-> empty == 1 && full == 0 (count never clears)"),
+                "!rst_n |-> empty == 1 && full == 0",
+            ),
         }
     if task == "fsm_heldout_04":
         return {
@@ -110,6 +118,26 @@ def mutants_for(task: str, golden: str) -> dict[str, tuple[str, str]]:
                               "stuffed <= 1'b1;\n      ones    <= din ? ones + 3'd1 : 3'd0;"),
                       task, "stuffstuck", "stuffed |-> dout == 0"),
                 "stuffed |-> dout == 0",
+            ),
+            "halfreset": (
+                _mark(_mutate(
+                    golden,
+                    "    if (!rst_n) begin\n      ones    <= 3'd0;\n      dout    <= 1'b0;\n      stuffed <= 1'b0;\n    end else if",
+                    "    if (!rst_n) begin\n      dout    <= 1'b0;\n      stuffed <= 1'b0;\n    end else if",
+                ), task, "halfreset", "!rst_n |-> !stuffed (ones not cleared)"),
+                # S3 halt ruling: under approved P5b semantics this defect is
+                # invisible to every stated formal property (checked cycles
+                # always have freshly-cleared stuffed). Retained as documented
+                # spec-coverage evidence, excluded from the mutant exit count.
+                "!rst_n |-> !stuffed",
+            ),
+            "noreset": (
+                _mark(_mutate(
+                    golden,
+                    "  // Synchronous active-low reset per task clock_reset_assumptions.\n  always_ff @(posedge clk) begin\n    if (!rst_n) begin\n      ones    <= 3'd0;\n      dout    <= 1'b0;\n      stuffed <= 1'b0;\n    end else if (ones == 3'd5) begin",
+                    "  // Synchronous active-low reset per task clock_reset_assumptions.\n  always_ff @(posedge clk) begin\n    if (ones == 3'd5) begin",
+                ), task, "noreset", "!rst_n |-> !stuffed (reset ignored)"),
+                "!rst_n |-> !stuffed",
             ),
         }
     if task in ("reset_02", "apb_01"):
@@ -133,6 +161,23 @@ def mutants_for(task: str, golden: str) -> dict[str, tuple[str, str]]:
                     "    if (!rst_n)\n      out_data <= 8'h00;\n    else\n      out_data <= in_data;",
                     "    if (!rst_n)\n      out_data[3:0] <= 4'h0;\n    else\n      out_data <= in_data;",
                 ), task, "halfreset", "!rst_n |-> out_data == 0"),
+                "!rst_n |-> out_data == 0",
+            ),
+            "slowreset": (
+                _mark(_mutate(
+                    golden,
+                    "  always_ff @(posedge clk) begin\n    if (!rst_n)\n      out_data <= 8'h00;\n    else\n      out_data <= in_data;\n  end\nendmodule",
+                    "  logic [7:0] pipe;\n"
+                    "  always_ff @(posedge clk) begin\n"
+                    "    if (!rst_n) begin\n"
+                    "      pipe <= 8'h00;\n"
+                    "      out_data <= pipe;\n"
+                    "    end else begin\n"
+                    "      pipe <= in_data;\n"
+                    "      out_data <= pipe;\n"
+                    "    end\n"
+                    "  end\nendmodule",
+                ), task, "slowreset", "!rst_n |-> out_data == 0 (2-cycle reset)"),
                 "!rst_n |-> out_data == 0",
             ),
         }

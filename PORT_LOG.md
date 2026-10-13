@@ -65,3 +65,58 @@
 - Wrote `results/v4/reports/goldens_for_review.md`: six goldens reprinted
   verbatim (machine-checked against `tests/golden/`) with the spec fields each
   was written from. Goldens unaltered.
+
+## S3 (H1 gate completeness: P3/P5b/P6/P7/P8; exit met with 1 exclusion + counter_04)
+- P3 (tautology drop + NO_GENUINE_PROPERTY), P5b (sync `$past(reset)` rewrite,
+  async same-cycle, contract-style-only), P6 (`$past(rst)` boundary, never on
+  P5b props), P7 (branch N/A, toggle unchanged), P8 (T=240 measured: others
+  ~1s, fifo direct-sby 110.9s PASS; FORMAL_TIMEOUT on exit-124; wall time +
+  timeout_edge, all flag-gated; cover stays 60s). One flag:
+  MIND3_GATE_FIXES (ON/0-exact, incl. strict report-shape exactness).
+- H1 rerun matrix WITH liberty: flag-1 pipelines 5/5 PASS (G4 0.1-0.2s with
+  liberty in pipeline order); 22/23 mutants caught, zero timeout-only.
+  Documented exclusion (owner option 1): `fsm__halfreset` is provably
+  spec-invisible under approved P5b semantics (gate PROVED both implications
+  with antecedents reached); replaced in-count by `fsm__noreset` (caught).
+- S3(c): sta 3.1.0 + 12.8MB liberty exist; Gate 4 passes via Gate-1 netlist in
+  pipeline order (standalone `-sv` feed fails on `logic` keyword — harness
+  artifact, not a gate defect). reset_02 full pipeline: all gates PASS in 8s.
+- `scripts/run_negative_controls.py --require-live`: SUCCESS (1 env SKIP).
+- Regression caught by suite: bare `pass` in `_gate2_timeout_sec` tripped
+  `test_zero_stubs_integrity`; fixed (behavior-identical) and green.
+- Standing nuisance: V0/V1/H1 tests rewrite result JSONs (timestamp churn) and
+  V1 regenerates its own reference harness (restored post-run); write-on-change
+  follow-up recorded.
+
+## P5b (UNCOMMITTED WIP on feat/det-assist; supersedes P5)
+- Deliberate verifier change, reason: dev-20 specs mandate synchronous reset
+  yet state reset checks in same-cycle `!rst_n |-> X` form, which no
+  spec-conformant design can satisfy under P5 (benchmark authoring defect;
+  dev task files NOT edited). P5b: sync contracts render
+  `$past(reset asserted) |-> X` under init-only guard; async contracts keep
+  same-cycle + init-only; choice ONLY from `contract.reset.synchronous`;
+  no P6 on rewritten props; cover checks the rewritten antecedent.
+- Files: `formal_templates.py` (`reset_synchronous` threading, render sites),
+  `contracts.py` (thread contract flag into 3 compile calls), no verifier.py
+  behavior change for P5b. Behind MIND3_GATE_FIXES (default ON; 0 = V0/V1).
+- S3 HALTED (second STOP.md): see `results/v4/reports/STOP.md`. Summary:
+  P5b passes 3/4 sync goldens + full reset_02 pipeline WITH liberty passes ALL
+  gates; fifo_01 P5b-BMC exceeds the fixed 60s gate timeout (Z3 order luck at
+  the budget edge) and timeouts misreport as BREACH (exit 124).
+
+## P8 Gate-2 timeout (UNCOMMITTED WIP; deliberate verifier change)
+- Reason: S3(d) halt — fifo_01 P5b-BMC needs ~111s (measured direct-sby,
+  solver z3, depth 25) against the fixed 60s limit, and timeouts misreported
+  as FORMAL_INVARIANT_BREACH (exit 124).
+- Measurement (serial, VERIFIED): arbiter_02 ~0.6s, fsm/reset/apb ~1.2s,
+  fifo_01 capped 60s ×3 + direct 110.9s PASS. No yices/boolector installed
+  (no solver comparison possible; engine stays smtbmc z3).
+- Selection: smallest T in {120,180,240} with every golden < T/2 → **240**
+  (111 < 120). Saved in `results/v4/soundness/p8_timing.json`.
+- Implementation (`verifier.py` only): `_gate2_timeout_sec()` (flag off → 60
+  exactly; otherwise MIND3_SBY_TIMEOUT_S clamped to (0,240], default 240);
+  exit-124 → FORMAL_TIMEOUT fail-closed with "formal check did not finish;
+  no counterexample" and NO counterexample fields; `gate2_wall_s` in every
+  Gate-2 result + `timeout_edge` on PASS beyond 50% (both fixes-gated, so
+  flag-0 reports are byte-shape-identical to V0/V1). Cover job keeps 60s
+  (observed <2s). No solver/SBY config change.

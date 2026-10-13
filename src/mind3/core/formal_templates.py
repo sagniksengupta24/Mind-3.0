@@ -472,20 +472,20 @@ _P6_KINDS = frozenset({
 
 
 def _render_guard(prop: FormalPropertySpec, *, references_reset: bool = False) -> str:
-    """Guard renderer shared by the assert and cover paths (P5/P6).
+    """Guard renderer shared by the assert and cover paths (P5b/P6).
 
     Guards must match exactly between assertion and cover point. With
-    MIND3_GATE_FIXES on: P5 renders reset-asserted antecedents with an
-    init-only guard so reset behavior is genuinely checked; P6 additionally
-    requires reset deasserted in the previous cycle for $past/|=> properties
-    so the first cycle after reset is not compared against reset-held state.
-    P5 takes precedence over P6 for reset-antecedent properties. Flag off (or
+    MIND3_GATE_FIXES on: reset-asserted-antecedent NEXT-cycle implications keep
+    the init-only guard (P5b leaves non-same-cycle timing to the sites below);
+    P6 additionally requires reset deasserted in the previous cycle for
+    $past/|=> properties. P6 is never applied to P5b-rewritten properties
+    (their sites return before reaching the P6 branch). Flag off (or
     inapplicable): byte-identical to the legacy `_guard`.
     """
     if prop.clock is None:
         return "1'b1"
     if gate_fixes_enabled() and prop.reset is not None:
-        if _is_reset_asserted_antecedent(prop):
+        if prop.kind == FormalTemplateKind.NEXT_CYCLE_IMPLICATION and _is_reset_asserted_antecedent(prop):
             return "!init"
         if prop.kind in _P6_KINDS:
             reset_name, polarity = prop.reset.split(":", 1)
@@ -499,8 +499,27 @@ def _render_guard(prop: FormalPropertySpec, *, references_reset: bool = False) -
     return _guard(prop, references_reset=references_reset)
 
 
-def compile_formal_property(prop: FormalPropertySpec) -> str:
-    """Render a typed property as deterministic procedural SystemVerilog."""
+def _reset_asserted_past(prop: FormalPropertySpec) -> str:
+    """P5b rewritten antecedent `$past(reset asserted)` for sync contracts."""
+    assert prop.reset is not None
+    reset_name, polarity = prop.reset.split(":", 1)
+    if polarity == "active_low":
+        return f"$past(!{reset_name})"
+    return f"$past({reset_name})"
+
+
+def compile_formal_property(
+    prop: FormalPropertySpec, *, reset_synchronous: bool | None = None
+) -> str:
+    """Render a typed property as deterministic procedural SystemVerilog.
+
+    `reset_synchronous` carries the contract's declared reset style (None when
+    unknown; callers without a contract keep the legacy behavior). P5b: with
+    MIND3_GATE_FIXES on, a same-cycle implication whose antecedent is the
+    reset asserted renders as `$past(reset asserted) |-> consequent` under an
+    init-only guard for synchronous contracts, and keeps the same-cycle form
+    under an init-only guard for asynchronous (or unknown-style) contracts.
+    """
     if prop.clock is None:
         event = "always @*"
     else:
@@ -515,6 +534,17 @@ def compile_formal_property(prop: FormalPropertySpec) -> str:
     if prop.kind == FormalTemplateKind.BOOLEAN:
         return f"  // [MIND3-TEMPLATE:boolean] {prop.name}\n  {event} begin\n    if ({g}) assert ({prop.expression});\n  end\n"
     if prop.kind == FormalTemplateKind.SAME_CYCLE_IMPLICATION:
+        if gate_fixes_enabled() and _is_reset_asserted_antecedent(prop):
+            if reset_synchronous is True:
+                past_ant = _reset_asserted_past(prop)
+                return (
+                    f"  // [MIND3-TEMPLATE:same_cycle_implication] {prop.name}\n"
+                    f"  {event} begin\n    if (!init) begin\n      if ({past_ant}) assert ({prop.consequent});\n    end\n  end\n"
+                )
+            return (
+                f"  // [MIND3-TEMPLATE:same_cycle_implication] {prop.name}\n"
+                f"  {event} begin\n    if (!init) begin\n      if ({prop.antecedent}) assert ({prop.consequent});\n    end\n  end\n"
+            )
         return (
             f"  // [MIND3-TEMPLATE:same_cycle_implication] {prop.name}\n"
             f"  {event} begin\n    if ({g}) begin\n      if ({prop.antecedent}) assert ({prop.consequent});\n    end\n  end\n"
@@ -620,6 +650,8 @@ def compile_contract_properties(
     legacy: list[Any],
     default_clock: str | None = "clk",
     default_reset: str | None = "rst_n:active_low",
+    *,
+    reset_synchronous: bool | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     """Compile structured properties or safely classify legacy properties."""
     compiled: list[str] = []
@@ -638,7 +670,7 @@ def compile_contract_properties(
                         "drop_reason": "tautology",
                     })
                     continue
-            compiled.append(compile_formal_property(prop))
+            compiled.append(compile_formal_property(prop, reset_synchronous=reset_synchronous))
             audit.append({
                 "name": prop.name,
                 "kind": prop.kind.value,
@@ -674,7 +706,7 @@ def compile_contract_properties(
                     "drop_reason": "tautology",
                 })
                 continue
-        compiled.append(compile_formal_property(classified))
+        compiled.append(compile_formal_property(classified, reset_synchronous=reset_synchronous))
         audit.append({
             "name": prop.name,
             "kind": classified.kind.value,
@@ -688,7 +720,9 @@ def compile_contract_properties(
     return "\n".join(compiled), audit
 
 
-def compile_cover_point(prop: FormalPropertySpec) -> tuple[str, str] | None:
+def compile_cover_point(
+    prop: FormalPropertySpec, *, reset_synchronous: bool | None = None
+) -> tuple[str, str] | None:
     """Render a bounded antecedent-reachability cover for one implication property.
 
     Returns (cover_expression, cover_guard) or None when the property kind has
@@ -714,6 +748,12 @@ def compile_cover_point(prop: FormalPropertySpec) -> tuple[str, str] | None:
     ))
     guard = _render_guard(prop, references_reset=references_reset)
     if prop.kind == FormalTemplateKind.SAME_CYCLE_IMPLICATION:
+        # P5b: the cover must check the rewritten antecedent, reachable under
+        # the same init-only guard as the assertion.
+        if gate_fixes_enabled() and _is_reset_asserted_antecedent(prop):
+            if reset_synchronous is True:
+                return (_reset_asserted_past(prop), "!init")
+            return (prop.antecedent or "", "!init")
         return (prop.antecedent or "", guard)
     return (f"$past({prop.antecedent})", guard)
 

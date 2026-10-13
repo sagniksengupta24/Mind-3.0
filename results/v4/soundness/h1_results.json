@@ -390,7 +390,7 @@
         "gate3": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 6.1,
+          "wall_s": 6.5,
           "metrics": {
             "branch": 100.0,
             "toggle": 100.0
@@ -399,7 +399,7 @@
         "gate2": {
           "verdict": "FAIL",
           "cat": "FORMAL_ANALYSIS_FAILED",
-          "wall_s": 0.2,
+          "wall_s": 0.3,
           "gate2_wall_s": null,
           "timeout_edge": null,
           "dropped": null
@@ -433,7 +433,7 @@
         "gate3": {
           "verdict": "FAIL",
           "cat": "COVERAGE_DEFICIT",
-          "wall_s": 6.3,
+          "wall_s": 6.4,
           "metrics": {
             "branch": 0.0,
             "toggle": 100.0
@@ -476,7 +476,7 @@
         "gate3": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 6.2,
+          "wall_s": 6.5,
           "metrics": {
             "branch": 100.0,
             "toggle": 97.9
@@ -485,7 +485,7 @@
         "gate2": {
           "verdict": "FAIL",
           "cat": "VACUOUS_PROPERTY",
-          "wall_s": 29.9,
+          "wall_s": 31.2,
           "gate2_wall_s": null,
           "timeout_edge": null,
           "dropped": null
@@ -504,7 +504,7 @@
       "pipeline": {
         "passed": false,
         "cat": "VACUOUS_PROPERTY",
-        "wall_s": 37.5
+        "wall_s": 37.6
       }
     },
     {
@@ -519,7 +519,7 @@
         "gate3": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 6.7,
+          "wall_s": 6.9,
           "metrics": {
             "branch": 100.0,
             "toggle": 100.0
@@ -547,54 +547,11 @@
       "pipeline": {
         "passed": false,
         "cat": "VACUOUS_PROPERTY",
-        "wall_s": 7.1
+        "wall_s": 7.2
       }
     },
     {
       "task": "reset_02",
-      "flag": "0",
-      "gates": {
-        "gate1": {
-          "verdict": "PASS",
-          "cat": null,
-          "wall_s": 0.4
-        },
-        "gate3": {
-          "verdict": "PASS",
-          "cat": null,
-          "wall_s": 6.1,
-          "metrics": {
-            "branch": 100.0,
-            "toggle": 100.0
-          }
-        },
-        "gate2": {
-          "verdict": "FAIL",
-          "cat": "VACUOUS_PROPERTY",
-          "wall_s": 0.5,
-          "gate2_wall_s": null,
-          "timeout_edge": null,
-          "dropped": null
-        },
-        "gate4": {
-          "verdict": "PASS",
-          "cat": null,
-          "wall_s": 0.3
-        },
-        "gate6": {
-          "verdict": "PASS",
-          "cat": null,
-          "wall_s": 0.1
-        }
-      },
-      "pipeline": {
-        "passed": false,
-        "cat": "VACUOUS_PROPERTY",
-        "wall_s": 7.1
-      }
-    },
-    {
-      "task": "apb_01",
       "flag": "0",
       "gates": {
         "gate1": {
@@ -633,7 +590,50 @@
       "pipeline": {
         "passed": false,
         "cat": "VACUOUS_PROPERTY",
-        "wall_s": 7.3
+        "wall_s": 7.4
+      }
+    },
+    {
+      "task": "apb_01",
+      "flag": "0",
+      "gates": {
+        "gate1": {
+          "verdict": "PASS",
+          "cat": null,
+          "wall_s": 0.4
+        },
+        "gate3": {
+          "verdict": "PASS",
+          "cat": null,
+          "wall_s": 6.4,
+          "metrics": {
+            "branch": 100.0,
+            "toggle": 100.0
+          }
+        },
+        "gate2": {
+          "verdict": "FAIL",
+          "cat": "VACUOUS_PROPERTY",
+          "wall_s": 0.5,
+          "gate2_wall_s": null,
+          "timeout_edge": null,
+          "dropped": null
+        },
+        "gate4": {
+          "verdict": "PASS",
+          "cat": null,
+          "wall_s": 0.3
+        },
+        "gate6": {
+          "verdict": "PASS",
+          "cat": null,
+          "wall_s": 0.1
+        }
+      },
+      "pipeline": {
+        "passed": false,
+        "cat": "VACUOUS_PROPERTY",
+        "wall_s": 7.4
       }
     },
     {
@@ -648,7 +648,7 @@
         "gate3": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 6.2,
+          "wall_s": 6.0,
           "metrics": {
             "branch": 100.0,
             "toggle": 100.0
@@ -658,7 +658,7 @@
           "verdict": "FAIL",
           "cat": "FORMAL_ANALYSIS_FAILED",
           "wall_s": 0.3,
-          "gate2_wall_s": 0.3,
+          "gate2_wall_s": 0.2,
           "timeout_edge": null,
           "dropped": []
         },
@@ -676,7 +676,7 @@
       "pipeline": {
         "passed": false,
         "cat": "FORMAL_ANALYSIS_FAILED",
-        "wall_s": 6.9
+        "wall_s": 6.8
       }
     },
     {
@@ -691,7 +691,7 @@
         "gate3": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 6.2,
+          "wall_s": 6.3,
           "metrics": {
             "branch": 0.0,
             "toggle": 100.0,
@@ -735,7 +735,7 @@
         "gate3": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 6.3,
+          "wall_s": 6.1,
           "metrics": {
             "branch": 100.0,
             "toggle": 97.9
@@ -744,8 +744,8 @@
         "gate2": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 55.0,
-          "gate2_wall_s": 54.7,
+          "wall_s": 54.8,
+          "gate2_wall_s": 54.5,
           "timeout_edge": false,
           "dropped": []
         },
@@ -763,7 +763,7 @@
       "pipeline": {
         "passed": true,
         "cat": null,
-        "wall_s": 63.2
+        "wall_s": 62.5
       }
     },
     {
@@ -778,7 +778,7 @@
         "gate3": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 6.7,
+          "wall_s": 6.4,
           "metrics": {
             "branch": 100.0,
             "toggle": 100.0
@@ -806,7 +806,7 @@
       "pipeline": {
         "passed": true,
         "cat": null,
-        "wall_s": 7.8
+        "wall_s": 7.5
       }
     },
     {
@@ -851,7 +851,7 @@
       "pipeline": {
         "passed": true,
         "cat": null,
-        "wall_s": 7.8
+        "wall_s": 7.4
       }
     },
     {
@@ -866,7 +866,7 @@
         "gate3": {
           "verdict": "PASS",
           "cat": null,
-          "wall_s": 6.2,
+          "wall_s": 6.4,
           "metrics": {
             "branch": 100.0,
             "toggle": 100.0
@@ -896,7 +896,7 @@
       "pipeline": {
         "passed": true,
         "cat": null,
-        "wall_s": 7.6
+        "wall_s": 7.3
       }
     }
   ],
@@ -906,7 +906,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "VACUOUS_PROPERTY",
-      "wall_s": 7.2,
+      "wall_s": 7.5,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "VACUOUS_PROPERTY",
       "timeout_only": false,
@@ -928,7 +928,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "VACUOUS_PROPERTY",
-      "wall_s": 7.3,
+      "wall_s": 7.4,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "VACUOUS_PROPERTY",
       "timeout_only": false,
@@ -939,7 +939,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "VACUOUS_PROPERTY",
-      "wall_s": 7.4,
+      "wall_s": 7.5,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "VACUOUS_PROPERTY",
       "timeout_only": false,
@@ -950,7 +950,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 6.8,
+      "wall_s": 6.9,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -961,7 +961,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 7.0,
+      "wall_s": 6.9,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -972,7 +972,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 7.5,
+      "wall_s": 6.9,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -983,7 +983,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_ANALYSIS_FAILED",
-      "wall_s": 7.1,
+      "wall_s": 7.3,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_ANALYSIS_FAILED",
       "timeout_only": false,
@@ -994,7 +994,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 7.1,
+      "wall_s": 6.9,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -1005,7 +1005,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_ANALYSIS_FAILED",
-      "wall_s": 7.9,
+      "wall_s": 7.2,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_ANALYSIS_FAILED",
       "timeout_only": false,
@@ -1016,7 +1016,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 6.9,
+      "wall_s": 7.0,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -1027,7 +1027,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 6.9,
+      "wall_s": 7.2,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -1049,7 +1049,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 66.9,
+      "wall_s": 67.2,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": true,
@@ -1060,7 +1060,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "VACUOUS_PROPERTY",
-      "wall_s": 10.2,
+      "wall_s": 7.6,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "VACUOUS_PROPERTY",
       "timeout_only": false,
@@ -1082,7 +1082,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 6.8,
+      "wall_s": 7.1,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -1093,7 +1093,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.3,
+      "wall_s": 7.2,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1104,7 +1104,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.5,
+      "wall_s": 7.3,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1115,7 +1115,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "VACUOUS_PROPERTY",
-      "wall_s": 7.5,
+      "wall_s": 8.2,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "VACUOUS_PROPERTY",
       "timeout_only": false,
@@ -1137,7 +1137,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "VACUOUS_PROPERTY",
-      "wall_s": 8.0,
+      "wall_s": 7.6,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "VACUOUS_PROPERTY",
       "timeout_only": false,
@@ -1148,7 +1148,7 @@
       "flag": "0",
       "pipeline_passed": false,
       "pipeline_cat": "VACUOUS_PROPERTY",
-      "wall_s": 7.3,
+      "wall_s": 7.5,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "VACUOUS_PROPERTY",
       "timeout_only": false,
@@ -1159,7 +1159,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.1,
+      "wall_s": 6.7,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1181,7 +1181,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.1,
+      "wall_s": 6.7,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1192,7 +1192,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 6.9,
+      "wall_s": 6.8,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1203,7 +1203,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 6.9,
+      "wall_s": 6.8,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1214,7 +1214,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.0,
+      "wall_s": 6.9,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1225,7 +1225,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.1,
+      "wall_s": 6.9,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1236,7 +1236,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_ANALYSIS_FAILED",
-      "wall_s": 7.8,
+      "wall_s": 6.8,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_ANALYSIS_FAILED",
       "timeout_only": false,
@@ -1247,7 +1247,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 6.9,
+      "wall_s": 6.4,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -1258,7 +1258,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 6.9,
+      "wall_s": 6.8,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1269,7 +1269,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 6.9,
+      "wall_s": 6.7,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -1280,7 +1280,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 6.9,
+      "wall_s": 6.6,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -1302,7 +1302,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.3,
+      "wall_s": 6.9,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1313,7 +1313,7 @@
       "flag": "1",
       "pipeline_passed": true,
       "pipeline_cat": null,
-      "wall_s": 7.9,
+      "wall_s": 7.3,
       "first_real_gate": null,
       "first_real_cat": null,
       "timeout_only": false,
@@ -1335,7 +1335,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "COVERAGE_DEFICIT",
-      "wall_s": 6.7,
+      "wall_s": 6.5,
       "first_real_gate": "Gate 3: Verilator Coverage Signoff",
       "first_real_cat": "COVERAGE_DEFICIT",
       "timeout_only": false,
@@ -1368,7 +1368,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.0,
+      "wall_s": 6.8,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1390,7 +1390,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 8.0,
+      "wall_s": 6.7,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,
@@ -1401,7 +1401,7 @@
       "flag": "1",
       "pipeline_passed": false,
       "pipeline_cat": "FORMAL_INVARIANT_BREACH",
-      "wall_s": 7.1,
+      "wall_s": 6.8,
       "first_real_gate": "Gate 2: SymbiYosys Formal Property Verification",
       "first_real_cat": "FORMAL_INVARIANT_BREACH",
       "timeout_only": false,

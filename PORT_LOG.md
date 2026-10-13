@@ -88,6 +88,15 @@
   V1 regenerates its own reference harness (restored post-run); write-on-change
   follow-up recorded.
 
+## S4 (passable ceiling: 19/20)
+- Static classification under the NEW rendering (`results/v4/dev_passable.json`):
+  21 same-cycle (P5b-checkable), 15 boolean (13 tautologies dropped, 2 genuine),
+  2 next-cycle, 1 onehot0, 1 unsupported (counter_04 `$past`-slice).
+- All 20 dev contracts declare synchronous reset (VERIFIED) → P5b-sync uniform.
+- PASSABLE 19/20 (all but counter_04: unsupported poisons vacuity cover).
+  Caveats: antecedent reachability is runtime-proven (cover), not static;
+  fifo_04 multi-clock unprobed at runtime; ceiling assumes spec-faithful RTL.
+
 ## P5b (UNCOMMITTED WIP on feat/det-assist; supersedes P5)
 - Deliberate verifier change, reason: dev-20 specs mandate synchronous reset
   yet state reset checks in same-cycle `!rst_n |-> X` form, which no

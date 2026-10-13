@@ -1,0 +1,368 @@
+{
+ "tasks": [
+  {
+   "task_id": "counter_04",
+   "name": "johnson_counter_8b",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> q == 8'h00);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) q[7:1] == $past(q[6:0]));",
+     "kind": "unclassified",
+     "status": "unsupported"
+    }
+   ],
+   "gate2": "UNPASSABLE",
+   "reason": "unsupported property fails Gate 2 closed/cover"
+  },
+  {
+   "task_id": "arbiter_02",
+   "name": "fixed_priority_4req",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) req[0] |-> gnt[0]);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) $onehot0(gnt));",
+     "kind": "onehot0",
+     "status": "supported"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "2 genuine checkable"
+  },
+  {
+   "task_id": "fifo_01",
+   "name": "sync_fifo_8x8",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !(full && empty));",
+     "kind": "boolean",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> empty == 1 && full == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "2 genuine checkable"
+  },
+  {
+   "task_id": "fsm_heldout_04",
+   "name": "sdlc_bit_stuffer_fsm",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) stuffed |-> dout == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> !stuffed);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "2 genuine checkable"
+  },
+  {
+   "task_id": "uart_01",
+   "name": "uart_tx_8n1",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "reg_if_01",
+   "name": "reg_file_32x32",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "apb_01",
+   "name": "apb_gpio_controller",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "fifo_04",
+   "name": "async_fifo_gray_2clock",
+   "properties": [
+    {
+     "property": "assert property (@(posedge wr_clk) disable iff (!wr_rst_n) !wr_rst_n |-> full == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge rd_clk) disable iff (!rd_rst_n) !rd_rst_n |-> empty == 1);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "2 genuine checkable"
+  },
+  {
+   "task_id": "spi_02",
+   "name": "spi_slave_mode3",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "axi_04",
+   "name": "axi_burst_address_calc",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "dma_04",
+   "name": "dma_stride_address_gen",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "cdc_04",
+   "name": "gray_pointer_cdc_sync",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "reset_02",
+   "name": "glitch_free_reset_mux",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "adapters_03",
+   "name": "apb_to_spi_bridge",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "fifo_03",
+   "name": "adv_fifo_simultaneous_rw",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) full && wr_en && rd_en |=> full);",
+     "kind": "next_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) empty && wr_en && rd_en |=> !empty);",
+     "kind": "next_cycle_implication",
+     "status": "supported"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "2 genuine checkable"
+  },
+  {
+   "task_id": "arbiter_03",
+   "name": "adv_arbiter_handshake_race",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !(gnt[0] && gnt[1]));",
+     "kind": "boolean",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) req == 2'b00 |-> gnt == 2'b00);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "2 genuine checkable"
+  },
+  {
+   "task_id": "axi_05",
+   "name": "adv_axi_handshake_deadlock",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "cdc_05",
+   "name": "adv_cdc_fast_to_slow",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "reset_04",
+   "name": "adv_reset_during_burst",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  },
+  {
+   "task_id": "adapters_09",
+   "name": "adv_adapter_width_mismatch",
+   "properties": [
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) !rst_n |-> out_data == 0);",
+     "kind": "same_cycle_implication",
+     "status": "supported"
+    },
+    {
+     "property": "assert property (@(posedge clk) disable iff (!rst_n) out_data == out_data);",
+     "kind": "boolean",
+     "status": "dropped-tautology"
+    }
+   ],
+   "gate2": "PASSABLE",
+   "reason": "1 genuine checkable"
+  }
+ ],
+ "summary": {
+  "passable": 19,
+  "total": 20
+ }
+}

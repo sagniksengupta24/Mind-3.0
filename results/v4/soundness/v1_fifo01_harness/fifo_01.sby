@@ -1,0 +1,17 @@
+[options]
+mode bmc
+depth 25
+
+[engines]
+smtbmc z3
+
+[script]
+read -formal fifo_01.sv
+read -formal fifo_01_sva.sv
+read -formal fifo_01_formal_top.sv
+prep -top fifo_01_formal_top
+
+[files]
+fifo_01.sv
+fifo_01_formal_top.sv
+fifo_01_sva.sv

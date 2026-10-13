@@ -1,0 +1,195 @@
+[
+  {
+    "form": "boolean",
+    "variant": "correct",
+    "gate_passed": true,
+    "error_category": "",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 16..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assumptions in step 17..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 17..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assumptions in step 18..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 18..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assumptions in step 19..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 19..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assumptions in step 20..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 20..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assumptions in step 21..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 21..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assumptions in step 22..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 22..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assumptions in step 23..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 23..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assumptions in step 24..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Checking assertions in step 24..\nSBY 13:35:45 [v0_boolean_correct] engine_0: ##   0:00:00  Status: passed\nSBY 13:35:45 [v0_boolean_correct] engine_0: finished (returncode=0)\nSBY 13:35:45 [v0_boolean_correct] engine_0: Status returned by engine: pass\nSBY 13:35:45 [v0_boolean_correct] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:45 [v0_boolean_correct] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:45 [v0_boolean_correct] summary: engine_0 (smtbmc z3) returned pass\nSBY 13:35:45 [v0_boolean_correct] summary: engine_0 did not produce any traces\nSBY 13:35:45 [v0_boolean_correct] DONE (PASS, rc=0)",
+    "verdict": "PASS"
+  },
+  {
+    "form": "boolean",
+    "variant": "wrong",
+    "gate_passed": false,
+    "error_category": "FORMAL_INVARIANT_BREACH",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:45 [v0_boolean_wrong] smt2: starting process \"cd v0_boolean_wrong/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY 13:35:45 [v0_boolean_wrong] smt2: finished (returncode=0)\nSBY 13:35:45 [v0_boolean_wrong] engine_0: starting process \"cd v0_boolean_wrong; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Solver: z3\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Checking assumptions in step 2..\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Checking assertions in step 2..\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  BMC failed!\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Assert failed in v0_boolean_wrong_formal_top.sva: v0_boolean_wrong_sva.sv:18.25-18.44 (_witness_.check_assert_v0_boolean_wrong_sva_sv_18_5)\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY 13:35:45 [v0_boolean_wrong] engine_0: ##   0:00:00  Status: failed\nSBY 13:35:45 [v0_boolean_wrong] engine_0: finished (returncode=1)\nSBY 13:35:45 [v0_boolean_wrong] engine_0: Status returned by engine: FAIL\nSBY 13:35:45 [v0_boolean_wrong] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:45 [v0_boolean_wrong] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:45 [v0_boolean_wrong] summary: engine_0 (smtbmc z3) returned FAIL\nSBY 13:35:45 [v0_boolean_wrong] summary: counterexample trace: v0_boolean_wrong/engine_0/trace.vcd\nSBY 13:35:45 [v0_boolean_wrong] summary:   failed assertion v0_boolean_wrong_formal_top.sva._witness_.check_assert_v0_boolean_wrong_sva_sv_18_5 at v0_boolean_wrong_sva.sv:18.25-18.44 step 2\nSBY 13:35:45 [v0_boolean_wrong] DONE (FAIL, rc=2)",
+    "verdict": "CAUGHT"
+  },
+  {
+    "form": "same_cycle_implication",
+    "variant": "correct",
+    "gate_passed": true,
+    "error_category": "",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 16..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 17..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 17..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 18..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 18..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 19..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 19..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 20..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 20..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 21..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 21..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 22..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 22..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 23..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 23..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 24..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 24..\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: ##   0:00:00  Status: passed\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: finished (returncode=0)\nSBY 13:35:46 [v0_same_cycle_implication_correct] engine_0: Status returned by engine: pass\nSBY 13:35:46 [v0_same_cycle_implication_correct] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:46 [v0_same_cycle_implication_correct] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:46 [v0_same_cycle_implication_correct] summary: engine_0 (smtbmc z3) returned pass\nSBY 13:35:46 [v0_same_cycle_implication_correct] summary: engine_0 did not produce any traces\nSBY 13:35:46 [v0_same_cycle_implication_correct] DONE (PASS, rc=0)",
+    "verdict": "PASS"
+  },
+  {
+    "form": "same_cycle_implication",
+    "variant": "wrong",
+    "gate_passed": false,
+    "error_category": "FORMAL_INVARIANT_BREACH",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:46 [v0_same_cycle_implication_wrong] smt2: starting process \"cd v0_same_cycle_implication_wrong/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY 13:35:46 [v0_same_cycle_implication_wrong] smt2: finished (returncode=0)\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: starting process \"cd v0_same_cycle_implication_wrong; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Solver: z3\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assumptions in step 2..\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assertions in step 2..\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  BMC failed!\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Assert failed in v0_same_cycle_implication_wrong_formal_top.sva: v0_same_cycle_implication_wrong_sva.sv:18.16-18.28 (_witness_.check_assert_v0_same_cycle_implication_wrong_sva_sv_18_5)\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: ##   0:00:00  Status: failed\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: finished (returncode=1)\nSBY 13:35:46 [v0_same_cycle_implication_wrong] engine_0: Status returned by engine: FAIL\nSBY 13:35:46 [v0_same_cycle_implication_wrong] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:46 [v0_same_cycle_implication_wrong] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:46 [v0_same_cycle_implication_wrong] summary: engine_0 (smtbmc z3) returned FAIL\nSBY 13:35:46 [v0_same_cycle_implication_wrong] summary: counterexample trace: v0_same_cycle_implication_wrong/engine_0/trace.vcd\nSBY 13:35:46 [v0_same_cycle_implication_wrong] summary:   failed assertion v0_same_cycle_implication_wrong_formal_top.sva._witness_.check_assert_v0_same_cycle_implication_wrong_sva_sv_18_5 at v0_same_cycle_implication_wrong_sva.sv:18.16-18.28 step 2\nSBY 13:35:46 [v0_same_cycle_implication_wrong] DONE (FAIL, rc=2)",
+    "verdict": "CAUGHT"
+  },
+  {
+    "form": "next_cycle_implication",
+    "variant": "correct",
+    "gate_passed": true,
+    "error_category": "",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 16..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 17..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 17..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 18..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 18..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 19..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 19..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 20..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 20..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 21..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 21..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 22..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 22..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 23..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 23..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assumptions in step 24..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Checking assertions in step 24..\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: ##   0:00:00  Status: passed\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: finished (returncode=0)\nSBY 13:35:46 [v0_next_cycle_implication_correct] engine_0: Status returned by engine: pass\nSBY 13:35:46 [v0_next_cycle_implication_correct] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:46 [v0_next_cycle_implication_correct] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:46 [v0_next_cycle_implication_correct] summary: engine_0 (smtbmc z3) returned pass\nSBY 13:35:46 [v0_next_cycle_implication_correct] summary: engine_0 did not produce any traces\nSBY 13:35:46 [v0_next_cycle_implication_correct] DONE (PASS, rc=0)",
+    "verdict": "PASS"
+  },
+  {
+    "form": "next_cycle_implication",
+    "variant": "wrong",
+    "gate_passed": false,
+    "error_category": "FORMAL_INVARIANT_BREACH",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:47 [v0_next_cycle_implication_wrong] smt2: starting process \"cd v0_next_cycle_implication_wrong/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY 13:35:47 [v0_next_cycle_implication_wrong] smt2: finished (returncode=0)\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: starting process \"cd v0_next_cycle_implication_wrong; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Solver: z3\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assumptions in step 2..\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Checking assertions in step 2..\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  BMC failed!\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Assert failed in v0_next_cycle_implication_wrong_formal_top.sva: v0_next_cycle_implication_wrong_sva.sv:18.21-18.31 (_witness_.check_assert_v0_next_cycle_implication_wrong_sva_sv_18_7)\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: ##   0:00:00  Status: failed\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: finished (returncode=1)\nSBY 13:35:47 [v0_next_cycle_implication_wrong] engine_0: Status returned by engine: FAIL\nSBY 13:35:47 [v0_next_cycle_implication_wrong] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:47 [v0_next_cycle_implication_wrong] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:47 [v0_next_cycle_implication_wrong] summary: engine_0 (smtbmc z3) returned FAIL\nSBY 13:35:47 [v0_next_cycle_implication_wrong] summary: counterexample trace: v0_next_cycle_implication_wrong/engine_0/trace.vcd\nSBY 13:35:47 [v0_next_cycle_implication_wrong] summary:   failed assertion v0_next_cycle_implication_wrong_formal_top.sva._witness_.check_assert_v0_next_cycle_implication_wrong_sva_sv_18_7 at v0_next_cycle_implication_wrong_sva.sv:18.21-18.31 step 2\nSBY 13:35:47 [v0_next_cycle_implication_wrong] DONE (FAIL, rc=2)",
+    "verdict": "CAUGHT"
+  },
+  {
+    "form": "onehot0",
+    "variant": "correct",
+    "gate_passed": true,
+    "error_category": "",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 16..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assumptions in step 17..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 17..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assumptions in step 18..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 18..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assumptions in step 19..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 19..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assumptions in step 20..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 20..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assumptions in step 21..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 21..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assumptions in step 22..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 22..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assumptions in step 23..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 23..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assumptions in step 24..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Checking assertions in step 24..\nSBY 13:35:47 [v0_onehot0_correct] engine_0: ##   0:00:00  Status: passed\nSBY 13:35:47 [v0_onehot0_correct] engine_0: finished (returncode=0)\nSBY 13:35:47 [v0_onehot0_correct] engine_0: Status returned by engine: pass\nSBY 13:35:47 [v0_onehot0_correct] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:47 [v0_onehot0_correct] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:47 [v0_onehot0_correct] summary: engine_0 (smtbmc z3) returned pass\nSBY 13:35:47 [v0_onehot0_correct] summary: engine_0 did not produce any traces\nSBY 13:35:47 [v0_onehot0_correct] DONE (PASS, rc=0)",
+    "verdict": "PASS"
+  },
+  {
+    "form": "onehot0",
+    "variant": "wrong",
+    "gate_passed": false,
+    "error_category": "FORMAL_INVARIANT_BREACH",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:47 [v0_onehot0_wrong] smt2: starting process \"cd v0_onehot0_wrong/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY 13:35:47 [v0_onehot0_wrong] smt2: finished (returncode=0)\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: starting process \"cd v0_onehot0_wrong; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Solver: z3\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Checking assumptions in step 2..\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Checking assertions in step 2..\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  BMC failed!\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Assert failed in v0_onehot0_wrong_formal_top.sva: v0_onehot0_wrong_sva.sv:17.25-17.47 (_witness_.check_assert_v0_onehot0_wrong_sva_sv_17_5)\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: ##   0:00:00  Status: failed\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: finished (returncode=1)\nSBY 13:35:47 [v0_onehot0_wrong] engine_0: Status returned by engine: FAIL\nSBY 13:35:47 [v0_onehot0_wrong] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:47 [v0_onehot0_wrong] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:47 [v0_onehot0_wrong] summary: engine_0 (smtbmc z3) returned FAIL\nSBY 13:35:47 [v0_onehot0_wrong] summary: counterexample trace: v0_onehot0_wrong/engine_0/trace.vcd\nSBY 13:35:47 [v0_onehot0_wrong] summary:   failed assertion v0_onehot0_wrong_formal_top.sva._witness_.check_assert_v0_onehot0_wrong_sva_sv_17_5 at v0_onehot0_wrong_sva.sv:17.25-17.47 step 2\nSBY 13:35:47 [v0_onehot0_wrong] DONE (FAIL, rc=2)",
+    "verdict": "CAUGHT"
+  },
+  {
+    "form": "past_expression",
+    "variant": "correct",
+    "gate_passed": true,
+    "error_category": "",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 16..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assumptions in step 17..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 17..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assumptions in step 18..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 18..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assumptions in step 19..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 19..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assumptions in step 20..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 20..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assumptions in step 21..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 21..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assumptions in step 22..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 22..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assumptions in step 23..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 23..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assumptions in step 24..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Checking assertions in step 24..\nSBY 13:35:48 [v0_past_expression_correct] engine_0: ##   0:00:00  Status: passed\nSBY 13:35:48 [v0_past_expression_correct] engine_0: finished (returncode=0)\nSBY 13:35:48 [v0_past_expression_correct] engine_0: Status returned by engine: pass\nSBY 13:35:48 [v0_past_expression_correct] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:48 [v0_past_expression_correct] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:48 [v0_past_expression_correct] summary: engine_0 (smtbmc z3) returned pass\nSBY 13:35:48 [v0_past_expression_correct] summary: engine_0 did not produce any traces\nSBY 13:35:48 [v0_past_expression_correct] DONE (PASS, rc=0)",
+    "verdict": "PASS"
+  },
+  {
+    "form": "past_expression",
+    "variant": "wrong",
+    "gate_passed": false,
+    "error_category": "FORMAL_INVARIANT_BREACH",
+    "expected_asserts": 1,
+    "registered_asserts": 1,
+    "sby_tail": "SBY 13:35:48 [v0_past_expression_wrong] smt2: starting process \"cd v0_past_expression_wrong/model; yosys -ql design_smt2.log design_smt2.ys\"\nSBY 13:35:48 [v0_past_expression_wrong] smt2: finished (returncode=0)\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: starting process \"cd v0_past_expression_wrong; yosys-smtbmc -s z3 --presat --noprogress -t 25  --append 0 --dump-vcd engine_0/trace.vcd --dump-yw engine_0/trace.yw --dump-vlogtb engine_0/trace_tb.v --dump-smtc engine_0/trace.smtc model/design_smt2.smt2\"\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Solver: z3\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Checking assumptions in step 0..\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Checking assertions in step 0..\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Checking assumptions in step 1..\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Checking assertions in step 1..\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Checking assumptions in step 2..\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Checking assertions in step 2..\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  BMC failed!\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Assert failed in v0_past_expression_wrong_formal_top.sva: v0_past_expression_wrong_sva.sv:16.25-16.55 (_witness_.check_assert_v0_past_expression_wrong_sva_sv_16_7)\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace.vcd\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Writing trace to Verilog testbench: engine_0/trace_tb.v\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Writing trace to constraints file: engine_0/trace.smtc\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Writing trace to Yosys witness file: engine_0/trace.yw\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: ##   0:00:00  Status: failed\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: finished (returncode=1)\nSBY 13:35:48 [v0_past_expression_wrong] engine_0: Status returned by engine: FAIL\nSBY 13:35:48 [v0_past_expression_wrong] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:48 [v0_past_expression_wrong] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:48 [v0_past_expression_wrong] summary: engine_0 (smtbmc z3) returned FAIL\nSBY 13:35:48 [v0_past_expression_wrong] summary: counterexample trace: v0_past_expression_wrong/engine_0/trace.vcd\nSBY 13:35:48 [v0_past_expression_wrong] summary:   failed assertion v0_past_expression_wrong_formal_top.sva._witness_.check_assert_v0_past_expression_wrong_sva_sv_16_7 at v0_past_expression_wrong_sva.sv:16.25-16.55 step 2\nSBY 13:35:48 [v0_past_expression_wrong] DONE (FAIL, rc=2)",
+    "verdict": "CAUGHT"
+  },
+  {
+    "form": "delayed_implication_##1",
+    "variant": "correct",
+    "gate_passed": false,
+    "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
+    "expected_asserts": null,
+    "registered_asserts": null,
+    "sby_tail": "",
+    "verdict": "FAIL_CLOSED"
+  },
+  {
+    "form": "delayed_implication_##1",
+    "variant": "wrong",
+    "gate_passed": false,
+    "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
+    "expected_asserts": null,
+    "registered_asserts": null,
+    "sby_tail": "",
+    "verdict": "FAIL_CLOSED"
+  },
+  {
+    "form": "rose_fell",
+    "variant": "correct",
+    "gate_passed": false,
+    "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
+    "expected_asserts": null,
+    "registered_asserts": null,
+    "sby_tail": "",
+    "verdict": "FAIL_CLOSED"
+  },
+  {
+    "form": "rose_fell",
+    "variant": "wrong",
+    "gate_passed": false,
+    "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
+    "expected_asserts": null,
+    "registered_asserts": null,
+    "sby_tail": "",
+    "verdict": "FAIL_CLOSED"
+  },
+  {
+    "form": "bare_immediate_assert",
+    "variant": "correct",
+    "gate_passed": false,
+    "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
+    "expected_asserts": null,
+    "registered_asserts": null,
+    "sby_tail": "",
+    "verdict": "FAIL_CLOSED"
+  },
+  {
+    "form": "bare_immediate_assert",
+    "variant": "wrong",
+    "gate_passed": false,
+    "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
+    "expected_asserts": null,
+    "registered_asserts": null,
+    "sby_tail": "",
+    "verdict": "FAIL_CLOSED"
+  },
+  {
+    "form": "vacuity:never_firing_antecedent",
+    "variant": "probe",
+    "gate_passed": false,
+    "error_category": "VACUOUS_PROPERTY",
+    "verdict": "GATE_FAIL(VACUOUS_PROPERTY)",
+    "sby_tail": "SBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 16..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assumptions in step 17..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 17..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assumptions in step 18..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 18..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assumptions in step 19..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 19..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assumptions in step 20..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 20..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assumptions in step 21..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 21..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assumptions in step 22..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 22..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assumptions in step 23..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 23..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assumptions in step 24..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Checking assertions in step 24..\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: ##   0:00:00  Status: passed\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: finished (returncode=0)\nSBY 13:35:48 [v0_vac_never_firing_antecedent] engine_0: Status returned by engine: pass\nSBY 13:35:48 [v0_vac_never_firing_antecedent] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:48 [v0_vac_never_firing_antecedent] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:48 [v0_vac_never_firing_antecedent] summary: engine_0 (smtbmc z3) returned pass\nSBY 13:35:48 [v0_vac_never_firing_antecedent] summary: engine_0 did not produce any traces\nSBY 13:35:48 [v0_vac_never_firing_antecedent] DONE (PASS, rc=0)",
+    "details": "Bounded BMC to depth 25 found no counterexample, but antecedent(s) never exercised within bound: v (bounded antecedent reachability to depth 25). An unexercised implication is reported as VACUOUS, never as an ordinary PASS."
+  },
+  {
+    "form": "vacuity:tautology_out_eq_out",
+    "variant": "probe",
+    "gate_passed": true,
+    "error_category": "",
+    "verdict": "GATE_PASS()",
+    "sby_tail": "SBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 16..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assumptions in step 17..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 17..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assumptions in step 18..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 18..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assumptions in step 19..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 19..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assumptions in step 20..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 20..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assumptions in step 21..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 21..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assumptions in step 22..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 22..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assumptions in step 23..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 23..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assumptions in step 24..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Checking assertions in step 24..\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: ##   0:00:00  Status: passed\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: finished (returncode=0)\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] engine_0: Status returned by engine: pass\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] summary: engine_0 (smtbmc z3) returned pass\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] summary: engine_0 did not produce any traces\nSBY 13:35:49 [v0_vac_tautology_out_eq_out] DONE (PASS, rc=0)",
+    "details": "Bounded BMC to depth 25: zero invariant counterexamples. Vacuity assessment: no implication antecedents to exercise."
+  },
+  {
+    "form": "vacuity:const_true_consequent",
+    "variant": "probe",
+    "gate_passed": true,
+    "error_category": "",
+    "verdict": "GATE_PASS()",
+    "sby_tail": "SBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 16..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assumptions in step 17..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 17..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assumptions in step 18..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 18..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assumptions in step 19..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 19..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assumptions in step 20..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 20..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assumptions in step 21..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 21..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assumptions in step 22..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 22..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assumptions in step 23..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 23..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assumptions in step 24..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Checking assertions in step 24..\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: ##   0:00:00  Status: passed\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: finished (returncode=0)\nSBY 13:35:49 [v0_vac_const_true_consequent] engine_0: Status returned by engine: pass\nSBY 13:35:49 [v0_vac_const_true_consequent] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:49 [v0_vac_const_true_consequent] summary: Elapsed process time [H:MM:SS (secs)]: 0:00:00 (0)\nSBY 13:35:49 [v0_vac_const_true_consequent] summary: engine_0 (smtbmc z3) returned pass\nSBY 13:35:49 [v0_vac_const_true_consequent] summary: engine_0 did not produce any traces\nSBY 13:35:49 [v0_vac_const_true_consequent] DONE (PASS, rc=0)",
+    "details": "Bounded BMC to depth 25: zero invariant counterexamples. All 1 implication antecedent(s) reached within bound (reachability depth 25)."
+  },
+  {
+    "form": "onehot0_brace_concat",
+    "variant": "probe",
+    "verdict": "ERROR",
+    "detail": "gate raised ValidationError: 1 validation error for FormalPropertySpec\n  Value error, Invalid signal identifier: {gnt1, gnt0} [type=value_error, input_value={'name': 'ohb', 'kind': <...sable_iff_reset': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+  }
+]

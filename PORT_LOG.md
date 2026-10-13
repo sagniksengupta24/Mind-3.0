@@ -34,3 +34,16 @@
   guesses, and the port's counterexample-procedure repair prompt is used.
 - Default stays as the copy (C2 enrichment + minimal-diff/never-resubmit prompt).
 - R1/R2/C1: keep the copy (no change).
+
+## V0 follow-up (NOT fixed): brace-concat $onehot0 crashes the formal gate
+- Repro: `assert property (@(posedge clk) $onehot0({gnt1, gnt0}));` as an
+  `sva_properties` entry makes `classify_legacy_property` build a
+  `FormalPropertySpec` with `signal='{gnt1, gnt0}'`, which fails the identifier
+  validator; the resulting pydantic `ValidationError` is NOT an
+  `UnsupportedFormalTemplate`, so `_run_gate2_formal_sby` does not fail closed —
+  the exception escapes the gate (evidence:
+  `results/v4/soundness/v0_results.json`, `onehot0_brace_concat` → ERROR).
+- Not in the dev-20 corpus (arbiter_02 uses single-signal `$onehot0(gnt)`).
+- Fix deferred by owner decision; candidates: catch `ValueError` alongside
+  `UnsupportedFormalTemplate` in the gate, or reject brace operands in the
+  classifier with `UnsupportedFormalTemplate`.

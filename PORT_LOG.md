@@ -47,3 +47,16 @@
 - Fix deferred by owner decision; candidates: catch `ValueError` alongside
   `UnsupportedFormalTemplate` in the gate, or reject brace operands in the
   classifier with `UnsupportedFormalTemplate`.
+
+## S1 (V1 commit + vacuity history)
+- Committed V1 audit files as `9640388` ("V1 gate completeness audit, test-only"):
+  `tests/soundness/test_v1_completeness.py`, `tests/golden/` (6 UNREVIEWED),
+  `results/v4/soundness/v1_results.json`, `results/v4/soundness/v1_fifo01_harness/`.
+- Vacuity check (`VACUOUS_PROPERTY`, `_run_gate2_vacuity_check`) entered the tree
+  in `5c7e7ec` (2026-10-02), in HEAD's ancestry. The only recorded historical runs
+  (`results/`, heldout mock suite, 2026-09-30, sha `9201daf` from 2026-09-22)
+  predate it and recorded 0 passes; dev-20 has no recorded passes at all. So no
+  historical pass postdates (or is invalidated by) the vacuity check.
+- Standing nuisance (not fixed): every full-suite run re-executes the V0/V1
+  soundness tests, which rewrite `v0/v1_results.json` SBY timestamp tails and
+  dirty the tree. Follow-up: write result JSONs only on verdict change.

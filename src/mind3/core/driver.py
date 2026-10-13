@@ -142,6 +142,23 @@ def _candidate_identity(before: str, after: str) -> dict[str, Any]:
     }
 
 
+def _rtl_identity_hash(source: str) -> str:
+    """Hash RTL while ignoring only line-ending and trailing-whitespace differences.
+
+    This is deliberately not a semantic-equivalence check: comments, token spacing,
+    and all non-trailing source content remain significant. The hash is used only
+    (behind MIND3_SKIP_UNCHANGED) to avoid spending a verifier turn on a candidate
+    that is effectively unchanged.
+    """
+    normalized = "\n".join(line.rstrip() for line in source.replace("\r\n", "\n").replace("\r", "\n").split("\n")).strip()
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _skip_unchanged_enabled() -> bool:
+    """Whether identical-candidate verifier skips are enabled (default OFF)."""
+    return os.getenv("MIND3_SKIP_UNCHANGED", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 _FENCE_REGEX = re.compile(
     r"```(?:verilog|systemverilog|sv)?\s*\n?(.*?)\n?```",
     re.DOTALL | re.IGNORECASE,
@@ -2148,9 +2165,10 @@ class PhaseDriver:
                     repair_guidance = self._parse_retry_guidance(str(exc))
                     self._last_failure_was_parse = True
                     continue
-                # Parse succeeded: spend the EDA turn now.
+                # Parse succeeded. C1 identity records are always logged below;
+                # the EDA-turn budget is spent either by the D4 skip path or
+                # by the normal path, never both.
                 self._last_failure_was_parse = False
-                self._stage_repair_attempts[stage_key] += 1
                 attempt = prospective_attempt
                 diff_stats = _repair_diff_stats(current_rtl, repaired_code) if current_rtl else {"changed_line_ratio": 0.0, "line_growth_ratio": 1.0}
                 # C1: deterministic unchanged-candidate detection. Raw bytes
@@ -2169,6 +2187,70 @@ class PhaseDriver:
                 if unchanged:
                     self._unchanged_repair_count += 1
                     repair_history.append("UNCHANGED_CANDIDATE")
+                # D4: optional skip-unchanged (MIND3_SKIP_UNCHANGED, default OFF).
+                # Port control flow, applied ONLY on a narrow-hash match
+                # (line-endings/trailing whitespace). A normalized-only match
+                # (e.g. comment-only) must NOT skip the verifier: it falls
+                # through to the standard EDA turn below with C1 records kept.
+                if (
+                    current_rtl
+                    and _skip_unchanged_enabled()
+                    and _rtl_identity_hash(current_rtl) == _rtl_identity_hash(repaired_code)
+                ):
+                    self._stage_repair_attempts[stage_key] += 1
+                    attempt = prospective_attempt
+                    candidate_hash = _rtl_identity_hash(repaired_code)
+                    repair_history.append("UNCHANGED_CANDIDATE")
+                    self._emit_trace(
+                        PhaseEnum.VERIFY,
+                        {
+                            "passed": False,
+                            "domain": "RTL",
+                            "exit_code": 1,
+                            "failure_reason": "Repair candidate was unchanged after normalizing line endings and trailing whitespace; verification was not rerun.",
+                            "error_category": "REPAIR_UNCHANGED_CANDIDATE",
+                            "stage": stage_key,
+                            "attempt": attempt,
+                            "candidate_sha256": candidate_hash,
+                            "current_candidate_sha256": _rtl_identity_hash(current_rtl),
+                            "gate_reports": [],
+                        },
+                    )
+                    stage_budget_exhausted = self._stage_repair_attempts[stage_key] >= stage_limits.get(stage_key, self.max_repairs)
+                    parse_budget_exhausted = self._parse_attempts >= PARSE_MAX_ATTEMPTS
+                    if stage_budget_exhausted or parse_budget_exhausted:
+                        self._restore_snapshot()
+                        reason = (
+                            f"{stage_key} repair limit ({stage_limits.get(stage_key, self.max_repairs)}) exhausted by unchanged candidates."
+                            if stage_budget_exhausted
+                            else f"Model-response parse budget ({PARSE_MAX_ATTEMPTS}) exhausted after an unchanged repair candidate."
+                        )
+                        self._emit_trace(
+                            PhaseEnum.REPAIR_OR_FINISH,
+                            {
+                                "status": "ROLLED_BACK",
+                                "reason": reason,
+                                "failure_category": "REPAIR_UNCHANGED_CANDIDATE",
+                                "stage_budget_exhausted": stage_budget_exhausted,
+                                "parse_budget_exhausted": parse_budget_exhausted,
+                                "unchanged_candidate_sha256": candidate_hash,
+                            },
+                        )
+                        return False
+                    repair_guidance = (
+                        f"{repair_guidance or ''}\n\n"
+                        "IMPORTANT REPAIR FEEDBACK: Your immediately preceding candidate was identical to the current RTL "
+                        "after normalizing line endings and trailing whitespace. It was rejected without rerunning verification. "
+                        "Do not return the same implementation again. Re-evaluate the immutable contract and the structured "
+                        "verifier evidence above, identify a specific behavior that explains the reported failure, and make the "
+                        "smallest contract-supported RTL correction. Preserve the interface and required behavior; never weaken "
+                        "or remove a formal property, and do not invent signal values that are absent from the evidence. "
+                        "Return the complete corrected module in the required format."
+                    )
+                    continue
+                # Normal path: spend the EDA turn now.
+                self._stage_repair_attempts[stage_key] += 1
+                attempt = prospective_attempt
                 if current_rtl and len(current_rtl.splitlines()) >= 12 and (
                     diff_stats["changed_line_ratio"] > REPAIR_MAX_CHANGED_LINE_RATIO
                     or diff_stats["line_growth_ratio"] > REPAIR_MAX_LINE_GROWTH

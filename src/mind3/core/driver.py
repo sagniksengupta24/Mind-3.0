@@ -1939,6 +1939,8 @@ class PhaseDriver:
         self._emit_trace(PhaseEnum.EXECUTE, {"role": "Verification Lead", "staged_artifacts": exec_harness})
 
         rtl_prompt = RTLGenerator.build_prompt(contract, format_block=self._format_block)
+        from .vcd_evidence import evidence_v2_enabled
+
         repair_system_instruction = VerificationRepairer.build_prompt(
             contract,
             "",
@@ -1946,6 +1948,7 @@ class PhaseDriver:
                 gate="generation", category="generation", stage="compile", tool="model", error="initial generation"
             ),
             format_block=self._format_block,
+            evidence_v2=evidence_v2_enabled(),
         )["system"]
 
         self._emit_trace(
@@ -2020,7 +2023,12 @@ class PhaseDriver:
                 contract=contract.model_dump(mode="json"),
                 attempt=1,
             )
-            repair_messages = VerificationRepairer.build_prompt(contract, "", evidence, format_block=self._format_block)
+            from .vcd_evidence import evidence_v2_enabled
+
+            repair_messages = VerificationRepairer.build_prompt(
+                contract, "", evidence, format_block=self._format_block,
+                evidence_v2=evidence_v2_enabled(),
+            )
             repair_guidance = repair_messages["user"]
             repair_system_instruction = repair_messages["system"]
             rtl_code = ""
@@ -2248,6 +2256,44 @@ class PhaseDriver:
                         "Return the complete corrected module in the required format."
                     )
                     continue
+                # R5 (MIND3_EVIDENCE_V2, default OFF): reject duplicate-driver
+                # candidates before spending an EDA turn. Mirrors the
+                # REPAIR_PATCH_TOO_LARGE pre-check shape (feedback + continue).
+                from .vcd_evidence import detect_multidriven_nets
+
+                _multidriven = (
+                    detect_multidriven_nets(repaired_code)
+                    if evidence_v2_enabled()
+                    else []
+                )
+                if _multidriven:
+                    _md_names = ", ".join(sorted(d["signal"] for d in _multidriven))
+                    repair_history.append("REPAIR_MULTIDRIVEN")
+                    self._emit_trace(
+                        PhaseEnum.VERIFY,
+                        {
+                            "passed": False,
+                            "domain": "RTL",
+                            "exit_code": 1,
+                            "failure_reason": (
+                                "Repair candidate drives net(s) both continuously and "
+                                f"procedurally: {_md_names}. A second driver is a certain "
+                                "compile failure, not a repair."
+                            ),
+                            "error_category": "REPAIR_MULTIDRIVEN",
+                            "multidriven_signals": sorted(d["signal"] for d in _multidriven),
+                            "gate_reports": [],
+                        },
+                    )
+                    repair_guidance = (
+                        f"{repair_guidance or ''}\n\n"
+                        "IMPORTANT REPAIR FEEDBACK: Your immediately preceding candidate "
+                        f"attaches a continuous `assign` to net(s) already driven procedurally "
+                        f"({_md_names}). Modify the existing always_ff / always_comb driver "
+                        "blocks in place instead; never add a second driver to a net. "
+                        "Return the complete corrected module in the required format."
+                    )
+                    continue
                 # Normal path: spend the EDA turn now.
                 self._stage_repair_attempts[stage_key] += 1
                 attempt = prospective_attempt
@@ -2404,6 +2450,72 @@ class PhaseDriver:
                     f"Property {last_report.get('failing_property')} failed "
                     f"at step {last_report.get('step')}: {observed_value}"
                 )[:2000]
+            # R5 (MIND3_EVIDENCE_V2, default OFF): decode a formal VCD witness
+            # into a cycle table instead of passing raw trace ASCII. Anything
+            # undecodable keeps the legacy raw-trace evidence byte-identical.
+            from .vcd_evidence import (
+                VCD_MAX_CHARS,
+                decode_counterexample,
+                evidence_v2_enabled,
+                property_signal_names,
+            )
+
+            _v2_decode_on = evidence_v2_enabled() and category == "FORMAL_INVARIANT_BREACH"
+            _v2_markdown: str | None = None
+            _v2_cycle: int | None = None
+            _v2_relevant: dict[str, str] | None = None
+            if _v2_decode_on:
+                _t_raw = last_report.get("cycle")
+                _t_fail: int | None = _t_raw if isinstance(_t_raw, int) else None
+                if _t_fail is None:
+                    try:
+                        _t_fail = int(str(last_report.get("step")))
+                    except (TypeError, ValueError):
+                        _t_fail = None
+                _trace_text: str | None = None
+                _trace_path = last_report.get("trace_file")
+                if _trace_path:
+                    try:
+                        _trace_file = Path(_trace_path)
+                        if not _trace_file.is_absolute():
+                            _trace_file = (self.workspace / _trace_file).resolve()
+                        if _trace_file.is_file() and _trace_file.stat().st_size <= VCD_MAX_CHARS:
+                            _trace_text = _trace_file.read_text(encoding="utf-8", errors="replace")[:VCD_MAX_CHARS]
+                    except OSError:
+                        _trace_text = None
+                if _trace_text:
+                    _port_names = [
+                        str(getattr(p, "name", ""))
+                        for p in contract.ports or []
+                    ]
+                    _clock_name = contract.clock.name if contract.clock is not None else "clk"
+                    _reset_name, _reset_active_low = ("rst_n", True)
+                    if contract.reset is not None:
+                        _reset_name = str(contract.reset.name)
+                        _reset_active_low = str(contract.reset.polarity) == "active_low"
+                    _decoded = decode_counterexample(
+                        _trace_text,
+                        port_names=[n for n in _port_names if n],
+                        extra_names=property_signal_names(property_source),
+                        t_fail=_t_fail,
+                        clock_name=_clock_name,
+                        reset_name=_reset_name,
+                        reset_active_low=_reset_active_low,
+                        failing_assertion=str(last_report.get("failing_property"))
+                        if last_report.get("failing_property")
+                        else None,
+                        source=str(_trace_path),
+                    )
+                    _v2_markdown = _decoded["markdown"]
+                    if isinstance(_decoded.get("t_fail"), int):
+                        _v2_cycle = _decoded["t_fail"]
+                    _v2_rows = _decoded.get("rows", [])
+                    if _v2_rows:
+                        _v2_relevant = {
+                            str(k): ("" if v is None else str(v))
+                            for k, v in _v2_rows[-1].items()
+                            if k != "step"
+                        }
             evidence = VerificationFailureEvidence(
                 gate=str(last_report.get("gate", "verification gate")),
                 category=category,
@@ -2424,17 +2536,17 @@ class PhaseDriver:
                 contract=contract.model_dump(mode="json"),
                 attempt=repair_count + 1,
                 failing_test=str(last_report.get("failing_test")) if last_report.get("failing_test") else None,
-                cycle=int(cycle_v) if isinstance((cycle_v := last_report.get("cycle")), int) else None,
+                cycle=_v2_cycle if _v2_cycle is not None else (int(cycle_v) if isinstance((cycle_v := last_report.get("cycle")), int) else None),
                 expected_behavior=expected_value,
                 observed_behavior=observed_value,
-                relevant_signals={k: v for k, v in last_report.get("relevant_signals", {}).items() if isinstance(k, str)} if isinstance(last_report.get("relevant_signals"), dict) else {},
+                relevant_signals=_v2_relevant if _v2_relevant else ({k: v for k, v in last_report.get("relevant_signals", {}).items() if isinstance(k, str)} if isinstance(last_report.get("relevant_signals"), dict) else {}),
                 reset_state=reset_state_value,
                 clock_state=clock_state_value,
                 property_source=property_source,
-                counterexample_trace=str(last_report.get("counterexample_trace")) if last_report.get("counterexample_trace") else None,
+                counterexample_trace=_v2_markdown if _v2_markdown is not None else (str(last_report.get("counterexample_trace")) if last_report.get("counterexample_trace") else None),
                 repair_history=repair_history[-3:],
             )
-            repair_prompt = VerificationRepairer.build_prompt(contract, current_rtl, evidence, format_block=self._format_block)
+            repair_prompt = VerificationRepairer.build_prompt(contract, current_rtl, evidence, format_block=self._format_block, evidence_v2=evidence_v2_enabled())
             repair_system_instruction = repair_prompt["system"]
             repair_guidance = repair_prompt["user"]
             pending_stage_key = stage_key

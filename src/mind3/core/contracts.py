@@ -814,6 +814,7 @@ class VerificationRepairer:
         evidence: VerificationFailureEvidence,
         *,
         format_block: str = "legacy",
+        evidence_v2: bool = False,
     ) -> dict[str, str]:
         if format_block not in ("legacy", "fence", "schema"):
             raise ValueError(
@@ -830,6 +831,10 @@ class VerificationRepairer:
             "Return the complete corrected SystemVerilog module with the minimal necessary changes. Do not return partial patches or line fragments.\n"
             "Do not emit testbench code, formal checker code, shell commands, or explanations."
         )
+        if evidence_v2:
+            from .vcd_evidence import repair_guard_block
+
+            system_msg += "\n" + repair_guard_block()
         if format_block == "fence":
             system_msg += "\n" + RTLGenerator.FENCE_FORMAT_BLOCK
         elif format_block == "schema":

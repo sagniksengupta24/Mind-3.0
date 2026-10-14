@@ -187,3 +187,28 @@
   agreement, 2 live flag-split incl. broken-RTL negative control).
   Live matrix: 5/5 goldens, 23/23 mutants, halfreset@Gate-1/INCOMPLETE_RESET,
   noreset verdicts unchanged. Fast suite 439 green.
+
+## R5 evidence decoder + repair guard (UNCOMMITTED: src/mind3/core/vcd_evidence.py,
+## contracts.py/build_prompt evidence_v2 flag, driver.py decode + multidriven pre-check,
+## tests/test_r5_evidence_v2.py + tests/fixtures/vcd/arbiter_02_formal_breach.vcd)
+- `MIND3_EVIDENCE_V2` (default OFF; flag-0 prompts byte-identical, proven by
+  golden test). Flag ON: formal-breach VCDs decode to a cycle table (contract
+  ports + failing-property signals, steps 0..t_fail capped at 10, reset
+  asserted/released marking) replacing raw trace ASCII in evidence; cycle +
+  relevant_signals filled; repair system prompt gains the single-driver
+  guard (in-place always-block edits, never a second `assign` driver).
+- Multidriven pre-check mirrors REPAIR_PATCH_TOO_LARGE (feedback + continue,
+  no EDA turn): `detect_multidriven_nets` (assign vs always LHS, locals and
+  comparisons excluded), mocked-driver integration test proves a duplicate
+  `assign gnt` is rejected pre-EDA with REPAIR_MULTIDRIVEN.
+- Mocked tests (10, fast): flag default/off/on prompts, real-VCD decode
+  shape, deep-trace capping, malformed-input safety, multidriven
+  positive/negative/edge cases, pre-EDA rejection. Fast suite 449 green.
+- Controlled arbiter_02 runs (flag ON, seed 43, text format, 2 attempts):
+  model deterministically emits async `or negedge rst_n` RTL -> Gate-1
+  CLOCK_RESET_ERROR both turns (known R3 async gap); formal never reached,
+  so live decode/guard legs were proven instead by a deterministic
+  single-repair-turn probe on registered-grant RTL: live BREACH step 2 ->
+  decoded table (reset asserted@0 SOLID) -> guard-bearing prompt -> live
+  Ollama repair (clean, no multidriven) -> re-verify still BREACH
+  (mechanics proven; model repair quality unchanged: 0/1).

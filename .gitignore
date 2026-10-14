@@ -5,6 +5,7 @@ __pycache__/
 .mypy_cache/
 .pyright/
 artifacts/runs/
+results/v4/runs/
 .mind/
 dist/
 .DS_Store

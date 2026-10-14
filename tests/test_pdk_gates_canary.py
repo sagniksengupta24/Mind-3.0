@@ -10,6 +10,9 @@ import shutil
 import tempfile
 import pytest
 
+# Live sky130 gate runs (self-skip without PDK/toolchain); excluded from fast loop.
+pytestmark = pytest.mark.eda
+
 from mind3.core.verifier import SiliconSignoffVerifier
 from mind3.sandbox.bwrap import BubblewrapSandbox
 from mind3.sandbox.remote_eda import LocalBwrapRunner

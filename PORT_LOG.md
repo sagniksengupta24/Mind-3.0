@@ -129,3 +129,20 @@
   Gate-2 result + `timeout_edge` on PASS beyond 50% (both fixes-gated, so
   flag-0 reports are byte-shape-identical to V0/V1). Cover job keeps 60s
   (observed <2s). No solver/SBY config change.
+
+## Hygiene: eda marks + tracked-write gating (committed)
+- Tagged every real-tool test with the existing `@pytest.mark.eda`
+  (module-level for the 5 uniform soundness files; function-level for the 2
+  render-only p5b tests left unmarked, the smoke probe, the 9-param live
+  negative-control test, gate2 test_7, and the 3 PDK canaries): eda 27 -> 57,
+  non-eda 441 -> 411, collected total unchanged at 468. Deliberately NOT
+  marked (verified pure/fast): assurance receipts, r2/benchmark evaluator
+  logic, commercial simulated receipts, parser fixtures, `--version` canary,
+  `git`-based claim hygiene, CDC presence checks, sandbox probes, all mocked
+  suites. Fast suite wall: 21m40s -> ~7s.
+- `_writable_results_path()` in all 6 soundness files: tracked result JSONs
+  (and the v1 reference harness) are written only with
+  `MIND3_WRITE_RESULTS=1`; default goes to untracked `results/v4/runs/`
+  (added to .gitignore). Reads prefer mirror-if-exists else tracked, so
+  multi-test merge semantics are preserved. Verified: sha256 of tracked
+  JSONs byte-identical pre/post fast run.

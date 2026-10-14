@@ -29,9 +29,27 @@ from mind3.core.verifier import SiliconSignoffVerifier
 from mind3.sandbox.platform import get_local_sandbox
 from mind3.sandbox.remote_eda import LocalBwrapRunner
 
+# Every test in this file drives real EDA gates (SBY/Verilator/full verify).
+pytestmark = pytest.mark.eda
+
 RESULTS_PATH = (
     Path(__file__).resolve().parents[2] / "results" / "v4" / "soundness" / "h1_results.json"
 )
+
+
+def _writable_results_path() -> Path:
+    """Run-output target: tracked file only with MIND3_WRITE_RESULTS=1.
+
+    Default (standard pytest): untracked runs/ mirror, so SBY timestamp
+    churn never dirties tracked result files.
+    """
+    import os
+
+    if os.environ.get("MIND3_WRITE_RESULTS") == "1":
+        return RESULTS_PATH
+    alt = RESULTS_PATH.parent.parent / "runs" / RESULTS_PATH.name
+    alt.parent.mkdir(parents=True, exist_ok=True)
+    return alt
 GOLDEN_DIR = Path(__file__).resolve().parent.parent / "golden"
 MUTANT_DIR = Path(__file__).resolve().parent.parent / "golden_mutants"
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -273,5 +291,4 @@ def test_h1_verifier_files_checksum(tmp_path: Path) -> None:
 @pytest.fixture(scope="module", autouse=True)
 def _write_records():
     yield
-    RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    RESULTS_PATH.write_text(json.dumps(RECORDS, indent=2), encoding="utf-8")
+    _writable_results_path().write_text(json.dumps(RECORDS, indent=2), encoding="utf-8")

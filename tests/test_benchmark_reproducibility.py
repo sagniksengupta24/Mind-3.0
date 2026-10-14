@@ -16,6 +16,7 @@ from mind3.core.failure_taxonomy import FailureCategory, classify_failure
 from mind3.eda.smoke_test import run_eda_smoke_test
 
 
+@pytest.mark.eda
 def test_eda_smoke_test_probes_all_tools() -> None:
     report = run_eda_smoke_test()
     assert report.platform

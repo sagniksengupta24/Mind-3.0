@@ -26,6 +26,21 @@ from mind3.sandbox.remote_eda import LocalBwrapRunner
 RESULTS_PATH = (
     Path(__file__).resolve().parents[2] / "results" / "v4" / "soundness" / "p5b_results.json"
 )
+
+
+def _writable_results_path() -> Path:
+    """Run-output target: tracked file only with MIND3_WRITE_RESULTS=1.
+
+    Default (standard pytest): untracked runs/ mirror, so timestamp churn
+    never dirties tracked result files.
+    """
+    import os
+
+    if os.environ.get("MIND3_WRITE_RESULTS") == "1":
+        return RESULTS_PATH
+    alt = RESULTS_PATH.parent.parent / "runs" / RESULTS_PATH.name
+    alt.parent.mkdir(parents=True, exist_ok=True)
+    return alt
 GOLDEN_DIR = Path(__file__).resolve().parent.parent / "golden"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FLAG = "MIND3_GATE_FIXES"
@@ -36,8 +51,7 @@ RECORDS: list[dict] = []
 @pytest.fixture(scope="module", autouse=True)
 def _write_records():
     yield
-    RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    RESULTS_PATH.write_text(json.dumps(RECORDS, indent=2), encoding="utf-8")
+    _writable_results_path().write_text(json.dumps(RECORDS, indent=2), encoding="utf-8")
 
 
 def _dev_record(task_id: str) -> dict:
@@ -68,6 +82,7 @@ def _gate2(top: str, contract: InterfaceContract, rtl: str, workdir: Path) -> tu
     return verifier._run_gate2_formal_sby(runner, [ws / f"{top}.sv"], ws), ws
 
 
+@pytest.mark.eda
 def test_p5b_sync_goldens_pass(tmp_path: Path) -> None:
     errors: list[str] = []
     for task_id in ("reset_02", "apb_01", "fifo_01", "fsm_heldout_04"):
@@ -87,6 +102,7 @@ def test_p5b_sync_goldens_pass(tmp_path: Path) -> None:
     assert not errors, errors
 
 
+@pytest.mark.eda
 def test_p5b_async_design_rejected_by_gate1(tmp_path: Path) -> None:
     ws = tmp_path / "p5b_async_g1"
     ws.mkdir(parents=True, exist_ok=True)

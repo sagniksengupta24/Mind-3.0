@@ -17,6 +17,9 @@ from pathlib import Path
 
 import pytest
 
+# Full-pipeline rerun matrix (real Yosys/SBY/Verilator/STA runs).
+pytestmark = pytest.mark.eda
+
 from mind3.core.contracts import contract_from_benchmark_record
 from mind3.core.verifier import SiliconSignoffVerifier, _select_signoff_sources
 from mind3.sandbox.platform import get_local_sandbox
@@ -53,13 +56,30 @@ def _dev_contract(task_id: str):
     })
 
 
+def _writable_results_path() -> Path:
+    """Run-output target: tracked file only with MIND3_WRITE_RESULTS=1.
+
+    Default (standard pytest): untracked runs/ mirror, so SBY timestamp
+    churn never dirties tracked result files.
+    """
+    import os
+
+    if os.environ.get("MIND3_WRITE_RESULTS") == "1":
+        return RESULTS_PATH
+    alt = RESULTS_PATH.parent.parent / "runs" / RESULTS_PATH.name
+    alt.parent.mkdir(parents=True, exist_ok=True)
+    return alt
+
+
 def _merge(key: str, value: object) -> None:
-    RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    data = json.loads(RESULTS_PATH.read_text(encoding="utf-8")) if RESULTS_PATH.exists() else []
+    target = _writable_results_path()
+    data = json.loads(target.read_text(encoding="utf-8")) if target.exists() else None
+    if data is None:
+        data = json.loads(RESULTS_PATH.read_text(encoding="utf-8")) if RESULTS_PATH.exists() else []
     if isinstance(data, list):
         data = {"h1": data}
     data[key] = value
-    RESULTS_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    target.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def _timed(fn, *args, **kwargs):

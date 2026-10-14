@@ -194,6 +194,7 @@ def test_6_clockless_comb_has_no_clock_references():
     assert "posedge" not in wrapper_code.lower()
 
 
+@pytest.mark.eda
 def test_7_unsupported_property_never_pass():
     """Unsupported complex temporal construct must fail closed with UNSUPPORTED_FORMAL_PROPERTY."""
     with tempfile.TemporaryDirectory() as tmpdir:

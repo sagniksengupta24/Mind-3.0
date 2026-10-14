@@ -166,6 +166,7 @@ _LIVE_AFFECTED = (
 
 
 @pytest.mark.parametrize("case_id", list(_LIVE_AFFECTED))
+@pytest.mark.eda
 def test_affected_negative_control_reaches_intended_gate_live(case_id: str) -> None:
     """Live gate proof for one previously mismatched control: with real
     tools, the fixture reaches its intended gate and classifies correctly

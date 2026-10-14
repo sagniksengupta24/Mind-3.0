@@ -16,6 +16,9 @@ from pathlib import Path
 
 import pytest
 
+# Real full-gate runs (SBY/Verilator); excluded from the fast loop.
+pytestmark = pytest.mark.eda
+
 from mind3.core.contracts import (
     InterfaceContract,
     PortDefinition,
@@ -31,6 +34,22 @@ from mind3.sandbox.remote_eda import LocalBwrapRunner
 RESULTS_PATH = (
     Path(__file__).resolve().parents[2] / "results" / "v4" / "soundness" / "v1_results.json"
 )
+
+
+def _writable_results_path() -> Path:
+    """Run-output target: tracked file only with MIND3_WRITE_RESULTS=1.
+
+    Default (standard pytest): untracked runs/ mirror, so SBY timestamp
+    churn never dirties tracked result files (including the regenerated
+    reference harness below).
+    """
+    import os
+
+    if os.environ.get("MIND3_WRITE_RESULTS") == "1":
+        return RESULTS_PATH
+    alt = RESULTS_PATH.parent.parent / "runs" / RESULTS_PATH.name
+    alt.parent.mkdir(parents=True, exist_ok=True)
+    return alt
 GOLDEN_DIR = Path(__file__).resolve().parent.parent / "golden"
 
 
@@ -171,7 +190,7 @@ def test_v1_reset_root_cause(tmp_path: Path) -> None:
         sva = VerificationHarnessGenerator.build_sva_bind_module(contract)
         wrap = VerificationHarnessGenerator.build_formal_wrapper(contract)
         sby = VerificationHarnessGenerator.build_sby_config(contract, depth=25, include_sva_file=True)
-        outdir = RESULTS_PATH.parent / "v1_fifo01_harness"
+        outdir = _writable_results_path().parent / "v1_fifo01_harness"
         outdir.mkdir(parents=True, exist_ok=True)
         (outdir / "fifo_01_sva.sv").write_text(sva, encoding="utf-8")
         (outdir / "fifo_01_formal_top.sv").write_text(wrap, encoding="utf-8")
@@ -249,12 +268,14 @@ endmodule
                 entry["likely_cause"] = "needs-human (no VCD)"
             records[label] = entry
     finally:
-        RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        target = _writable_results_path()
         prev = {}
-        if RESULTS_PATH.exists():
+        if target.exists():
+            prev = json.loads(target.read_text(encoding="utf-8"))
+        elif RESULTS_PATH.exists():
             prev = json.loads(RESULTS_PATH.read_text(encoding="utf-8"))
         prev.update(records)
-        RESULTS_PATH.write_text(json.dumps(prev, indent=2), encoding="utf-8")
+        target.write_text(json.dumps(prev, indent=2), encoding="utf-8")
 
 
 def _classify_reset_release(table: list[dict], failing_step: int | None, uses_past: bool) -> str:
@@ -385,9 +406,11 @@ def test_v1_goldens_full_gates(tmp_path: Path) -> None:
                 )
             goldens[task_id] = entry
     finally:
-        RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        target = _writable_results_path()
         prev = {}
-        if RESULTS_PATH.exists():
+        if target.exists():
+            prev = json.loads(target.read_text(encoding="utf-8"))
+        elif RESULTS_PATH.exists():
             prev = json.loads(RESULTS_PATH.read_text(encoding="utf-8"))
         prev["goldens"] = goldens
-        RESULTS_PATH.write_text(json.dumps(prev, indent=2), encoding="utf-8")
+        target.write_text(json.dumps(prev, indent=2), encoding="utf-8")

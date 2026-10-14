@@ -18,6 +18,9 @@ from pathlib import Path
 
 import pytest
 
+# Real SBY soundness matrix; excluded from the fast loop.
+pytestmark = pytest.mark.eda
+
 from mind3.core.contracts import (
     InterfaceContract,
     PortDefinition,
@@ -31,6 +34,21 @@ from mind3.sandbox.remote_eda import LocalBwrapRunner
 RESULTS_PATH = (
     Path(__file__).resolve().parents[2] / "results" / "v4" / "soundness" / "v0_results.json"
 )
+
+
+def _writable_results_path() -> Path:
+    """Run-output target: tracked file only with MIND3_WRITE_RESULTS=1.
+
+    Default (standard pytest): untracked runs/ mirror, so SBY timestamp
+    churn never dirties tracked result files.
+    """
+    import os
+
+    if os.environ.get("MIND3_WRITE_RESULTS") == "1":
+        return RESULTS_PATH
+    alt = RESULTS_PATH.parent.parent / "runs" / RESULTS_PATH.name
+    alt.parent.mkdir(parents=True, exist_ok=True)
+    return alt
 
 
 def _ports(specs: list[tuple[str, int]]) -> list[PortDefinition]:
@@ -350,8 +368,7 @@ endmodule
                 "detail": f"gate raised {type(exc).__name__}: {str(exc)[:300]}",
             })
     finally:
-        RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        RESULTS_PATH.write_text(json.dumps(records, indent=2), encoding="utf-8")
+        _writable_results_path().write_text(json.dumps(records, indent=2), encoding="utf-8")
 
     bad = [r for r in records
            if r.get("form") != "onehot0_brace_concat"  # documented robustness probe, reported below

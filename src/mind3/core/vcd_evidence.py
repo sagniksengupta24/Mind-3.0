@@ -391,3 +391,103 @@ def repair_guard_block() -> str:
         "- Keep the diff minimal: preserve ports, parameters, and unrelated logic; "
         "change only the logic the decoded evidence implicates."
     )
+
+
+def required_sensitivity_header(contract: Any) -> str:
+    """Exact `always_ff` sensitivity header the contract requires.
+
+    Synchronous reset: `always_ff @(posedge <clk>)` — reset tested inside.
+    Asynchronous reset: `always_ff @(posedge <clk> or <edge> <rst>)`.
+    Mirrors the Gate-1 structural validation defaults (clk/posedge) so the
+    pre-check never disagrees with the gate on clockless contracts.
+    """
+    clock = getattr(contract, "clock", None)
+    reset = getattr(contract, "reset", None)
+    clock_name = getattr(clock, "name", None) or "clk"
+    edge = getattr(clock, "edge", None) or "posedge"
+    if reset is not None and not bool(getattr(reset, "synchronous", True)):
+        reset_name = getattr(reset, "name", None) or "rst_n"
+        reset_edge = (
+            "negedge" if str(getattr(reset, "polarity", "active_low")) == "active_low"
+            else "posedge"
+        )
+        return f"always_ff @({edge} {clock_name} or {reset_edge} {reset_name})"
+    return f"always_ff @({edge} {clock_name})"
+
+
+def sensitivity_mismatch(
+    rtl_text: str, contract: Any
+) -> dict[str, Any] | None:
+    """Async/sync sensitivity mismatch against the contract (pure).
+
+    Mirrors the Gate-1 structural validation regexes exactly so the
+    pre-check never disagrees with the gate: sync contract + reset edge in
+    a clocked sensitivity list, or async contract + missing reset edge.
+    Returns None when compliant or inapplicable (no reset declared).
+    Otherwise {"direction", "required", "detail"} with the exact required
+    header for repair feedback.
+    """
+    reset = getattr(contract, "reset", None)
+    if reset is None:
+        return None
+    reset_name = str(getattr(reset, "name", "") or "")
+    if not reset_name:
+        return None
+    clock = getattr(contract, "clock", None)
+    clock_name = getattr(clock, "name", None) or "clk"
+    clean = _strip_comments(rtl_text)
+    has_reset_edge = bool(
+        re.search(
+            rf"always(?:_ff)?\s*@\s*\(\s*(?:posedge|negedge)\s+{re.escape(clock_name)}\b"
+            rf"[^)]*\bor\s+(?:negedge|posedge)\s+{re.escape(reset_name)}",
+            clean,
+        )
+    )
+    required = required_sensitivity_header(contract)
+    if bool(getattr(reset, "synchronous", True)):
+        if has_reset_edge:
+            return {
+                "direction": "async-in-sync",
+                "required": required,
+                "detail": (
+                    f"Synchronous reset '{reset_name}' must not appear in the "
+                    "clocked sensitivity list."
+                ),
+            }
+        return None
+    if clock is not None and not has_reset_edge:
+        return {
+            "direction": "sync-in-async",
+            "required": required,
+            "detail": (
+                f"Asynchronous reset '{reset_name}' must be included in the "
+                "clocked sensitivity list."
+            ),
+        }
+    return None
+
+
+def sensitivity_guard_block(contract: Any) -> str | None:
+    """Prompt block stating the exact required sensitivity header (flag-gated).
+
+    Returns None when the contract declares no clock (nothing to require).
+    """
+    if getattr(contract, "clock", None) is None:
+        return None
+    required = required_sensitivity_header(contract)
+    reset = getattr(contract, "reset", None)
+    if reset is not None and not bool(getattr(reset, "synchronous", True)):
+        return (
+            "REQUIRED SENSITIVITY (copy exactly):\n"
+            f"- {required}\n"
+            f"Asynchronous reset '{reset.name}' MUST appear in every clocked "
+            "sensitivity list."
+        )
+    reset_name = getattr(reset, "name", "rst_n") if reset is not None else "rst_n"
+    return (
+        "REQUIRED SENSITIVITY (copy exactly):\n"
+        f"- {required}\n"
+        f"Forbidden: `or negedge {reset_name}` / `or posedge {reset_name}` (or any "
+        "reset edge) in any sensitivity list — the contract reset is synchronous "
+        "and must be tested INSIDE the block."
+    )

@@ -212,3 +212,25 @@
   decoded table (reset asserted@0 SOLID) -> guard-bearing prompt -> live
   Ollama repair (clean, no multidriven) -> re-verify still BREACH
   (mechanics proven; model repair quality unchanged: 0/1).
+
+## Sync-reset sensitivity guard + failure-report reselection (UNCOMMITTED:
+## vcd_evidence.py sensitivity helpers, contracts.py/build_prompt sensitivity_guard,
+## driver.py pre-check + NOT_RUN reselection, tests/test_repair_sensitivity_guard.py)
+- Models reflexively emit `always_ff @(posedge clk or negedge rst_n)` on
+  seeing `rst_n`. Flag ON (MIND3_EVIDENCE_V2): generation + repair prompts
+  carry the exact required header (`always_ff @(posedge clk)` / async form);
+  `sensitivity_mismatch` (mirrors Gate-1 regexes exactly, comments
+  stripped, neutral without reset) rejects mismatches pre-EDA as
+  REPAIR_SENSITIVITY_MISMATCH with the header in feedback. Flag-0 prompts
+  byte-identical (proven). Real bug fixed en route: `required_*` defaulted
+  like Gate 1 (clk/posedge) instead of None for clockless contracts.
+- Failure-report reselection (flag ON only): the driver used
+  `gate_reports[-1]`, which after a Gate-2 failure is a DFT `NOT_RUN` stub
+  (verify keeps running advisory Gate 6/DFT). Now reselects the last failed
+  non-NOT_RUN report, so repair evidence carries real
+  property/step/trace/cycle. Legacy flag-off path untouched; dead
+  `lower_category` removed. Live-proven: seed-43 rerun emits sync RTL,
+  reaches Gate 2, repair guidance carries the decoded table + cycle 2.
+- Tests (10, fast): header sync/async/no-clock, both mismatch directions,
+  comment/neutral cases, prompt off/on identity, mocked-driver pre-EDA
+  rejection. Fast suite 459 green.

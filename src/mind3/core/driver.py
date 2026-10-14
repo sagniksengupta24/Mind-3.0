@@ -1938,9 +1938,9 @@ class PhaseDriver:
         exec_harness = self._execute_action(batch_harness_action)
         self._emit_trace(PhaseEnum.EXECUTE, {"role": "Verification Lead", "staged_artifacts": exec_harness})
 
-        rtl_prompt = RTLGenerator.build_prompt(contract, format_block=self._format_block)
         from .vcd_evidence import evidence_v2_enabled
 
+        rtl_prompt = RTLGenerator.build_prompt(contract, format_block=self._format_block, sensitivity_guard=evidence_v2_enabled())
         repair_system_instruction = VerificationRepairer.build_prompt(
             contract,
             "",
@@ -2256,6 +2256,38 @@ class PhaseDriver:
                         "Return the complete corrected module in the required format."
                     )
                     continue
+                # R5 sensitivity guard (MIND3_EVIDENCE_V2, default OFF): reject
+                # async/sync sensitivity mismatches before spending an EDA turn.
+                # Mirrors the Gate-1 structural validation regexes exactly.
+                from .vcd_evidence import evidence_v2_enabled, sensitivity_mismatch
+
+                _sens_mismatch = (
+                    sensitivity_mismatch(repaired_code, contract)
+                    if evidence_v2_enabled()
+                    else None
+                )
+                if _sens_mismatch is not None:
+                    repair_history.append("REPAIR_SENSITIVITY_MISMATCH")
+                    self._emit_trace(
+                        PhaseEnum.VERIFY,
+                        {
+                            "passed": False,
+                            "domain": "RTL",
+                            "exit_code": 1,
+                            "failure_reason": _sens_mismatch["detail"],
+                            "error_category": "REPAIR_SENSITIVITY_MISMATCH",
+                            "required_sensitivity": _sens_mismatch["required"],
+                            "gate_reports": [],
+                        },
+                    )
+                    repair_guidance = (
+                        f"{repair_guidance or ''}\n\n"
+                        "IMPORTANT REPAIR FEEDBACK: Your immediately preceding candidate "
+                        f"was rejected before verification: {_sens_mismatch['detail']} "
+                        f"Use exactly this sensitivity header: {_sens_mismatch['required']}. "
+                        "Return the complete corrected module in the required format."
+                    )
+                    continue
                 # R5 (MIND3_EVIDENCE_V2, default OFF): reject duplicate-driver
                 # candidates before spending an EDA turn. Mirrors the
                 # REPAIR_PATCH_TOO_LARGE pre-check shape (feedback + continue).
@@ -2371,7 +2403,23 @@ class PhaseDriver:
 
             last_report = v_result.gate_reports[-1] if v_result.gate_reports else {}
             category = v_result.error_category or "UNKNOWN_ERROR"
-            lower_category = category.lower()
+            # R5 (MIND3_EVIDENCE_V2, default OFF): after a failure the report
+            # list ends with NOT_RUN stubs, so [-1] is never the failing gate.
+            # Reselect the last failed gate report so repair evidence (and the
+            # VCD decode below) sees the real failure. Flag off keeps legacy.
+            from .vcd_evidence import evidence_v2_enabled as _v2_flag_on
+
+            if _v2_flag_on():
+                _failed_reports = [
+                    g
+                    for g in (v_result.gate_reports or [])
+                    if isinstance(g, dict)
+                    and g.get("passed") is False
+                    and g.get("error_category") not in ("NOT_RUN",)
+                    and not g.get("skipped", False)
+                ]
+                if _failed_reports:
+                    last_report = _failed_reports[-1]
             if category in NON_REPAIRABLE_CATEGORIES or category in {"SPECIFICATION_ERROR", "ENVIRONMENT_FAILURE"}:
                 self._restore_snapshot()
                 self._emit_trace(PhaseEnum.REPAIR_OR_FINISH, {"status": "ABORTED_NON_REPAIRABLE", "error_category": category})

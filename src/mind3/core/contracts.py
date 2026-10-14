@@ -714,7 +714,7 @@ class RTLGenerator:
     )
 
     @staticmethod
-    def build_prompt(contract: InterfaceContract, *, format_block: str = "legacy") -> dict[str, str]:
+    def build_prompt(contract: InterfaceContract, *, format_block: str = "legacy", sensitivity_guard: bool = False) -> dict[str, str]:
         if format_block not in ("legacy", "fence", "schema"):
             raise ValueError(
                 f"Unknown format_block {format_block!r}. Expected 'legacy', 'fence', or 'schema'."
@@ -731,6 +731,12 @@ class RTLGenerator:
             "- You have zero access to the testbench or verification harness. Do not embed assertions in your RTL.\n"
             "Respond ONLY with the complete synthesizable module code."
         )
+        if sensitivity_guard:
+            from .vcd_evidence import sensitivity_guard_block
+
+            _sens_block = sensitivity_guard_block(contract)
+            if _sens_block is not None:
+                system_msg += "\n" + _sens_block
         if format_block == "fence":
             system_msg += "\n" + RTLGenerator.FENCE_FORMAT_BLOCK
         elif format_block == "schema":
@@ -832,9 +838,12 @@ class VerificationRepairer:
             "Do not emit testbench code, formal checker code, shell commands, or explanations."
         )
         if evidence_v2:
-            from .vcd_evidence import repair_guard_block
+            from .vcd_evidence import repair_guard_block, sensitivity_guard_block
 
             system_msg += "\n" + repair_guard_block()
+            _sens_block = sensitivity_guard_block(contract)
+            if _sens_block is not None:
+                system_msg += "\n" + _sens_block
         if format_block == "fence":
             system_msg += "\n" + RTLGenerator.FENCE_FORMAT_BLOCK
         elif format_block == "schema":

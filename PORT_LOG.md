@@ -166,5 +166,24 @@
   xfail flag-0); +14 table positives (flag-1, xfail flag-0) incl. the F2
   disclosed forms; +9 negatives incl. `a |=> a` and slice abstains; one
   mocked gate-2 test updated to the fail-closed expectation (flag-split).
-  Fast suite: 434 passed flag-1; flag-0 green except pre-existing
+  Fast suite: 434 passed flag-1; flag-0   green except pre-existing
   P5b-render assertion (render-only, untouched by this change).
+
+## Gate-1 INCOMPLETE_RESET partial-reset trap (committed)
+- Structural trap in `_run_gate1_yosys` (MIND3_GATE_FIXES, sync contracts
+  only): per clocked block with a reset branch, `LHS_non_reset -
+  LHS_reset` non-empty fails closed with the missing names (e.g. `ones`)
+  in the diagnostic. No-reset-branch blocks neutral (noreset-class keeps
+  downstream verdicts); loop iterators/genvars/block-local temporaries and
+  unpacked-array memories excluded. Balanced-paren/call-stripped scanning;
+  flag-0 path untouched.
+- S3 `fsm__halfreset` exclusion removed from both soundness files: the
+  matrix natively requires 23/23 (halfreset caught at Gate 1).
+- Rejected alternative (documented): +2-cycle reset-release temporal
+  assertion caught halfreset but false-failed 4/5 goldens (fifo_01 step-2
+  legitimate-write trace) — output-level checks past 1 cycle race
+  legitimate post-release operation; reverted.
+- Tests: `tests/test_gate1_reset_trap.py` (5 pure incl. repo golden/mutant
+  agreement, 2 live flag-split incl. broken-RTL negative control).
+  Live matrix: 5/5 goldens, 23/23 mutants, halfreset@Gate-1/INCOMPLETE_RESET,
+  noreset verdicts unchanged. Fast suite 439 green.

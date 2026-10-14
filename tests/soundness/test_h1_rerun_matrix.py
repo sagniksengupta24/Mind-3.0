@@ -166,11 +166,8 @@ def test_matrix_mutants(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
     assert Path(LIBERTY).exists(), "liberty file missing"
     rows: list[dict] = []
     timeout_only: list[str] = []
-    # S3 halt ruling (owner option 1): fsm__halfreset is provably invisible to
-    # every stated formal property under approved P5b semantics (gate proved
-    # both implications with antecedents reached). It runs and is recorded as
-    # spec-coverage evidence but is excluded from the exit count.
-    excluded = {"fsm_heldout_04__halfreset.sv"}
+    # Former S3 option-1 exclusion withdrawn: fsm__halfreset is counted like
+    # every other mutant (Gate-1 partial-reset trap catches it).
     try:
         files = sorted(MUTANT_DIR.glob("*__*.sv"))
         assert len(files) >= 23, f"expected >=23 mutants, found {len(files)}"
@@ -205,16 +202,16 @@ def test_matrix_mutants(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
                          "first_real_gate": (first or {}).get("gate"),
                          "first_real_cat": (first or {}).get("error_category"),
                          "timeout_only": only_timeout,
-                         "exit_excluded": path.name in excluded}
+                         "exit_excluded": False}
                 rows.append(entry)
                 if only_timeout:
                     timeout_only.append(f"{path.name}f{flag}")
     finally:
         _merge("matrix_mutants", rows)
         _merge("timeout_only_mutants", timeout_only)
-    # Exit applies to fixes ON, minus the documented exclusion; flag-0 rows
+    # Exit applies to fixes ON over all mutants (no exclusions); flag-0 rows
     # are recorded contrast only.
-    on = [r for r in rows if r["flag"] == "1" and not r["exit_excluded"]]
+    on = [r for r in rows if r["flag"] == "1"]
     survivors = [f"{r['mutant']}f{r['flag']}" for r in on if r["pipeline_passed"] is True]
     assert not survivors, f"mutant survivors (fixes ON): {survivors}"
     slow = [t for t in timeout_only if t.endswith("f1")]

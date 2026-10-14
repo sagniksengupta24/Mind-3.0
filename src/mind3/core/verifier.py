@@ -1090,6 +1090,260 @@ def _gate2_timeout_sec() -> int:
     return P8_DEFAULT_SBY_TIMEOUT_S
 
 
+# ── Gate-1 partial-reset trap (structural, sync contracts only) ──────────────
+
+_RESET_DECL_RE = re.compile(
+    r"\b(?:logic|bit|reg|int|integer|byte|shortint|longint|time|genvar)\b([^;]*);"
+)
+# Memories (unpacked array declarations) never take synchronous reset in
+# synthesizable practice; pointer/counter reset covers them.
+_RESET_MEMORY_DECL_RE = re.compile(r"\b(?:logic|bit|reg|wire)\b([^;]*);")
+_RESET_MEMORY_NAME_RE = re.compile(r"([A-Za-z_]\w*)\s*(\[[^\]]*\])+")
+
+
+def _memory_names(code: str) -> set[str]:
+    """Identifiers declared with an unpacked dimension (memories)."""
+    names: set[str] = set()
+    for decl in _RESET_MEMORY_DECL_RE.finditer(code):
+        body = decl.group(1)
+        if "(" in body or "=" in body:
+            continue
+        for match in _RESET_MEMORY_NAME_RE.finditer(body):
+            names.add(match.group(1))
+    return names
+_RESET_FOR_RE = re.compile(r"\bfor\b")
+_RESET_IDENT_RE = re.compile(r"[A-Za-z_]\w*")
+_RESET_NB_ASSIGN_RE = re.compile(r"([A-Za-z_]\w*(?:\s*\[[^\[\];]*\])?)\s*<=")
+_RESET_B_ASSIGN_RE = re.compile(r"(?<![=!<>+\-*/%&|^~])(?<![A-Za-z_])([A-Za-z_]\w*)(\s*\[[^\[\];]*\])?\s*=(?![=>])")
+_RESET_CALL_RE = re.compile(r"\b[A-Za-z_]\w*\s*\(")
+
+
+def _strip_sv_comments(code: str) -> str:
+    code = re.sub(r"/\*.*?\*/", "", code, flags=re.DOTALL)
+    code = re.sub(r"//[^\n]*", "", code)
+    lines = [ln for ln in code.splitlines() if not ln.lstrip().startswith("`")]
+    return "\n".join(lines)
+
+
+def _match_paren(text: str, open_idx: int) -> int | None:
+    """Index just past the `)` matching the `(` at open_idx (nesting-aware)."""
+    if open_idx >= len(text) or text[open_idx] != "(":
+        return None
+    depth = 0
+    in_string = False
+    i = open_idx
+    while i < len(text):
+        ch = text[i]
+        if ch == '"':
+            in_string = not in_string
+        elif not in_string:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    return i + 1
+        i += 1
+    return None
+
+
+def _match_begin_end(text: str, begin_idx: int) -> int | None:
+    """Index just past the `end` matching the `begin` at begin_idx."""
+    depth = 0
+    for match in re.finditer(r"\b(begin|end)\b", text[begin_idx:]):
+        if match.group(1) == "begin":
+            depth += 1
+        else:
+            depth -= 1
+            if depth == 0:
+                return begin_idx + match.end()
+    return None
+
+
+def _statement_span(text: str, start: int) -> tuple[int, int] | None:
+    """Span of one statement starting at start: `begin/end` block or `;`-ended."""
+    i = start
+    while i < len(text) and text[i].isspace():
+        i += 1
+    if i >= len(text):
+        return None
+    begin_match = re.match(r"begin\b", text[i:])
+    if begin_match:
+        end = _match_begin_end(text, i)
+        return (i, end) if end is not None else None
+    depth_paren = 0
+    in_string = False
+    i2 = i
+    while i2 < len(text):
+        ch = text[i2]
+        if ch == '"':
+            in_string = not in_string
+        elif not in_string:
+            if ch == "(":
+                depth_paren += 1
+            elif ch == ")":
+                depth_paren = max(0, depth_paren - 1)
+            elif ch == ";" and depth_paren == 0:
+                return (i, i2 + 1)
+        i2 += 1
+    return None
+
+
+def _parse_branch(text: str, start: int) -> tuple[int, int] | None:
+    """Span of an if/else branch body starting at start (block or 1 statement)."""
+    return _statement_span(text, start)
+
+
+def _reset_if_spans(
+    body: str, reset_name: str
+) -> tuple[list[tuple[int, int]], list[tuple[int, int]], list[tuple[int, int]]]:
+    """Split a clocked-block body into (reset_spans, else_spans, neutral_spans).
+
+    reset_spans: bodies of `if (<reset cond>)` branches (any depth; nested
+    occurrences count as reset-covered, lenient toward passing).
+    else_spans: bodies of the matching `else`/`else if` continuations.
+    neutral_spans: conditions, declarations, loop headers and call spans —
+    never scanned for assigned signals.
+    """
+    reset_spans: list[tuple[int, int]] = []
+    else_spans: list[tuple[int, int]] = []
+    neutral_spans: list[tuple[int, int]] = []
+    reset_pat = re.compile(r"\bif\b\s*\(\s*!?\s*" + re.escape(reset_name) + r"\s*\)")
+    for match in reset_pat.finditer(body):
+        cond_open = body.index("(", match.start())
+        cond_close = _match_paren(body, cond_open)
+        if cond_close is None:
+            continue
+        neutral_spans.append((match.start(), cond_close))
+        then_span = _parse_branch(body, cond_close)
+        if then_span is None:
+            continue
+        reset_spans.append(then_span)
+        cursor = then_span[1]
+        while True:
+            rest = re.match(r"\s*else\b", body[cursor:])
+            if not rest:
+                break
+            after_else = cursor + rest.end()
+            nested = re.match(r"\s*if\b", body[after_else:])
+            if nested:
+                nested_if = after_else + nested.end() - len("if")
+                nested_open = body.index("(", nested_if)
+                nested_close = _match_paren(body, nested_open)
+                if nested_close is None:
+                    break
+                neutral_spans.append((nested_if, nested_close))
+                nested_then = _parse_branch(body, nested_close)
+                if nested_then is None:
+                    break
+                else_spans.append(nested_then)
+                cursor = nested_then[1]
+                continue
+            else_span = _parse_branch(body, after_else)
+            if else_span is None:
+                break
+            else_spans.append(else_span)
+            cursor = else_span[1]
+            break
+    return reset_spans, else_spans, neutral_spans
+
+
+def _region_idents(region: str) -> set[str]:
+    """Base signal identifiers assigned (<= or =) inside a region of code.
+
+    Call/condition argument lists are blanked (balanced) first so their
+    contents can never read as assigned signals.
+    """
+    chars = list(region)
+    for match in _RESET_CALL_RE.finditer(region):
+        open_idx = region.find("(", match.start(), match.end() + 1)
+        if open_idx == -1:
+            continue
+        close_idx = _match_paren(region, open_idx)
+        end = close_idx if close_idx is not None else match.end()
+        for i in range(match.start(), end):
+            if chars[i] != "\n":
+                chars[i] = " "
+    scrubbed = "".join(chars)
+    found: set[str] = set()
+    for match in _RESET_NB_ASSIGN_RE.finditer(scrubbed):
+        base = re.match(r"[A-Za-z_]\w*", match.group(1))
+        if base:
+            found.add(base.group(0))
+    for match in _RESET_B_ASSIGN_RE.finditer(scrubbed):
+        found.add(match.group(1))
+    return found
+
+
+def reset_coverage_gaps(code: str, reset_name: str) -> list[dict[str, Any]]:
+    """Structural partial-reset analysis for synchronous-reset RTL (pure).
+
+    For each clocked `always_ff` / `always @(posedge clk)` block that contains
+    a reset branch, compares signals assigned inside the reset branch
+    (plus unconditional block-level assignments, which also execute under
+    reset) against signals assigned in the non-reset branches. Blocks with no
+    reset branch yield nothing (neutral: noreset-class designs keep flowing
+    downstream). Loop iterators, genvars and block-local temporaries are
+    excluded. Returns a list of block/missing dicts (empty means every
+    reset-bearing block fully covers its driven state).
+    """
+    findings: list[dict[str, Any]] = []
+    clean = _strip_sv_comments(code)
+    memories = _memory_names(clean)
+    for block_idx, block_match in enumerate(
+        re.finditer(r"always_ff\b|always\s*@\s*\(\s*posedge\b", clean)
+    ):
+        sens_open = clean.find("(", block_match.start())
+        if sens_open == -1:
+            continue
+        sens_close = _match_paren(clean, sens_open)
+        if sens_close is None:
+            continue
+        body_span = _statement_span(clean, sens_close)
+        if body_span is None:
+            continue
+        body = clean[body_span[0] : body_span[1]]
+        reset_spans, else_spans, neutral_spans = _reset_if_spans(body, reset_name)
+        if not reset_spans:
+            continue
+        declared: set[str] = set()
+        for decl in _RESET_DECL_RE.finditer(body):
+            declared.update(_RESET_IDENT_RE.findall(decl.group(1)))
+        for loop in _RESET_FOR_RE.finditer(body):
+            header_open = body.find("(", loop.start())
+            header_close = _match_paren(body, header_open) if header_open != -1 else None
+            if header_close is not None:
+                neutral_spans.append((loop.start(), header_close))
+                header_text = body[header_open:header_close]
+                iterator = re.match(
+                    r"\(\s*(?:int\s+|integer\s+)?([A-Za-z_]\w*)", header_text
+                )
+                if iterator:
+                    declared.add(iterator.group(1))
+
+        def _scan(spans: list[tuple[int, int]]) -> set[str]:
+            idents: set[str] = set()
+            for start, end in spans:
+                idents |= _region_idents(body[start:end])
+            return idents - declared - memories
+
+        covered = _scan(reset_spans)
+        n_reset_spans: list[tuple[int, int]] = list(else_spans)
+        used: list[tuple[int, int]] = sorted(reset_spans + else_spans + neutral_spans)
+        cursor = 0
+        for start, end in used:
+            if cursor < start:
+                n_reset_spans.append((cursor, start))
+            cursor = max(cursor, end)
+        if cursor < len(body):
+            n_reset_spans.append((cursor, len(body)))
+        driven = _scan(n_reset_spans)
+        missing = sorted(driven - covered)
+        if missing:
+            findings.append({"block": block_idx, "missing": missing})
+    return findings
+
+
 
 class SiliconSignoffVerifier(BaseVerifier):
     """6-gate hierarchical RTL verification pipeline with optional physical checks.
@@ -1488,6 +1742,65 @@ class SiliconSignoffVerifier(BaseVerifier):
             if not s.name.endswith(("_sva.sv", "_formal_top.sv", "_checker.sv", "_tb.sv", "_tb.v"))
         ]
         src_args = [str(s.relative_to(ws)) for s in synthesis_sources]
+
+        # Partial-reset trap (MIND3_GATE_FIXES, synchronous contracts only): a
+        # clocked block that resets some registers but not others lets stale
+        # sequential state survive reset. Blocks with no reset branch stay
+        # neutral so noreset-class designs keep flowing downstream.
+        if self.contract is not None:
+            from .formal_templates import gate_fixes_enabled
+
+            _reset_desc = getattr(self.contract, "reset", None)
+            if (
+                gate_fixes_enabled()
+                and _reset_desc is not None
+                and bool(getattr(_reset_desc, "synchronous", False))
+            ):
+                _reset_name = str(getattr(_reset_desc, "name", "") or "")
+                _trap_gaps: list[dict[str, Any]] = []
+                if _reset_name:
+                    for _src in synthesis_sources:
+                        try:
+                            _gaps = reset_coverage_gaps(
+                                _src.read_text(encoding="utf-8"), _reset_name
+                            )
+                        except OSError:
+                            continue
+                        for _gap in _gaps:
+                            _trap_gaps.append(
+                                {"file": _src.name, **_gap}
+                            )
+                if _trap_gaps:
+                    _missing_names = sorted(
+                        {name for _gap in _trap_gaps for name in _gap["missing"]}
+                    )
+                    return {
+                        "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                        "passed": False,
+                        "exit_code": 1,
+                        "stdout": "",
+                        "stderr": (
+                            "Partial reset in "
+                            + ", ".join(
+                                f"{_gap['file']} block {_gap['block']}"
+                                for _gap in _trap_gaps
+                            )
+                            + ": registers assigned outside the reset branch but "
+                            "never inside it: " + ", ".join(_missing_names) + "."
+                        ),
+                        "details": (
+                            "Synchronous-reset block leaves sequential state "
+                            "uncleared: " + ", ".join(_missing_names) + ". Add "
+                            "reset assignments for these registers."
+                        ),
+                        "error_category": "INCOMPLETE_RESET",
+                        "missing_reset_registers": _missing_names,
+                        "reset_trap_blocks": [
+                            {"file": _gap["file"], "block": _gap["block"]}
+                            for _gap in _trap_gaps
+                        ],
+                        "simulated": False,
+                    }
 
         # Explicit compile is a hard gate before Yosys/formal. Prefer Icarus for SystemVerilog
         # compilation; fall back to Verilator lint when Icarus is not available.

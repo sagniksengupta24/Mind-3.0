@@ -1,4 +1,4 @@
-"""R3 verifier-integrity tests (tests only — no source fixes here).
+"""R3 verifier-integrity tests (P3-COMPLETE fixes the classifier escapes below).
 
 Covers: pinning of _OPTIONAL_GATE_NAMES, formal-template vacuity, per-family
 known-bad mutants (formal AND coverage must reject, reported per gate), and
@@ -6,11 +6,13 @@ parser rejection of prose-as-RTL.
 
 Conventions: live-verifier tests carry @pytest.mark.eda and use the same
 LocalBwrapRunner(ws, allow_unsandboxed=True) pattern as the existing gate
-suites. Demonstrated escapes are preserved as strict-xfail so the suite stays
-green while the bug is pinned; an XPASS then alerts that the bug was fixed.
+suites. Tautology reproducers below are conditional xfails: they xfail
+(strict) only with MIND3_GATE_FIXES=0 (legacy escape) and must pass with the
+fixes on (P3-COMPLETE classifier rejection).
 """
 
 import ast
+import os
 import tempfile
 from pathlib import Path
 
@@ -35,6 +37,15 @@ from mind3.sandbox.remote_eda import LocalBwrapRunner
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 PINNED_OPTIONAL_GATES = frozenset({"Gate 5: OpenROAD Place-and-Route", "DFT Scan Audit (Advisory)"})
+
+# Tautology reproducers xfail (strict) only with the fixes off. Fixes on
+# (default): P3-COMPLETE must reject them and the tests pass normally.
+_XFAIL_TAUTOLOGY_OFF = os.environ.get("MIND3_GATE_FIXES", "").strip().lower() in (
+    "0",
+    "false",
+    "no",
+    "off",
+)
 
 
 def _ports(specs: list[tuple[str, str, int]]) -> list[PortDefinition]:
@@ -135,19 +146,27 @@ def test_supported_shapes_classify_deterministically() -> None:
 
 
 @pytest.mark.parametrize("tautology", ["1'b1", "q == q", "req[0] |-> req[0]"])
-@pytest.mark.xfail(strict=True, reason="R3-B: classifier accepts tautologies; vacuity check not implemented (tests only, unfixed)")
+@pytest.mark.xfail(
+    _XFAIL_TAUTOLOGY_OFF,
+    strict=True,
+    reason="R3-B legacy escape: classifier accepts tautologies with MIND3_GATE_FIXES=0",
+)
 def test_tautology_rejected_by_classifier(tautology: str) -> None:
-    """Desired behavior: a trivially-true property must be rejected or flagged,
-    never compiled into a passing assertion. Currently XFAILs (escape present)."""
-    with pytest.raises(UnsupportedFormalTemplate):
-        classify_legacy_property("t", f"assert property (@(posedge clk) {tautology});")
+    """P3-COMPLETE: a trivially-true property must classify TAUTOLOGY, never
+    compile into a passing assertion."""
+    spec = classify_legacy_property("t", f"assert property (@(posedge clk) {tautology});")
+    assert spec.kind == FormalTemplateKind.TAUTOLOGY
 
 
 @pytest.mark.eda
-@pytest.mark.xfail(strict=True, reason="R3-B end-to-end: tautology-only contract passes formal on a buggy DUT (tests only, unfixed)")
+@pytest.mark.xfail(
+    _XFAIL_TAUTOLOGY_OFF,
+    strict=True,
+    reason="R3-B legacy escape: tautology-only contract verifies a buggy DUT with MIND3_GATE_FIXES=0",
+)
 def test_tautology_only_contract_rejects_buggy_dut() -> None:
-    """A contract containing ONLY `1'b1` must not verify a deliberately wrong
-    adder. Currently the vacuous assertion passes (escape)."""
+    """P3-COMPLETE: a contract containing ONLY `1'b1` must fail closed
+    (NO_GENUINE_PROPERTY), never verify a deliberately wrong adder."""
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
         dut = ws / "r3_buggy.sv"
@@ -164,6 +183,62 @@ def test_tautology_only_contract_rejects_buggy_dut() -> None:
         verifier = SiliconSignoffVerifier(top_module="r3_buggy", contract=contract, allow_mock_fallback=False)
         res = verifier._run_gate2_formal_sby(LocalBwrapRunner(ws, allow_unsandboxed=True), [dut], ws)
         assert res["passed"] is False, "vacuous contract verified a buggy DUT"
+        assert res["error_category"] == "NO_GENUINE_PROPERTY"
+
+
+# ── 2b. P3-COMPLETE scope: table positives and conservative negatives ────────
+
+_P3C_TABLE_POSITIVES = [
+    "en |-> 1'b1",
+    "1'b0 |-> gnt[0]",
+    "a || !a || b",
+    "(a || !a) && (b || !b)",
+    "!(a || b) || !a || !b || (a && b)",
+    "((a && b)) || (!((a && b)))",
+    "(a || b) || !(a || b)",
+    "(b == a) || !(a == b)",
+    "x |-> (x || y)",
+    "(a && !a) |-> g",
+    "a && b |-> a",
+    "((a)) || (!(a))",
+    "!(a == b) || (a == b)",
+    "x == 8'hx || !(x == 8'hx)",
+]
+
+
+@pytest.mark.parametrize("tautology", _P3C_TABLE_POSITIVES)
+@pytest.mark.xfail(
+    _XFAIL_TAUTOLOGY_OFF,
+    strict=True,
+    reason="P3-COMPLETE table proofs exist only with MIND3_GATE_FIXES=1",
+)
+def test_p3c_propositional_tautologies_classify_tautology(tautology: str) -> None:
+    """Compound boolean tautologies (truth-table provable, <= 8 variables)
+    must classify TAUTOLOGY under the fixes."""
+    spec = classify_legacy_property("t", f"assert property (@(posedge clk) {tautology});")
+    assert spec.kind == FormalTemplateKind.TAUTOLOGY
+
+
+_P3C_NEGATIVES = [
+    # Falsifiable lookalikes: each has a falsifying assignment and must stay.
+    "a || b",
+    "x == y",
+    "!(a && b) || !a || !b",
+    "!(a || b) || !a",
+    "a && (b || !b)",
+    "!a || !b",
+    # Temporal / sliced / narrow forms abstain (conservative, still accepted).
+    "a |=> a",
+    "req[0] |-> gnt[0]",
+    "en |-> (gnt[0] || !gnt[0])",
+]
+
+
+@pytest.mark.parametrize("expr", _P3C_NEGATIVES)
+def test_p3c_near_tautologies_not_dropped(expr: str) -> None:
+    """Falsifiable or out-of-scope forms must NOT classify TAUTOLOGY."""
+    spec = classify_legacy_property("n", f"assert property (@(posedge clk) {expr});")
+    assert spec.kind != FormalTemplateKind.TAUTOLOGY
 
 
 # ── 3. Per-family known-bad mutants ───────────────────────────────────────────

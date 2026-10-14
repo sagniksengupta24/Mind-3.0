@@ -146,3 +146,25 @@
   (added to .gitignore). Reads prefer mirror-if-exists else tracked, so
   multi-test merge semantics are preserved. Verified: sha256 of tracked
   JSONs byte-identical pre/post fast run.
+
+## P3-COMPLETE: classifier-level tautology rejection (committed)
+- `FormalTemplateKind.TAUTOLOGY` + `is_tautological_property_text()` in
+  `formal_templates.py`, gated on `gate_fixes_enabled()` (flag-0 kinds
+  byte-identical: boolean/same_cycle as before). Decides: constant-true,
+  structural P3 forms, identical-normalized `X |-> X`, constant-false
+  antecedent / constant-true consequent, and a truth table over <= 8 vars
+  (identifiers/`!`/`&&`/`||` only; `==`/`!=` atomized with commutative
+  canonicalization; slices/arithmetic/calls/`|=>`/temporals abstain).
+- Drops wired into the audit + both `compile_contract_properties` branches;
+  all-tautology contracts fail closed (`NO_GENUINE_PROPERTY`, live-proven).
+  `compile_cover_point` needs no change (TAUTOLOGY has no antecedent).
+- Comparison vs skipped patches 0008/0009: every disclosed catch-form is
+  caught except slice-bearing `en |-> (gnt[0] || !gnt[0])` (spec-mandated
+  exclusion; verifies normally, harmless). `~a || a` / `x[0]==x[0]` were
+  already structural-P3 catches.
+- Tests: 4 R3-B reproducers converted to conditional-xfail (pass flag-1,
+  xfail flag-0); +14 table positives (flag-1, xfail flag-0) incl. the F2
+  disclosed forms; +9 negatives incl. `a |=> a` and slice abstains; one
+  mocked gate-2 test updated to the fail-closed expectation (flag-split).
+  Fast suite: 434 passed flag-1; flag-0 green except pre-existing
+  P5b-render assertion (render-only, untouched by this change).

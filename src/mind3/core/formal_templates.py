@@ -27,6 +27,7 @@ class FormalTemplateKind(StrEnum):
     PAST_EQUALS = "past_equals"
     PAST_STABLE = "past_stable"
     PAST_EXPRESSION = "past_expression"
+    TAUTOLOGY = "tautology"
 
 
 _SAFE_BOOL_RE = re.compile(
@@ -148,6 +149,7 @@ class FormalPropertySpec(BaseModel):
             FormalTemplateKind.PAST_EQUALS: ["signal", "value"],
             FormalTemplateKind.PAST_STABLE: ["signal"],
             FormalTemplateKind.PAST_EXPRESSION: ["expression"],
+            FormalTemplateKind.TAUTOLOGY: [],
         }
         for field_name in required_by_kind[self.kind]:
             if not getattr(self, field_name):
@@ -221,6 +223,19 @@ def classify_legacy_property(
     expr, clock_hint, reset_hint, disable_iff_reset = _strip_sva_wrappers(raw_expression)
     clock = clock_hint if clock_hint is not None else default_clock
     reset = reset_hint if reset_hint is not None else default_reset
+
+    # P3-COMPLETE (flag-gated): boolean tautologies classify to TAUTOLOGY so
+    # they are dropped with an explicit audit reason instead of compiling to
+    # vacuous assertions. Flag off: skipped entirely (legacy behavior).
+    if gate_fixes_enabled() and is_tautological_property_text(expr):
+        return FormalPropertySpec(
+            name=name,
+            kind=FormalTemplateKind.TAUTOLOGY,
+            clock=clock,
+            reset=reset,
+            description="P3-COMPLETE: boolean tautology dropped at classification.",
+            disable_iff_reset=disable_iff_reset,
+        )
 
     unsupported = (
         r"\bsequence\b|\bendsequence\b|\bproperty\b|\bendproperty\b|"
@@ -441,6 +456,257 @@ def is_tautology_expression(expr: str) -> bool:
     return False
 
 
+# ── P3-COMPLETE: classifier-level tautology detection ────────────────────────
+# Decides boolean tautologies that the structural P3 check cannot see
+# (`1'b1`, `X |-> X`, multi-variable propositional tautologies). Deliberately
+# conservative: anything outside the decidable subset below (arithmetic,
+# slices, cross-signal comparisons, calls, temporal operators, >8 variables)
+# is NOT a tautology here and keeps flowing to the normal template path
+# (render-level P3 remains as defense in depth). Callers must gate on
+# gate_fixes_enabled() so flag-0 behavior is byte-identical.
+
+_P3C_MAX_VARIABLES = 8
+
+_P3C_TRUE_CONSTANTS = frozenset({"1'b1", "1"})
+_P3C_FALSE_CONSTANTS = frozenset({"1'b0", "0"})
+
+_P3C_TOKEN_RE = re.compile(
+    r"(?P<impl>\|->)"
+    r"|(?P<and>&&)"
+    r"|(?P<or>\|\|)"
+    r"|(?P<eq>==)"
+    r"|(?P<ne>!=)"
+    r"|(?P<not>!)"
+    r"|(?P<lp>\()"
+    r"|(?P<rp>\))"
+    r"|(?P<ident>[A-Za-z_]\w*)"
+    r"|(?P<number>\d[\d_]*(?:'[bBoOdDhH][0-9a-fA-F_xXzZ?]+)?)"
+    r"|(?P<ws>\s+)"
+    r"|(?P<bad>.)"
+)
+
+
+class _P3CAbstain(Exception):
+    """Raised when text leaves the conservative decidable subset."""
+
+
+def _p3c_normalize(text: str) -> str:
+    collapsed = re.sub(r"\s+", " ", text.strip())
+    prev = None
+    cur = collapsed
+    while prev != cur:
+        prev = cur
+        if cur.startswith("(") and cur.endswith(")"):
+            depth = 0
+            balanced = True
+            for i, ch in enumerate(cur):
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    depth -= 1
+                if depth == 0 and i < len(cur) - 1:
+                    balanced = False
+                    break
+            if balanced and depth == 0:
+                cur = cur[1:-1].strip()
+                continue
+        break
+    return cur
+
+
+def _p3c_tokenize(text: str) -> list[tuple[str, str]]:
+    tokens: list[tuple[str, str]] = []
+    for match in _P3C_TOKEN_RE.finditer(text):
+        kind = match.lastgroup or "bad"
+        if kind in ("ws",):
+            continue
+        if kind == "bad":
+            raise _P3CAbstain(f"outside decidable alphabet: {match.group()!r}")
+        tokens.append((kind, match.group()))
+    return tokens
+
+
+def _p3c_parse(text: str) -> tuple:
+    """Parse decidable boolean text into an AST. Raises _P3CAbstain."""
+    tokens = _p3c_tokenize(text)
+    if not tokens:
+        raise _P3CAbstain("empty expression")
+    pos = 0
+
+    def peek() -> tuple[str, str] | None:
+        return tokens[pos] if pos < len(tokens) else None
+
+    def next_token() -> tuple[str, str]:
+        nonlocal pos
+        tok = peek()
+        if tok is None:
+            raise _P3CAbstain("unexpected end of expression")
+        pos += 1
+        return tok
+
+    def parse_or() -> tuple:
+        left = parse_and()
+        while peek() is not None and peek()[0] == "or":
+            next_token()
+            left = ("or", left, parse_and())
+        return left
+
+    def parse_and() -> tuple:
+        left = parse_not()
+        while peek() is not None and peek()[0] == "and":
+            next_token()
+            left = ("and", left, parse_not())
+        return left
+
+    def parse_not() -> tuple:
+        tok = peek()
+        if tok is not None and tok[0] == "not":
+            next_token()
+            return ("not", parse_not())
+        return parse_cmp()
+
+    def fold_number(raw: str) -> tuple:
+        key = raw.replace("_", "")
+        low = key.lower()
+        if low in ("1'b1", "1"):
+            return ("const", True)
+        if low in ("1'b0", "0"):
+            return ("const", False)
+        # Any other bare literal (multi-bit values, x/z digits): opaque
+        # proposition keyed by normalized text. A constant never varies, so
+        # requiring all-true over a free variable is a strictly stronger
+        # condition — proofs stay sound, misses stay conservative.
+        return ("var", "lit:" + re.sub(r"\s+", "", low))
+
+    def parse_cmp() -> tuple:
+        left = parse_primary()
+        tok = peek()
+        if tok is not None and tok[0] in ("eq", "ne"):
+            next_token()
+            right = parse_primary()
+            if left[0] == "const" and right[0] == "const":
+                val = (left[1] == right[1]) if tok[0] == "eq" else (left[1] != right[1])
+                return ("const", val)
+            if left[0] == "var" and right[0] == "var" and left[1] == right[1]:
+                # Self-comparison is width-independent: identical operands are
+                # equal (==) / not-unequal (!=) in two-state formal semantics.
+                return ("const", True) if tok[0] == "eq" else ("const", False)
+            # Cross-operand == / != are commutative: canonicalize operand order
+            # so `(b == a) || !(a == b)` atomizes to P || !P. Ordering
+            # comparisons (<=, >=, <, >) are never built here.
+            lkey = left[1] if left[0] == "var" else repr(left)
+            rkey = right[1] if right[0] == "var" else repr(right)
+            if tok[0] in ("eq", "ne") and lkey > rkey:
+                lkey, rkey = rkey, lkey
+            return ("var", f"cmp:{tok[0]}:{lkey}:{rkey}")
+        return left
+
+    def parse_primary() -> tuple:
+        tok = next_token()
+        if tok[0] == "ident":
+            return ("var", tok[1])
+        if tok[0] == "number":
+            return fold_number(tok[1])
+        if tok[0] == "lp":
+            node = parse_or()
+            closing = next_token()
+            if closing[0] != "rp":
+                raise _P3CAbstain("unbalanced parenthesis")
+            return node
+        raise _P3CAbstain(f"unexpected token: {tok[1]!r}")
+
+    node = parse_or()
+    if peek() is not None:
+        raise _P3CAbstain(f"trailing tokens: {peek()[1]!r}")
+    return node
+
+
+def _p3c_variables(node: tuple) -> set[str]:
+    kind = node[0]
+    if kind == "const":
+        return set()
+    if kind == "var":
+        return {node[1]}
+    if kind == "not":
+        return _p3c_variables(node[1])
+    return _p3c_variables(node[1]) | _p3c_variables(node[2])
+
+
+def _p3c_evaluate(node: tuple, env: dict[str, bool]) -> bool:
+    kind = node[0]
+    if kind == "const":
+        return node[1]
+    if kind == "var":
+        return env[node[1]]
+    if kind == "not":
+        return not _p3c_evaluate(node[1], env)
+    if kind == "and":
+        return _p3c_evaluate(node[1], env) and _p3c_evaluate(node[2], env)
+    # kind == "or"
+    return _p3c_evaluate(node[1], env) or _p3c_evaluate(node[2], env)
+
+
+def _p3c_table_tautology(text: str) -> bool:
+    """True only if text is a boolean tautology over <= 8 variables.
+
+    Alphabet is restricted to identifiers, !, &&, ||, ==, !=, parens and
+    foldable 0/1 constants. Slices, arithmetic, shifts, bitwise, calls ($),
+    temporal operators and |=> never reach the table (tokenizer abstains).
+    Bare identifiers abstract whole signals: sound here because every
+    remaining operator is truth-functional (!, &&, ||) or atomized (==/!=),
+    so skeleton-all-true implies real-all-true.
+    """
+    try:
+        if "|=>" in text:
+            return False
+        if text.count("|->") > 1:
+            return False
+        if "|->" in text:
+            left, _, right = text.partition("|->")
+            body = f"(!({left})) || ({right})"
+        else:
+            body = text
+        node = _p3c_parse(body)
+        variables = sorted(_p3c_variables(node))
+        if len(variables) > _P3C_MAX_VARIABLES:
+            return False
+        for bits in range(1 << len(variables)):
+            env = {name: bool((bits >> i) & 1) for i, name in enumerate(variables)}
+            if not _p3c_evaluate(node, env):
+                return False
+        return True
+    except _P3CAbstain:
+        return False
+
+
+def is_tautological_property_text(text: str) -> bool:
+    """P3-COMPLETE classifier-level tautology decision.
+
+    Conservative: True only for (a) constant-true, (b) structural P3 forms
+    (`x == x`, `a || !a`), (c) identical-normalized `X |-> X`, or (d) a
+    truth-table proof over the decidable subset. Everything else is False
+    (normal template path). Callers must check gate_fixes_enabled() first.
+    """
+    expr = _p3c_normalize(text)
+    if not expr:
+        return False
+    if expr.lower() in _P3C_TRUE_CONSTANTS:
+        return True
+    if is_tautology_expression(expr):
+        return True
+    if "|->" in expr and "|=>" not in expr and expr.count("|->") == 1:
+        left, _, right = expr.partition("|->")
+        if _p3c_normalize(left) and _p3c_normalize(left) == _p3c_normalize(right):
+            return True
+        # A false antecedent or true consequent decides the implication
+        # regardless of the other side (slices and widths cannot matter).
+        if _p3c_normalize(left).lower() in _P3C_FALSE_CONSTANTS:
+            return True
+        if _p3c_normalize(right).lower() in _P3C_TRUE_CONSTANTS:
+            return True
+    return _p3c_table_tautology(expr)
+
+
 def _reset_asserted_form(prop: FormalPropertySpec) -> str | None:
     """Source-text form of 'reset asserted' for this property, if any."""
     if prop.reset is None:
@@ -624,6 +890,9 @@ def tautology_audit_for_contract(
     for prop in structured:
         if not gate_fixes_enabled():
             break
+        if prop.kind == FormalTemplateKind.TAUTOLOGY:
+            dropped.append(prop.name)
+            continue
         text = _tautology_checked_expression(prop)
         if text is not None and is_tautology_expression(text):
             dropped.append(prop.name)
@@ -638,6 +907,9 @@ def tautology_audit_for_contract(
                 default_reset=default_reset,
             )
         except (UnsupportedFormalTemplate, ValueError):
+            continue
+        if classified.kind == FormalTemplateKind.TAUTOLOGY:
+            dropped.append(getattr(prop, "name", "?"))
             continue
         text = _tautology_checked_expression(classified)
         if text is not None and is_tautology_expression(text):
@@ -659,6 +931,16 @@ def compile_contract_properties(
     if structured:
         for prop in structured:
             if gate_fixes_enabled():
+                if prop.kind == FormalTemplateKind.TAUTOLOGY:
+                    audit.append({
+                        "name": prop.name,
+                        "kind": prop.kind.value,
+                        "source": "p3_complete_classifier",
+                        "supported": False,
+                        "dropped": True,
+                        "drop_reason": "tautology",
+                    })
+                    continue
                 text = _tautology_checked_expression(prop)
                 if text is not None and is_tautology_expression(text):
                     audit.append({
@@ -695,6 +977,16 @@ def compile_contract_properties(
             default_reset=prop_default_reset,
         )
         if gate_fixes_enabled():
+            if classified.kind == FormalTemplateKind.TAUTOLOGY:
+                audit.append({
+                    "name": prop.name,
+                    "kind": classified.kind.value,
+                    "source": "p3_complete_classifier",
+                    "supported": False,
+                    "dropped": True,
+                    "drop_reason": "tautology",
+                })
+                continue
             text = _tautology_checked_expression(classified)
             if text is not None and is_tautology_expression(text):
                 audit.append({
@@ -768,6 +1060,7 @@ __all__ = [
     "compile_contract_properties",
     "compile_cover_point",
     "gate_fixes_enabled",
+    "is_tautological_property_text",
     "is_tautology_expression",
     "tautology_audit_for_contract",
 ]

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import tempfile
@@ -2428,7 +2429,9 @@ def test_gate1_technology_synthesis_netlist_generation() -> None:
 
 
 def test_gate2_sva_bind_auto_generation_and_property_parsing() -> None:
-    """Ensure Gate 2 auto-generates SVA bind file from contract and reports failing property label."""
+    """Ensure Gate 2 fails closed on a vacuous-only contract: P3-COMPLETE drops
+    the 1'b1 property at classification, so the gate reports NO_GENUINE_PROPERTY
+    without invoking SBY (no bind file is generated for an empty property set)."""
     with tempfile.TemporaryDirectory() as tmpdir:
         ws = Path(tmpdir)
         (ws / "fifo.v").write_text("module fifo(); endmodule\n", encoding="utf-8")
@@ -2459,11 +2462,21 @@ def test_gate2_sva_bind_auto_generation_and_property_parsing() -> None:
         report = verifier._run_gate2_formal_sby(runner, [ws / "fifo.v"], ws)
 
         assert report["passed"] is False
-        assert report["error_category"] == "FORMAL_INVARIANT_BREACH"
-        assert report["step"] == "7"
-        # Auto-generated bind file and sby file must have been written to workspace
-        assert (ws / "fifo_sva.sv").exists()
-        assert (ws / "fifo.sby").exists()
+        executed_all = " ".join(" ".join(cmd) for cmd in mock_sb.executed_commands)
+        if os.environ.get("MIND3_GATE_FIXES", "").strip().lower() in ("0", "false", "no", "off"):
+            # Legacy behavior: the vacuous property compiles and SBY runs.
+            assert report["error_category"] == "FORMAL_INVARIANT_BREACH"
+            assert report["step"] == "7"
+            assert (ws / "fifo_sva.sv").exists()
+            assert (ws / "fifo.sby").exists()
+        else:
+            # P3-COMPLETE: the 1'b1-only property set is dropped at
+            # classification, so Gate 2 fails closed before invoking SBY and
+            # generates no checker artifacts.
+            assert report["error_category"] == "NO_GENUINE_PROPERTY"
+            assert "sby" not in executed_all
+            assert not (ws / "fifo_sva.sv").exists()
+            assert not (ws / "fifo.sby").exists()
 
 
 def test_gate3_verilator_executable_simulation_and_coverage_thresholds() -> None:

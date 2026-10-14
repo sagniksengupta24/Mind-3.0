@@ -234,3 +234,26 @@
 - Tests (10, fast): header sync/async/no-clock, both mismatch directions,
   comment/neutral cases, prompt off/on identity, mocked-driver pre-EDA
   rejection. Fast suite 459 green.
+
+## Phase 2B dataset miner (committed: scripts/distill_mind3_dataset.py,
+## tests/test_distill_dataset.py; dataset untracked at results/v4/runs/distilled/)
+- `MIND3_EVIDENCE_V2` forced ON in-process; every prompt uses the flag-ON
+  pipeline (sensitivity header + NOT_RUN reselection + R5 decoded table).
+- `--from-soundness`: all 23 mutants verified live -> 23 SFT (ChatML
+  system/user/assistant) + 23 DPO (prompt/chosen/rejected/error_category/
+  failing_gate). `--from-transcripts`: 5 workspaces -> 8 DPO + 0 SFT.
+- Guards (fail fast): sealed-suite path components, holdout-ONLY task IDs
+  (dev-20 IDs are a subset of holdout IDs with identical specs — a bare
+  ID block would refuse every dev run), mock/unknown providers, sha256
+  triple dedup shared across modes (single merged write + manifest).
+- Substring guard corrected to path components after it false-positived on
+  the dev family `fsm_heldout_04`. Transcript guidance aligned to
+  repair_attempts[i] <-> VERIFY#(i+1). Transcript failing gates labeled by
+  deterministic category->gate map.
+- `build_miner_evidence` mirrors the driver (stage map, tool default,
+  decode); cross-check test runs the real driver loop and asserts evidence
+  equality on all fields but repair_history.
+- Miner tests (11, fast): guards, overlap documentation, decode against the
+  real VCD fixture, parity, harvest/dedup/blocking on synthetic workspaces.
+  Mined output verified: 23 SFT + 31 DPO, exact schemas, all chosen golden,
+  gates Gate2x20/Gate3x8/Gate1x3, decoded table in 15/31.

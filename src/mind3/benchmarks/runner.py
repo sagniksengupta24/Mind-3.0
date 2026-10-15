@@ -191,6 +191,12 @@ class BenchmarkRunSummary(BaseModel):
     # for Gate-6 CDC results.
     env_blocked_count: int = 0
     cdc_backend_counts: dict[str, int] = Field(default_factory=dict)
+    # Token accounting aggregates (summed over real transcripts whose decode
+    # block carries model_usage_known=True). Zero + False when unknown.
+    total_prompt_tokens: int = 0
+    total_completion_tokens: int = 0
+    total_tokens: int = 0
+    token_usage_known: bool = False
 
 
 class BenchmarkRunner:
@@ -318,6 +324,18 @@ class BenchmarkRunner:
         decode_block["calls_observed"] = len(decode_events)
         decode_block["any_output_truncated"] = any(e.get("output_truncated") for e in decode_events)
         decode_block["any_prompt_overflow"] = any(e.get("prompt_overflow") for e in decode_events)
+        # Token accounting: driver totals accumulated from Ollama
+        # prompt_eval_count / eval_count metadata. Defensive guards keep this
+        # working with test doubles (MagicMock drivers) as well as live ones;
+        # unknown usage stays explicit via model_usage_known=False.
+        raw_prompt_tokens = getattr(driver, "total_prompt_tokens", 0)
+        raw_completion_tokens = getattr(driver, "total_completion_tokens", 0)
+        prompt_tokens = raw_prompt_tokens if isinstance(raw_prompt_tokens, int) else 0
+        completion_tokens = raw_completion_tokens if isinstance(raw_completion_tokens, int) else 0
+        decode_block["prompt_tokens"] = max(0, prompt_tokens)
+        decode_block["completion_tokens"] = max(0, completion_tokens)
+        decode_block["total_tokens"] = decode_block["prompt_tokens"] + decode_block["completion_tokens"]
+        decode_block["model_usage_known"] = bool(getattr(driver, "model_usage_known", False))
         raw_parse_attempts = getattr(driver, "_parse_attempts", 0)
         decode_block["parse_attempts"] = raw_parse_attempts if isinstance(raw_parse_attempts, int) else 0
         environment["decode"] = decode_block
@@ -519,6 +537,20 @@ class BenchmarkRunner:
         )
         env_blocked_count = sum(1 for t in real if t.env_blocked)
         cdc_backend_counts = dict(Counter(t.cdc_backend if t.cdc_backend else "not-recorded" for t in real))
+        # Token accounting: sum transcript decode blocks whose usage is known.
+        # Unknown on every real transcript stays explicit (False), never zero-passed.
+        known_token_rows = [
+            t for t in real
+            if isinstance(t.decode, dict) and t.decode.get("model_usage_known") is True
+        ]
+        total_prompt_tokens = sum(
+            t.decode.get("prompt_tokens", 0) for t in known_token_rows
+            if isinstance(t.decode.get("prompt_tokens"), int)
+        )
+        total_completion_tokens = sum(
+            t.decode.get("completion_tokens", 0) for t in known_token_rows
+            if isinstance(t.decode.get("completion_tokens"), int)
+        )
         tool_versions: dict[str, str] = {}
         for t in real:
             versions = t.environment.get("eda_versions", {})
@@ -563,6 +595,10 @@ class BenchmarkRunner:
             tool_versions=tool_versions,
             env_blocked_count=env_blocked_count,
             cdc_backend_counts=cdc_backend_counts,
+            total_prompt_tokens=total_prompt_tokens,
+            total_completion_tokens=total_completion_tokens,
+            total_tokens=total_prompt_tokens + total_completion_tokens,
+            token_usage_known=len(known_token_rows) == n and n > 0,
             methodology={
                 "initial_pass": "final result passes on turn 0 without repair",
                 "functional_pass": "final Gate 3 coverage succeeds as part of the signoff chain",

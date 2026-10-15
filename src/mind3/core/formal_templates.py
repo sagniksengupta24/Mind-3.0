@@ -213,6 +213,24 @@ def _split_implication(expr: str) -> tuple[str, str, bool] | None:
     return None
 
 
+_PLAIN_SIGNAL_OPERAND_RE = re.compile(r"[A-Za-z_]\w*(?:\[[0-9]+(?::[0-9]+)?\])?")
+
+
+def _require_plain_signal_operand(prop_name: str, operand: str) -> None:
+    """Reject non-identifier $onehot operands as unsupported, fail-closed.
+
+    The deterministic renderer emits ``$onehot(<signal>)`` verbatim, so only
+    the validator's plain-identifier (plus numeric slice) subset is safe.
+    Brace concatenations and compound expressions must raise
+    UnsupportedFormalTemplate here — otherwise the pydantic signal validator
+    raises a bare ValueError that escapes the gate's except clause.
+    """
+    if not _PLAIN_SIGNAL_OPERAND_RE.fullmatch(operand.strip()):
+        raise UnsupportedFormalTemplate(
+            f"$onehot operand is outside the bounded subset in '{prop_name}': {operand}"
+        )
+
+
 def classify_legacy_property(
     name: str,
     raw_expression: str,
@@ -289,6 +307,7 @@ def classify_legacy_property(
 
     onehot_match = re.fullmatch(r"\$onehot\s*\(\s*([^()]+)\s*\)", expr, re.I)
     if onehot_match:
+        _require_plain_signal_operand(name, onehot_match.group(1).strip())
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.ONEHOT, clock=clock, reset=reset,
             signal=onehot_match.group(1).strip(),
@@ -297,6 +316,7 @@ def classify_legacy_property(
 
     onehot0_match = re.fullmatch(r"\$onehot0\s*\(\s*([^()]+)\s*\)", expr, re.I)
     if onehot0_match:
+        _require_plain_signal_operand(name, onehot0_match.group(1).strip())
         return FormalPropertySpec(
             name=name, kind=FormalTemplateKind.ONEHOT0, clock=clock, reset=reset,
             signal=onehot0_match.group(1).strip(),
@@ -305,6 +325,7 @@ def classify_legacy_property(
 
     onehot_or = re.fullmatch(r"\$onehot\s*\(\s*([^()]+)\s*\)\s*\|\|\s*([^=]+)==\s*(.+)", expr, re.I)
     if onehot_or and onehot_or.group(1).strip() == onehot_or.group(2).strip():
+        _require_plain_signal_operand(name, onehot_or.group(1).strip())
         return FormalPropertySpec(
             name=name,
             kind=FormalTemplateKind.ONEHOT_OR_EQUALS,

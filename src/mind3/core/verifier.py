@@ -748,6 +748,17 @@ def parse_sby_cover(output: str, targets: list[dict[str, Any]]) -> dict[str, dic
 def _classify_compile_diagnostic(text: str) -> str:
     """Map deterministic compiler diagnostics to the forensic failure taxonomy."""
     lower = text.lower()
+    if any(
+        token in lower
+        for token in (
+            "continuously assigned",
+            "multiple driver",
+            "multiply driven",
+            "multiply-driven",
+            "already assigned",
+        )
+    ):
+        return "MULTIPLE_DRIVERS"
     if any(token in lower for token in ("port", "module", "top module", "instantiat", "connection")) and any(token in lower for token in ("missing", "not found", "does not exist", "unknown", "undeclared", "undefined")):
         return "INTERFACE_ERROR"
     if any(token in lower for token in ("width", "bit width", "signed", "unsigned", "truncat", "select", "part-select", "range")):

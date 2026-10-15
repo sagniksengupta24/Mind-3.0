@@ -145,6 +145,33 @@ def test_supported_shapes_classify_deterministically() -> None:
         classify_legacy_property("d", "assert property (@(posedge clk) a ##2 b);")
 
 
+@pytest.mark.parametrize("expr", ["$onehot0({gnt1, gnt0})", "$onehot({a, b})", "$onehot0(a concat b)"])
+def test_onehot_brace_concat_fails_closed_as_unsupported(expr: str) -> None:
+    """V0 follow-up: brace/concat $onehot operands must raise
+    UnsupportedFormalTemplate (gate fail-closed), never escape as a bare
+    pydantic ValidationError past the gate's except clause."""
+    with pytest.raises(UnsupportedFormalTemplate):
+        classify_legacy_property("t", f"assert property (@(posedge clk) {expr});")
+
+
+def test_classify_multi_driver_diagnostic() -> None:
+    """Compile-diagnostic classifier: multi-driven nets are a semantic
+    multiple-driver fault, not a width fault (the old keyword match hit
+    'signed' inside 'assigned')."""
+    from mind3.core.verifier import _classify_compile_diagnostic
+
+    assert (
+        _classify_compile_diagnostic(
+            "fifo_01.sv:23: error: Cannot perform procedural assignment to variable "
+            "'full' because it is also continuously assigned."
+        )
+        == "MULTIPLE_DRIVERS"
+    )
+    # Guard: genuine width diagnostics keep their bucket.
+    assert _classify_compile_diagnostic("error: signed/unsigned mismatch in width") == "TYPE_WIDTH_ERROR"
+    assert _classify_compile_diagnostic("error: syntax error, unexpected token") == "SYNTAX_ERROR"
+
+
 @pytest.mark.parametrize("tautology", ["1'b1", "q == q", "req[0] |-> req[0]"])
 @pytest.mark.xfail(
     _XFAIL_TAUTOLOGY_OFF,

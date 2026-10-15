@@ -159,6 +159,12 @@ def _skip_unchanged_enabled() -> bool:
     return os.getenv("MIND3_SKIP_UNCHANGED", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _repair_mode() -> str:
+    """Repair strategy selector: 'r1' minimal patch (default) or 'r2' fresh
+    regeneration without showing the failing code (anti-anchoring)."""
+    return "r2" if os.getenv("MIND3_REPAIR_MODE", "").strip().lower() == "r2" else "r1"
+
+
 _FENCE_REGEX = re.compile(
     r"```(?:verilog|systemverilog|sv)?\s*\n?(.*?)\n?```",
     re.DOTALL | re.IGNORECASE,
@@ -2123,7 +2129,7 @@ class PhaseDriver:
                 self.total_repair_calls += 1
                 self._emit_trace(
                     PhaseEnum.MODEL_CALL,
-                    {"role": "Independent RTL Verification Repair Engineer", "turn": self.turn, "stage": stage_key, "attempt": prospective_attempt, "guidance": repair_guidance, "parser_mode": self.parser_mode},
+                    {"role": "Independent RTL Verification Repair Engineer", "turn": self.turn, "stage": stage_key, "attempt": prospective_attempt, "guidance": repair_guidance, "parser_mode": self.parser_mode, "repair_mode": _repair_mode()},
                 )
                 repair_messages = self._build_prompt_messages(
                     system_instruction=repair_system_instruction,
@@ -2150,7 +2156,9 @@ class PhaseDriver:
                 # Parse budget counts failures only (see initial generation):
                 # a successfully parsed repair must not starve later turns.
                 try:
-                    repaired_code = _parse_model_code_response(raw_repair, default_module_name=contract.module_name, base_code=current_rtl, parser_mode=self.parser_mode)
+                    # R2: parse as a fresh full module (no base_code, so the
+                    # repair-patch branch is unreachable); R1 keeps patch parsing.
+                    repaired_code = _parse_model_code_response(raw_repair, default_module_name=contract.module_name, base_code=None if _repair_mode() == "r2" else current_rtl, parser_mode=self.parser_mode)
                 except ModelResponseParseError as exc:
                     self._parse_attempts += 1
                     repair_history.append("RESPONSE_PARSE_FAILURE")
@@ -2336,7 +2344,10 @@ class PhaseDriver:
                 # Normal path: spend the EDA turn now.
                 self._stage_repair_attempts[stage_key] += 1
                 attempt = prospective_attempt
-                if current_rtl and len(current_rtl.splitlines()) >= 12 and (
+                # R2 regenerations are full rewrites by design: the minimal-
+                # patch change budget does not apply. Multidriven/sensitivity
+                # pre-checks above and full gate verification still apply.
+                if _repair_mode() != "r2" and current_rtl and len(current_rtl.splitlines()) >= 12 and (
                     diff_stats["changed_line_ratio"] > REPAIR_MAX_CHANGED_LINE_RATIO
                     or diff_stats["line_growth_ratio"] > REPAIR_MAX_LINE_GROWTH
                 ):
@@ -2619,6 +2630,10 @@ class PhaseDriver:
                 repair_history=repair_history[-3:],
             )
             repair_prompt = VerificationRepairer.build_prompt(contract, current_rtl, evidence, format_block=self._format_block, evidence_v2=evidence_v2_enabled())
+            if _repair_mode() == "r2":
+                # R2 anti-anchoring regeneration: same contract + evidence,
+                # failing RTL withheld so architectural changes are allowed.
+                repair_prompt = VerificationRepairer.build_regeneration_prompt(contract, evidence, format_block=self._format_block, evidence_v2=evidence_v2_enabled())
             repair_system_instruction = repair_prompt["system"]
             repair_guidance = repair_prompt["user"]
             # Latency hint (flag-gated inside the helper; None otherwise, so

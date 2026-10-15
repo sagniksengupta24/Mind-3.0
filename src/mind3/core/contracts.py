@@ -857,6 +857,58 @@ class VerificationRepairer:
         )
         return {"system": system_msg, "user": user_msg}
 
+    @staticmethod
+    def build_regeneration_prompt(
+        contract: InterfaceContract,
+        evidence: VerificationFailureEvidence,
+        *,
+        format_block: str = "legacy",
+        evidence_v2: bool = False,
+    ) -> dict[str, str]:
+        """Build an R2 anti-anchoring regeneration prompt (no failing code).
+
+        Same contract + verifier evidence as the R1 repair prompt, but the
+        failing RTL is deliberately withheld: the model writes a fresh
+        implementation from scratch, so architectural changes (e.g.
+        registered-to-combinational) are allowed. Every candidate produced
+        from this prompt is fully re-verified like any other.
+        """
+        if format_block not in ("legacy", "fence", "schema"):
+            raise ValueError(
+                f"Unknown format_block {format_block!r}. Expected 'legacy', 'fence', or 'schema'."
+            )
+        system_msg = (
+            "You are a Principal RTL Design Engineer.\n"
+            "The external verifier is authoritative. A previous implementation attempt failed verification.\n"
+            "Write a FRESH implementation from the contract below plus the failure evidence. "
+            "No previous implementation is shown to you: do not try to reproduce or minimally edit unseen code. "
+            "Architectural changes are allowed (including combinational vs registered structure) provided the "
+            "module interface, ports, widths, clock/reset semantics, and all contract behavior are preserved. "
+            "Do not remove required behavior. Do not weaken verification. Strict synthesis invariants apply: "
+            "non-blocking (<=) for sequential blocks, blocking (=) for combinational; no inferred latches; "
+            "exact port widths; reset style matching the contract.\n"
+            "Return ONLY the complete synthesizable module code."
+        )
+        if evidence_v2:
+            from .vcd_evidence import repair_guard_block, sensitivity_guard_block
+
+            system_msg += "\n" + repair_guard_block()
+            _sens_block = sensitivity_guard_block(contract)
+            if _sens_block is not None:
+                system_msg += "\n" + _sens_block
+        if format_block == "fence":
+            system_msg += "\n" + RTLGenerator.FENCE_FORMAT_BLOCK
+        elif format_block == "schema":
+            system_msg += "\n" + RTLGenerator.SCHEMA_FORMAT_BLOCK
+        evidence_json = json.dumps(evidence.model_dump(mode="json"), indent=2, sort_keys=True)
+        user_msg = (
+            f"Immutable contract:\n{json.dumps(contract.model_dump(mode='json'), indent=2, sort_keys=True)}\n\n"
+            f"Structured verifier evidence about the failed attempt (authoritative):\n{evidence_json}\n\n"
+            "Write a fresh, complete SystemVerilog module satisfying the contract and avoiding the evidenced failure. "
+            "Do not emit testbench code, formal checker code, shell commands, or explanations."
+        )
+        return {"system": system_msg, "user": user_msg}
+
 
 class UnsupportedFormalPropertyError(ValueError):
     """Raised when an SVA property cannot be soundly translated to supported procedural formal assertions."""

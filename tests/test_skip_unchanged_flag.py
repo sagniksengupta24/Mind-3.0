@@ -254,10 +254,14 @@ def test_silicon_pipeline_bounds_repeated_unchanged_candidates_with_skip_flag(
         monkeypatch.setattr(driver, "_query_ollama", mock_queries)
         assert driver.run_silicon_pipeline("Synthesize stuck_reg", liberty_path="sky130.lib") is False
         assert verifier.calls == 1, "identical repair candidates must not rerun the verifier"
-        assert query_count == 4, "initial generation plus two bounded repair responses expected"
+        # Parse budget counts failures only, so successfully parsed identical
+        # candidates terminate via the stage budget (3 skips), not via parse
+        # exhaustion: contract synthesis + initial generation + 3 repairs.
+        assert query_count == 5, "initial generation plus three stage-bounded repair responses expected"
         finish_records = [r for r in driver.transcript if r.phase == PhaseEnum.REPAIR_OR_FINISH]
         assert finish_records[-1].event.payload.get("failure_category") == "REPAIR_UNCHANGED_CANDIDATE"
-        assert finish_records[-1].event.payload.get("parse_budget_exhausted") is True
+        assert finish_records[-1].event.payload.get("stage_budget_exhausted") is True
+        assert finish_records[-1].event.payload.get("parse_budget_exhausted") is False
 
 
 def test_flag_off_reruns_verifier_for_identical_candidate(

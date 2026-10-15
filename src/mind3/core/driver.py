@@ -1968,11 +1968,16 @@ class PhaseDriver:
                 self._raw_initial_responses.append(raw_rtl)
                 if self._raw_initial_response is None:
                     self._raw_initial_response = raw_rtl
-                self._parse_attempts += 1
+                # Parse budget counts failures only: a successfully parsed
+                # response must not consume the retry budget (otherwise a
+                # first-try parse would starve later repair turns and the
+                # terminal category would misreport PARSE instead of the
+                # real failure).
                 try:
                     rtl_code = _parse_model_code_response(raw_rtl, default_module_name=contract.module_name, parser_mode=self.parser_mode)
                     break
                 except ModelResponseParseError as parse_exc:
+                    self._parse_attempts += 1
                     bumped = self._maybe_bump_for_truncation()
                     self._emit_trace(
                         PhaseEnum.VERIFY,
@@ -2142,10 +2147,12 @@ class PhaseDriver:
                     continue
                 # C2: stash every raw repair response for the transcript.
                 self._raw_repair_responses.append(raw_repair)
-                self._parse_attempts += 1
+                # Parse budget counts failures only (see initial generation):
+                # a successfully parsed repair must not starve later turns.
                 try:
                     repaired_code = _parse_model_code_response(raw_repair, default_module_name=contract.module_name, base_code=current_rtl, parser_mode=self.parser_mode)
                 except ModelResponseParseError as exc:
+                    self._parse_attempts += 1
                     repair_history.append("RESPONSE_PARSE_FAILURE")
                     self._emit_trace(
                         PhaseEnum.VERIFY,

@@ -790,6 +790,22 @@ def _source_context_for_file(path: Path, line: int, radius: int = 2) -> str:
     return "\n".join(f"{idx}: {lines[idx - 1]}" for idx in range(start, end + 1))
 
 
+def _is_missing_liberty_error(combined_output: str, liberty_paths: list[str]) -> bool:
+    """Detect a Yosys failure caused by an unresolvable Liberty library path.
+
+    A relative --liberty path that does not resolve from the task workspace
+    makes Yosys fail before elaboration. That is a missing prerequisite
+    (environment), never an RTL synthesis defect, and must not be recorded
+    as SYNTHESIS_ELABORATION_ERROR.
+    """
+    if not liberty_paths:
+        return False
+    lowered = combined_output.lower()
+    if "not found or is a directory" not in lowered and "could not open liberty" not in lowered:
+        return False
+    return any(Path(p).name.lower() in lowered for p in liberty_paths)
+
+
 def _is_binary_missing(proc: Any, binary: str) -> bool:
     """Detect whether a subshell execution failed because an EDA binary was missing."""
     if proc.returncode == 127:
@@ -1966,6 +1982,26 @@ class SiliconSignoffVerifier(BaseVerifier):
 
         # Check for deliberate synopsys keep_latch override
         has_override = any("synopsys keep_latch" in s.read_text(encoding="utf-8") for s in sources)
+
+        # Missing Liberty library: Yosys failed before elaboration because a
+        # configured liberty path does not resolve (often a relative path
+        # evaluated from the task workspace). Missing prerequisite, not RTL.
+        if proc.returncode != 0 and _is_missing_liberty_error(combined_output, self.liberty_paths):
+            return {
+                "gate": "Gate 1: Yosys Elaboration & Latch Trap",
+                "passed": False,
+                "exit_code": proc.returncode,
+                "stdout": proc.stdout,
+                "stderr": proc.stderr,
+                "details": (
+                    "Yosys could not open a configured Liberty library "
+                    f"({', '.join(self.liberty_paths)}); Gate 1 did not evaluate the RTL. "
+                    "Provide a resolvable absolute liberty path."
+                ),
+                "error_category": "ENVIRONMENT_FAILURE",
+                "diagnostic": _make_subprocess_diagnostic("yosys", cmd, proc, runner),
+                "simulated": False,
+            }
 
         # 1. Structured JSON AST latch inspection (immune to stdout formatting changes)
         ast_file = ws / ast_name

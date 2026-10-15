@@ -22,11 +22,17 @@ from mind3.core.contracts import (
     PortDirection,
     VerificationFailureEvidence,
     VerificationRepairer,
+    contract_from_benchmark_record,
+)
+from mind3.core.formal_templates import (
+    contract_property_source,
+    resolve_witness_property,
 )
 from mind3.core.vcd_evidence import (
     decode_counterexample,
     detect_multidriven_nets,
     evidence_v2_enabled,
+    latency_hint_for_repair,
     parse_vcd,
     property_signal_names,
 )
@@ -247,3 +253,196 @@ def test_repair_multidriven_rejected_pre_eda(
             for record in driver.transcript
         )
         assert feedbacks and "assign" in feedbacks[0]
+
+
+def _dev_contract(task_id: str):
+    import json as _json
+
+    for line in (
+        REPO_ROOT / "benchmarks" / "development-20" / "tasks.jsonl"
+    ).read_text(encoding="utf-8").splitlines():
+        record = _json.loads(line)
+        if record.get("task_id") == task_id:
+            return contract_from_benchmark_record(
+                {
+                    "task_id": record["task_id"],
+                    "natural_language_spec": record["natural_language_spec"],
+                    "expected_ports": record["expected_ports"],
+                    "clock_reset_assumptions": record["clock_reset_assumptions"],
+                    "functional_requirements": record["functional_requirements"],
+                    "expected_properties": record["expected_properties"],
+                }
+            )
+    raise KeyError(task_id)
+
+
+def test_witness_resolves_to_property_marker() -> None:
+    sva_lines = ["module arbiter_02_sva;"]
+    sva_lines += [f"  // filler line {i}" for i in range(2, 16)]
+    sva_lines.append("  // [MIND3-TEMPLATE:same_cycle_implication] contract_property_1")
+    sva_lines += ["  always @(posedge clk) begin", "    if (req[0]) assert (gnt[0]);", "  end"]
+    sva_lines.append("endmodule")
+    sva_text = "\n".join(sva_lines)
+    assert (
+        resolve_witness_property(
+            "arbiter_02_formal_top.sva._witness_.check_assert_arbiter_02_sva_sv_17_5",
+            sva_text,
+        )
+        == "contract_property_1"
+    )
+
+
+def test_witness_resolve_fallbacks() -> None:
+    assert resolve_witness_property("not_a_witness", "module x; endmodule") is None
+    assert resolve_witness_property(None, "module x; endmodule") is None
+    assert resolve_witness_property("check_assert_m_sva_sv_3_1", None) is None
+    assert resolve_witness_property("check_assert_m_sva_sv_99_5", "line1\nline2") is None
+    assert (
+        resolve_witness_property("check_assert_m_sva_sv_2_1", "line1\nline2") is None
+    )
+
+
+def test_contract_property_source_shapes() -> None:
+    from types import SimpleNamespace
+
+    formal = [
+        SimpleNamespace(
+            name="p_impl",
+            kind="same_cycle_implication",
+            antecedent="req[0]",
+            consequent="gnt[0]",
+            expression=None,
+            signal=None,
+            value=None,
+        ),
+        SimpleNamespace(
+            name="p_next",
+            kind="next_cycle_implication",
+            antecedent="a",
+            consequent="b",
+            expression=None,
+            signal=None,
+            value=None,
+        ),
+        SimpleNamespace(
+            name="p_bool",
+            kind="boolean",
+            antecedent=None,
+            consequent=None,
+            expression="x == y",
+            signal=None,
+            value=None,
+        ),
+        SimpleNamespace(
+            name="p_oh0",
+            kind="onehot0",
+            antecedent=None,
+            consequent=None,
+            expression=None,
+            signal="gnt",
+            value=None,
+        ),
+    ]
+    legacy = [SimpleNamespace(name="p_leg", property_expr="a |-> b")]
+    contract = SimpleNamespace(formal_properties=formal, sva_properties=legacy)
+    assert contract_property_source(contract, "p_impl") == (
+        "same_cycle_implication",
+        "req[0] |-> gnt[0]",
+    )
+    assert contract_property_source(contract, "p_next") == (
+        "next_cycle_implication",
+        "a |=> b",
+    )
+    assert contract_property_source(contract, "p_bool") == ("boolean", "x == y")
+    assert contract_property_source(contract, "p_oh0") == ("onehot0", "$onehot0(gnt)")
+    assert contract_property_source(contract, "p_leg") == ("legacy_sva", "a |-> b")
+    assert contract_property_source(contract, "missing") is None
+    assert contract_property_source(contract, None) is None
+
+
+def test_witness_end_to_end_on_real_render() -> None:
+    """The real arbiter_02 witness resolves against the real generated SVA."""
+    from mind3.core.contracts import VerificationHarnessGenerator
+
+    contract = _dev_contract("arbiter_02")
+    sva_text = VerificationHarnessGenerator.build_sva_bind_module(contract)
+    witness = "arbiter_02_formal_top.sva._witness_.check_assert_arbiter_02_sva_sv_19_5"
+    assert resolve_witness_property(witness, sva_text) == "contract_property_1"
+    assert contract_property_source(contract, "contract_property_1") == (
+        "same_cycle_implication",
+        "req[0] |-> gnt[0]",
+    )
+
+
+REGISTERED_ARBITER = """module arbiter_02 (
+  input  logic clk,
+  input  logic rst_n,
+  input  logic [3:0] req,
+  output logic [3:0] gnt
+);
+  always_ff @(posedge clk) begin
+    if (!rst_n) gnt <= 4'b0000;
+    else gnt <= req;
+  end
+endmodule
+"""
+
+COMBINATIONAL_ARBITER = """module arbiter_02 (
+  input  logic clk,
+  input  logic rst_n,
+  input  logic [3:0] req,
+  output logic [3:0] gnt
+);
+  assign gnt[0] = req[0];
+  assign gnt[1] = req[1] & ~req[0];
+  assign gnt[2] = req[2] & ~req[1] & ~req[0];
+  assign gnt[3] = req[3] & ~req[2] & ~req[1] & ~req[0];
+endmodule
+"""
+
+
+def test_latency_hint_fires_on_registered_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MIND3_EVIDENCE_V2", "1")
+    contract = _dev_contract("arbiter_02")
+    hint = latency_hint_for_repair(contract, REGISTERED_ARBITER, "req[0] |-> gnt[0]")
+    assert hint == (
+        "TIMING LATENCY HINT: Violated property 'req[0] |-> gnt[0]' requires "
+        "same-cycle (0-cycle combinational) response via '|->', but candidate "
+        "RTL registers the output inside 'always_ff' (causing a 1-cycle delay). "
+        "Drive same-cycle outputs combinationally using 'always_comb' or "
+        "'assign' instead of 'always_ff'."
+    )
+
+
+def test_latency_hint_abstains(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MIND3_EVIDENCE_V2", "1")
+    contract = _dev_contract("arbiter_02")
+    assert (
+        latency_hint_for_repair(contract, REGISTERED_ARBITER, "req[0] |=> gnt[0]")
+        is None
+    )
+    assert (
+        latency_hint_for_repair(contract, REGISTERED_ARBITER, "a |-> $past(b)")
+        is None
+    )
+    assert (
+        latency_hint_for_repair(contract, COMBINATIONAL_ARBITER, "req[0] |-> gnt[0]")
+        is None
+    )
+    assert (
+        latency_hint_for_repair(contract, REGISTERED_ARBITER, "req |-> gnt")
+        is not None
+    )
+    assert latency_hint_for_repair(contract, REGISTERED_ARBITER, None) is None
+    assert latency_hint_for_repair(contract, "", "req[0] |-> gnt[0]") is None
+
+
+def test_latency_hint_flag_off_is_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MIND3_EVIDENCE_V2", "0")
+    contract = _dev_contract("arbiter_02")
+    assert (
+        latency_hint_for_repair(contract, REGISTERED_ARBITER, "req[0] |-> gnt[0]")
+        is None
+    )

@@ -224,3 +224,36 @@ def test_sensitivity_mismatch_rejected_pre_eda(
             for record in driver.transcript
         )
         assert feedbacks and "always_ff @(posedge clk)" in feedbacks[0]
+
+
+COMBINATIONAL_ASSIGN = """module m(input logic clk, input logic rst_n, input logic [3:0] req, output logic [3:0] gnt);
+  assign gnt[0] = req[0];
+  assign gnt[1] = req[1] & ~req[0];
+  assign gnt[2] = req[2] & ~req[1] & ~req[0];
+  assign gnt[3] = req[3] & ~req[2] & ~req[1] & ~req[0];
+endmodule
+"""
+
+COMBINATIONAL_ALWAYS_COMB = """module m(input logic clk, input logic rst_n, input logic [3:0] req, output logic [3:0] gnt);
+  always_comb begin
+    gnt[0] = req[0];
+    gnt[1] = req[1] & ~req[0];
+    gnt[2] = req[2] & ~req[1] & ~req[0];
+    gnt[3] = req[3] & ~req[2] & ~req[1] & ~req[0];
+  end
+endmodule
+"""
+
+
+def test_combinational_designs_pass_sensitivity() -> None:
+    """Zero always_ff blocks means zero clocked sensitivity lists: purely
+    combinational outputs (assign / always_comb) are neutral under a sync
+    contract. Under an async contract the missing reset edge mirrors the
+    Gate-1 requirement exactly (flagged, same as the gate)."""
+    from mind3.core.vcd_evidence import sensitivity_mismatch
+
+    assert sensitivity_mismatch(COMBINATIONAL_ASSIGN, _sync_contract()) is None
+    assert sensitivity_mismatch(COMBINATIONAL_ALWAYS_COMB, _sync_contract()) is None
+    hit = sensitivity_mismatch(COMBINATIONAL_ASSIGN, _async_contract())
+    assert hit is not None
+    assert hit["direction"] == "sync-in-async"

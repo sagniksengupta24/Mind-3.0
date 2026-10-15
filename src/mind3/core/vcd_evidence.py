@@ -489,5 +489,87 @@ def sensitivity_guard_block(contract: Any) -> str | None:
         f"- {required}\n"
         f"Forbidden: `or negedge {reset_name}` / `or posedge {reset_name}` (or any "
         "reset edge) in any sensitivity list — the contract reset is synchronous "
-        "and must be tested INSIDE the block."
+        "and must be tested INSIDE the block.\n"
+        f"{required} is required WHEN sequential/registered state is used; it is "
+        "NOT a mandate to register purely combinational outputs. Outputs that "
+        "must respond in the same cycle drive combinationally via `assign` or "
+        "`always_comb` (no `always_ff` needed for them)."
+    )
+
+
+def _identifiers(text: str) -> list[str]:
+    """Ordered, deduplicated identifiers in a text fragment."""
+    names: list[str] = []
+    for match in re.finditer(r"[A-Za-z_]\w*", text):
+        word = match.group(0)
+        if word not in names:
+            names.append(word)
+    return names
+
+
+def _output_driven_in_always_ff(candidate_rtl: str, output_name: str) -> bool:
+    """True when an always_ff/posedge block assigns `output_name` with `<=`."""
+    clean = _strip_comments(candidate_rtl)
+    for start, end in _block_spans(clean):
+        head = clean[max(0, start - 200):start]
+        if not re.search(r"always_ff\b|always\s*@\s*\(\s*posedge\b", head):
+            continue
+        body = clean[start:end]
+        for assign in re.finditer(
+            r"([A-Za-z_]\w*(?:\s*\[[^\[\];]*\])?)\s*<=", body
+        ):
+            base = re.match(r"[A-Za-z_]\w*", assign.group(1))
+            if base and base.group(0) == output_name:
+                return True
+    return False
+
+
+def latency_hint_for_repair(
+    contract: Any, candidate_rtl: str | None, property_source: str | None
+) -> str | None:
+    """Same-cycle `|->` vs `always_ff` latency hint (flag-gated, else None).
+
+    Fires only when every fact is established: the mapped property uses
+    overlapping same-cycle implication (`|->`, no `|=>`, no `$past`) from an
+    input port to an output port, and the failed candidate drives that
+    output inside `always_ff` (`<=`) — a structural 1-cycle delay against a
+    0-cycle requirement. Anything else abstains (returns None), so flag-off
+    behavior is byte-identical.
+    """
+    if not evidence_v2_enabled():
+        return None
+    if not property_source or not candidate_rtl:
+        return None
+    if "|=>" in property_source or "$past" in property_source:
+        return None
+    if property_source.count("|->") != 1:
+        return None
+    antecedent, _, consequent = property_source.partition("|->")
+    input_ports = {
+        str(getattr(p, "name", ""))
+        for p in (getattr(contract, "ports", None) or [])
+        if str(getattr(p, "direction", "")) == "PortDirection.INPUT"
+        or "input" in str(getattr(p, "direction", "")).lower()
+    }
+    output_ports = {
+        str(getattr(p, "name", ""))
+        for p in (getattr(contract, "ports", None) or [])
+        if "output" in str(getattr(p, "direction", "")).lower()
+    }
+    antecedent_names = set(_identifiers(antecedent))
+    consequent_names = set(_identifiers(consequent))
+    if not (antecedent_names & input_ports):
+        return None
+    driven_outputs = sorted(consequent_names & output_ports)
+    if not driven_outputs:
+        return None
+    latched = [name for name in driven_outputs if _output_driven_in_always_ff(candidate_rtl, name)]
+    if not latched:
+        return None
+    return (
+        "TIMING LATENCY HINT: Violated property "
+        f"'{property_source.strip()}' requires same-cycle (0-cycle combinational) "
+        "response via '|->', but candidate RTL registers the output inside "
+        "'always_ff' (causing a 1-cycle delay). Drive same-cycle outputs "
+        "combinationally using 'always_comb' or 'assign' instead of 'always_ff'."
     )

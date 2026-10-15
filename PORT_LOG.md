@@ -257,3 +257,23 @@
   real VCD fixture, parity, harvest/dedup/blocking on synthetic workspaces.
   Mined output verified: 23 SFT + 31 DPO, exact schemas, all chosen golden,
   gates Gate2x20/Gate3x8/Gate1x3, decoded table in 15/31.
+
+## R5.1 witness->contract property mapper + same-cycle latency hint (committed)
+- `formal_templates.py`: `resolve_witness_property` maps a SymbiYosys witness
+  name (`check_assert_<stem>_sva_sv_<line>_<col>`) to the rendered contract
+  property name via the nearest `// [MIND3-TEMPLATE:<kind>] <name>` marker
+  above the assert line (None on non-witness/out-of-range/no-marker; caller
+  keeps the legacy uncertain path). `contract_property_source` restates a
+  named contract property deterministically from the typed spec
+  (`|->` / `|=>` / expression / `$onehot`, etc.; legacy SVA verbatim) —
+  never invented.
+- `verifier.py` attaches `mapped_property`; `driver.py` repair loop and
+  `distill_mind3_dataset.py` miner prefer it over the raw witness name and
+  restate `failing_assertion` as `<name>: <source>` (miner prompts stay
+  byte-identical to loop prompts, incl. the latency hint).
+- `vcd_evidence.py`: sensitivity-guard text clarifies the sequential hint is
+  conditional — same-cycle outputs stay combinational (`assign`/`always_comb`);
+  `latency_hint_for_repair` helper gates the hint on contract+RTL.
+- Tests (fast, no EDA/Ollama): `test_r5_evidence_v2.py` mapper/source-table
+  cases, `test_repair_sensitivity_guard.py` hint cases, `test_distill_dataset.py`
+  miner parity. `pytest` on the three files: 40 green.

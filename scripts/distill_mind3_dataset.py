@@ -225,14 +225,25 @@ def build_miner_evidence(
     )
     property_source = None
     matched_contract_prop: str | None = None
-    if last_report.get("failing_property"):
-        prop_name = str(last_report.get("failing_property"))
+    # Prefer the verifier's deterministic witness->contract mapping;
+    # fall back to the raw witness name exactly as before.
+    mapped_name = last_report.get("mapped_property") or last_report.get("failing_property")
+    if mapped_name:
+        prop_name = str(mapped_name)
         for prop in [*contract.formal_properties, *contract.sva_properties]:
             pname = getattr(prop, "name", "")
             if pname == prop_name or prop_name in pname:
                 property_source = getattr(prop, "expression", None) or getattr(prop, "property_expr", None)
                 matched_contract_prop = pname
                 break
+        if matched_contract_prop is not None and not property_source:
+            # Typed template specs carry antecedent/consequent rather than a
+            # single expression field; restate deterministically (mirrors loop).
+            from mind3.core.formal_templates import contract_property_source as _cps
+
+            _hit = _cps(contract, matched_contract_prop)
+            if _hit is not None:
+                property_source = _hit[1]
     if contract.clock is not None:
         clock_state_value: str | None = f"{contract.clock.name} {contract.clock.edge}"
     else:
@@ -299,9 +310,15 @@ def build_miner_evidence(
                 clock_name=clock_name,
                 reset_name=reset_name,
                 reset_active_low=reset_active_low,
-                failing_assertion=str(last_report.get("failing_property"))
-                if last_report.get("failing_property")
-                else None,
+                failing_assertion=(
+                    f"{matched_contract_prop}: {property_source}"
+                    if matched_contract_prop and property_source
+                    else (
+                        str(last_report.get("failing_property"))
+                        if last_report.get("failing_property")
+                        else None
+                    )
+                ),
                 source=str(trace_path),
             )
             markdown = decoded["markdown"]
@@ -354,7 +371,13 @@ def build_miner_prompt(
     prompt = VerificationRepairer.build_prompt(
         contract, current_rtl, evidence, evidence_v2=True
     )
-    return prompt["system"], prompt["user"]
+    # Same latency hint the driver loop appends (flag-gated inside the
+    # helper), so mined prompts match loop prompts exactly.
+    from mind3.core.vcd_evidence import latency_hint_for_repair
+
+    hint = latency_hint_for_repair(contract, current_rtl, evidence.property_source)
+    user = prompt["user"] + ("\n\n" + hint if hint else "")
+    return prompt["system"], user
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:

@@ -2481,11 +2481,32 @@ class SiliconSignoffVerifier(BaseVerifier):
             )
             trace_path = trace_match.group(1) if trace_match else None
             property_source = None
+            mapped_property: str | None = None
             if prop_name and self.contract is not None:
                 for prop in [*getattr(self.contract, "formal_properties", []), *getattr(self.contract, "sva_properties", [])]:
                     if getattr(prop, "name", "") == prop_name:
                         property_source = getattr(prop, "expression", None) or getattr(prop, "property_expr", None) or getattr(prop, "description", None)
+                        mapped_property = prop_name
                         break
+            if property_source is None and fixes_on and prop_name and self.contract is not None:
+                # Witness names embed the checker assert location
+                # (<stem>_sva_sv_<line>_<col>); the generated checker marks
+                # each property block, so the line maps deterministically to
+                # the violated contract property. Flag-gated: flag off keeps
+                # the legacy (unmapped, uncertain) path byte-identical.
+                from .formal_templates import contract_property_source, resolve_witness_property
+
+                sva_path = ws / f"{self.top_module}_sva.sv"
+                try:
+                    sva_text = sva_path.read_text(encoding="utf-8") if sva_path.is_file() else None
+                except OSError:
+                    sva_text = None
+                resolved = resolve_witness_property(prop_name, sva_text)
+                if resolved is not None:
+                    hit = contract_property_source(self.contract, resolved)
+                    if hit is not None:
+                        mapped_property = resolved
+                        property_source = hit[1]
             counterexample_trace = None
             if trace_path:
                 trace_candidate = Path(trace_path)
@@ -2527,6 +2548,7 @@ class SiliconSignoffVerifier(BaseVerifier):
                 "counterexample_trace": counterexample_trace,
                 "simulated": False,
                 **gate_extra,
+                **({"mapped_property": mapped_property} if fixes_on else {}),
             }
 
         # Assert job passed. A passing implication whose antecedent was never

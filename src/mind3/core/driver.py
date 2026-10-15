@@ -2452,14 +2452,25 @@ class PhaseDriver:
             source_context = compile_diag.get("source_context", "")
             property_source = None
             matched_contract_prop: str | None = None
-            if last_report.get("failing_property"):
-                prop_name = str(last_report.get("failing_property"))
+            # Prefer the verifier's deterministic witness->contract mapping;
+            # fall back to the raw witness name exactly as before.
+            mapped_name = last_report.get("mapped_property") or last_report.get("failing_property")
+            if mapped_name:
+                prop_name = str(mapped_name)
                 for prop in [*contract.formal_properties, *contract.sva_properties]:
                     pname = getattr(prop, "name", "")
                     if pname == prop_name or prop_name in pname:
                         property_source = getattr(prop, "expression", None) or getattr(prop, "property_expr", None)
                         matched_contract_prop = pname
                         break
+                if matched_contract_prop is not None and not property_source:
+                    # Typed template specs carry antecedent/consequent rather
+                    # than a single expression field; restate deterministically.
+                    from .formal_templates import contract_property_source as _cps
+
+                    _hit = _cps(contract, matched_contract_prop)
+                    if _hit is not None:
+                        property_source = _hit[1]
             # C2: deterministic evidence enrichment. Values below are derived
             # only from the contract and the verifier's own report; signal
             # values are never invented. When the SBY witness name cannot be
@@ -2549,9 +2560,15 @@ class PhaseDriver:
                         clock_name=_clock_name,
                         reset_name=_reset_name,
                         reset_active_low=_reset_active_low,
-                        failing_assertion=str(last_report.get("failing_property"))
-                        if last_report.get("failing_property")
-                        else None,
+                        failing_assertion=(
+                            f"{matched_contract_prop}: {property_source}"
+                            if matched_contract_prop and property_source
+                            else (
+                                str(last_report.get("failing_property"))
+                                if last_report.get("failing_property")
+                                else None
+                            )
+                        ),
                         source=str(_trace_path),
                     )
                     _v2_markdown = _decoded["markdown"]
@@ -2597,6 +2614,14 @@ class PhaseDriver:
             repair_prompt = VerificationRepairer.build_prompt(contract, current_rtl, evidence, format_block=self._format_block, evidence_v2=evidence_v2_enabled())
             repair_system_instruction = repair_prompt["system"]
             repair_guidance = repair_prompt["user"]
+            # Latency hint (flag-gated inside the helper; None otherwise, so
+            # flag-off guidance is byte-identical): same-cycle property vs
+            # registered output in the failed candidate.
+            from .vcd_evidence import latency_hint_for_repair as _latency_hint
+
+            _lat_hint = _latency_hint(contract, current_rtl, evidence.property_source)
+            if _lat_hint:
+                repair_guidance = (repair_guidance or "") + "\n\n" + _lat_hint
             pending_stage_key = stage_key
             # C1: when the last repair was byte/normalized-identical, tell the
             # model explicitly: resubmitting identical RTL can never succeed and

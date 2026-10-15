@@ -127,6 +127,31 @@ def test_miner_evidence_without_trace_keeps_legacy(
     assert evidence.counterexample_trace == "raw vcd ascii (must be replaced by decode)"
 
 
+def test_mapped_property_preferred_over_witness(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A verifier-resolved mapped_property yields the exact invariant with
+    no uncertain fallback, even though the raw witness matches nothing."""
+    monkeypatch.setenv("MIND3_EVIDENCE_V2", "1")
+    contract = miner.load_contract(REPO_ROOT, "arbiter_02")
+    stub = _breach_stub(None)  # type: ignore[arg-type]
+    stub.gate_reports = [dict(g) for g in stub.gate_reports]
+    for report in stub.gate_reports:
+        if report.get("error_category") == "FORMAL_INVARIANT_BREACH":
+            report["failing_property"] = (
+                "arbiter_02_formal_top.sva._witness_"
+                ".check_assert_arbiter_02_sva_sv_19_5"
+            )
+            report["mapped_property"] = "contract_property_1"
+    evidence = miner.build_miner_evidence(contract, stub, tmp_path)
+    assert evidence.failing_property is not None
+    assert "check_assert" in evidence.failing_property
+    assert evidence.property_source == "req[0] |-> gnt[0]"
+    assert evidence.expected_behavior is not None
+    assert evidence.expected_behavior.startswith("contract_property_1:")
+    assert "uncertain" not in evidence.expected_behavior
+
+
 def test_miner_evidence_matches_driver_loop(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

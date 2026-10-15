@@ -765,6 +765,90 @@ def _render_guard(prop: FormalPropertySpec, *, references_reset: bool = False) -
     return _guard(prop, references_reset=references_reset)
 
 
+_WITNESS_SVA_LINE_RE = re.compile(r"check_assert_(.+)_sva_sv_(\d+)_(\d+)$")
+_TEMPLATE_MARKER_RE = re.compile(r"\[MIND3-TEMPLATE:([A-Za-z0-9_]+)\]\s+(\S+)")
+
+
+def resolve_witness_property(witness_name: str | None, sva_text: str | None) -> str | None:
+    """Map a SymbiYosys witness name to the rendered contract property name.
+
+    Witnesses embed the checker file and assert location
+    (`check_assert_<stem>_sva_sv_<line>_<col>`); the generated checker marks
+    each property block with `// [MIND3-TEMPLATE:<kind>] <name>`, so the
+    nearest marker above the assert line names the violated property.
+    Returns None when the name is not a witness, the line is out of range,
+    or no marker precedes it (caller keeps the legacy uncertain path).
+    """
+    if not witness_name or not sva_text:
+        return None
+    match = _WITNESS_SVA_LINE_RE.search(witness_name.strip())
+    if match is None:
+        return None
+    try:
+        line_no = int(match.group(2))
+    except ValueError:
+        return None
+    lines = sva_text.splitlines()
+    if line_no < 1 or line_no > len(lines):
+        return None
+    for idx in range(line_no - 1, -1, -1):
+        marker = _TEMPLATE_MARKER_RE.search(lines[idx])
+        if marker is not None:
+            return marker.group(2)
+    return None
+
+
+def contract_property_source(contract: Any, prop_name: str | None) -> tuple[str, str] | None:
+    """(kind_value, source_text) for a named contract property, or None.
+
+    Source text restates the property in the boolean/implication subset the
+    repair prompt already uses (e.g. `req[0] |-> gnt[0]`), drawn from the
+    typed spec — never invented. Duck-typed on the contract; works for both
+    structured templates and legacy SVA entries.
+    """
+    if not prop_name:
+        return None
+    for prop in list(getattr(contract, "formal_properties", []) or []):
+        if getattr(prop, "name", "") != prop_name:
+            continue
+        kind = getattr(prop, "kind", None)
+        kind_value = str(getattr(kind, "value", kind) or "")
+        antecedent = getattr(prop, "antecedent", None)
+        consequent = getattr(prop, "consequent", None)
+        expression = getattr(prop, "expression", None)
+        signal = getattr(prop, "signal", None)
+        value = getattr(prop, "value", None)
+        if kind_value == "same_cycle_implication" and antecedent and consequent:
+            return (kind_value, f"{antecedent} |-> {consequent}")
+        if kind_value == "next_cycle_implication" and antecedent and consequent:
+            return (kind_value, f"{antecedent} |=> {consequent}")
+        if kind_value in ("boolean", "past_expression") and expression:
+            return (kind_value, str(expression))
+        if kind_value == "reset_assertion" and consequent:
+            return (kind_value, str(consequent))
+        if kind_value == "onehot" and signal:
+            return (kind_value, f"$onehot({signal})")
+        if kind_value == "onehot0" and signal:
+            return (kind_value, f"$onehot0({signal})")
+        if kind_value == "onehot_or_equals" and signal and value:
+            return (kind_value, f"$onehot({signal}) || ({signal} == {value})")
+        if kind_value == "past_equals" and signal and value:
+            cycles = getattr(prop, "cycles", 1)
+            return (kind_value, f"$past({signal}, {cycles}) == {value}")
+        if kind_value == "past_stable" and signal:
+            cycles = getattr(prop, "cycles", 1)
+            return (kind_value, f"{signal} == $past({signal}, {cycles})")
+        return None
+    for prop in list(getattr(contract, "sva_properties", []) or []):
+        if getattr(prop, "name", "") != prop_name:
+            continue
+        expr = getattr(prop, "property_expr", None) or getattr(prop, "expression", None)
+        if expr:
+            return ("legacy_sva", str(expr))
+        return None
+    return None
+
+
 def _reset_asserted_past(prop: FormalPropertySpec) -> str:
     """P5b rewritten antecedent `$past(reset asserted)` for sync contracts."""
     assert prop.reset is not None
@@ -1063,4 +1147,6 @@ __all__ = [
     "is_tautological_property_text",
     "is_tautology_expression",
     "tautology_audit_for_contract",
+    "resolve_witness_property",
+    "contract_property_source",
 ]

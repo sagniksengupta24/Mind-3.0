@@ -1919,13 +1919,41 @@ class PhaseDriver:
         try:
             sva_bind_content = VerificationHarnessGenerator.build_sva_bind_module(contract)
         except (UnsupportedFormalPropertyError, UnsupportedFormalTemplate) as exc:
-            sva_bind_content = (
-                f"// Formal property construct unsupported by toolchain\n"
-                f"// unsupported: {exc}\n"
-                f"module {contract.module_name}_sva;\n"
-                f"  UNSUPPORTED_FORMAL_PROPERTY_ERROR;\n"
-                f"endmodule\n"
+            # Fail closed with the real category. Writing a marker module here
+            # would surface later as a bogus SYNTAX_ERROR and hide the fact
+            # that a declared contract property is unverifiable.
+            unsupported_reason = (
+                "Contract declares a formal property that the bounded toolchain "
+                f"cannot verify: {exc}"
             )
+            self._emit_trace(
+                PhaseEnum.VERIFY,
+                {
+                    "passed": False,
+                    "domain": "RTL",
+                    "exit_code": 1,
+                    "failure_reason": unsupported_reason,
+                    "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
+                    "gate": "Formal harness construction",
+                    "diagnostic": {
+                        "stage": "formal_harness",
+                        "tool": "deterministic_property_classifier",
+                        "error": str(exc),
+                        "source_context": "",
+                    },
+                    "simulated": False,
+                },
+            )
+            self._restore_snapshot()
+            self._emit_trace(
+                PhaseEnum.REPAIR_OR_FINISH,
+                {
+                    "status": "ABORTED_NON_REPAIRABLE",
+                    "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
+                    "reason": unsupported_reason,
+                },
+            )
+            return False
         sby_content = VerificationHarnessGenerator.build_sby_config(
             contract, depth=25, include_sva_file=bool(contract.formal_properties or contract.sva_properties)
         )

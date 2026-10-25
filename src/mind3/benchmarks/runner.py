@@ -44,6 +44,7 @@ def _code_provenance(repo_root: Path | None = None) -> dict[str, Any]:
         "repo_root": str(root),
         "git_commit": None,
         "git_dirty": None,
+        "git_untracked_count": None,
         "file_sha256": {},
     }
     try:
@@ -56,8 +57,10 @@ def _code_provenance(repo_root: Path | None = None) -> dict[str, Any]:
         )
         if commit.returncode == 0:
             info["git_commit"] = commit.stdout.strip() or None
+        # Tracked modifications only: untracked scratch files cannot change the
+        # code that was imported for this run, but they are counted separately.
         status = subprocess.run(
-            ["git", "-C", str(root), "status", "--porcelain"],
+            ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
             capture_output=True,
             text=True,
             timeout=5,
@@ -65,6 +68,17 @@ def _code_provenance(repo_root: Path | None = None) -> dict[str, Any]:
         )
         if status.returncode == 0:
             info["git_dirty"] = bool(status.stdout.strip())
+        untracked = subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=normal"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if untracked.returncode == 0:
+            info["git_untracked_count"] = sum(
+                1 for line in untracked.stdout.splitlines() if line.startswith("??")
+            )
     except (OSError, subprocess.SubprocessError) as exc:
         info["git_error"] = str(exc)
     for rel in ("src/mind3/core/driver.py", "src/mind3/core/verifier.py", "src/mind3/benchmarks/runner.py"):

@@ -2609,7 +2609,7 @@ def test_run_silicon_pipeline_full_multi_agent_orchestration(monkeypatch: pytest
                 {"name": "count", "direction": "output", "width": 4, "description": "Count"},
             ],
             "sva_properties": [
-                {"name": "rst_zero", "property_expr": "!rst_n |-> ##1 (count == 4'b0000)"},
+                {"name": "rst_zero", "property_expr": "!rst_n |-> (count == 4'b0000)"},
             ],
             "timing": {"clock_name": "clk", "period_ns": 4.0},
         })

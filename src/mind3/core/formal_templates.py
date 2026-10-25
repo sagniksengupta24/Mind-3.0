@@ -1030,9 +1030,59 @@ def compile_contract_properties(
     *,
     reset_synchronous: bool | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
-    """Compile structured properties or safely classify legacy properties."""
+    """Compile every specified property, never silently discarding one.
+
+    Structured properties are rendered from their typed templates. Legacy SVA
+    properties are classified into the bounded grammar. A legacy property that
+    cannot be classified raises ``UnsupportedFormalTemplate`` even when
+    structured properties are present: silently dropping a declared property
+    would make the formal gate weaker than the contract it claims to verify.
+    Tautologies are the one intentional exception, and they are recorded in
+    the audit as dropped with an explicit reason.
+    """
     compiled: list[str] = []
     audit: list[dict[str, Any]] = []
+
+    def _compile_legacy() -> None:
+        for prop in legacy:
+            # When the contract is demonstrably combinational, ignore SVAProperty's historical
+            # default clock so the renderer cannot invent a clock that is not in the interface.
+            classified = classify_legacy_property(
+                name=prop.name,
+                raw_expression=prop.property_expr,
+                default_clock=default_clock,
+                default_reset=default_reset,
+            )
+            if gate_fixes_enabled():
+                if classified.kind == FormalTemplateKind.TAUTOLOGY:
+                    audit.append({
+                        "name": prop.name,
+                        "kind": classified.kind.value,
+                        "source": "p3_complete_classifier",
+                        "supported": False,
+                        "dropped": True,
+                        "drop_reason": "tautology",
+                    })
+                    continue
+                text = _tautology_checked_expression(classified)
+                if text is not None and is_tautology_expression(text):
+                    audit.append({
+                        "name": prop.name,
+                        "kind": classified.kind.value,
+                        "source": "legacy_bounded_classifier",
+                        "supported": False,
+                        "dropped": True,
+                        "drop_reason": "tautology",
+                    })
+                    continue
+            compiled.append(compile_formal_property(classified, reset_synchronous=reset_synchronous))
+            audit.append({
+                "name": prop.name,
+                "kind": classified.kind.value,
+                "source": "legacy_bounded_classifier",
+                "supported": True,
+            })
+
     if structured:
         for prop in structured:
             if gate_fixes_enabled():
@@ -1064,52 +1114,10 @@ def compile_contract_properties(
                 "source": "structured_template",
                 "supported": True,
             })
-        if (structured or legacy) and not compiled:
-            raise NoGenuineProperty(
-                "Every specified property was dropped as vacuous-by-text."
-            )
-        return "\n".join(compiled), audit
+        _compile_legacy()
+    else:
+        _compile_legacy()
 
-    for prop in legacy:
-        # When the contract is demonstrably combinational, ignore SVAProperty's historical
-        # default clock so the renderer cannot invent a clock that is not in the interface.
-        prop_default_clock = default_clock
-        prop_default_reset = default_reset
-        classified = classify_legacy_property(
-            name=prop.name,
-            raw_expression=prop.property_expr,
-            default_clock=prop_default_clock,
-            default_reset=prop_default_reset,
-        )
-        if gate_fixes_enabled():
-            if classified.kind == FormalTemplateKind.TAUTOLOGY:
-                audit.append({
-                    "name": prop.name,
-                    "kind": classified.kind.value,
-                    "source": "p3_complete_classifier",
-                    "supported": False,
-                    "dropped": True,
-                    "drop_reason": "tautology",
-                })
-                continue
-            text = _tautology_checked_expression(classified)
-            if text is not None and is_tautology_expression(text):
-                audit.append({
-                    "name": prop.name,
-                    "kind": classified.kind.value,
-                    "source": "legacy_bounded_classifier",
-                    "supported": False,
-                    "dropped": True,
-                    "drop_reason": "tautology",
-                })
-                continue
-        compiled.append(compile_formal_property(classified, reset_synchronous=reset_synchronous))
-        audit.append({
-            "name": prop.name,
-            "kind": classified.kind.value,
-            "source": "legacy_bounded_classifier",
-            "supported": True,
-        })
     if (structured or legacy) and not compiled:
         raise NoGenuineProperty(
             "Every specified property was dropped as vacuous-by-text."

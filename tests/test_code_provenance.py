@@ -11,6 +11,7 @@ def test_non_git_directory_degrades_gracefully(tmp_path: Path) -> None:
     info = _code_provenance(tmp_path)
     assert info["git_commit"] is None
     assert info["git_dirty"] is None
+    assert info["git_untracked_count"] is None
     assert info["file_sha256"] == {}
     assert info["repo_root"] == str(tmp_path.resolve())
 

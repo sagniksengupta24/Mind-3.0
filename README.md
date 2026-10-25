@@ -8,6 +8,7 @@ tools, skipped gates, and unproven properties are reported as missing — never
 silently upgraded to a pass.
 
 [![CI](https://github.com/sagniksengupta24/Mind-3.0/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sagniksengupta24/Mind-3.0/actions/workflows/ci.yml)
+[![Live EDA](https://github.com/sagniksengupta24/Mind-3.0/actions/workflows/eda_live.yml/badge.svg?branch=main)](https://github.com/sagniksengupta24/Mind-3.0/actions/workflows/eda_live.yml)
 ![Status](https://img.shields.io/badge/status-experimental-orange)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 
@@ -100,9 +101,10 @@ run wins.
 | Negative controls | **15/16 caught at the expected gate, 1 skipped** (`timing_violation`: no liberty file); verdict `SUCCESS` | `./bin/mind3 negative-controls` |
 | EDA smoke | **4/5 tools OK** — Yosys 0.69+post, Verilator 5.052, SBY 0.69 + Z3, OpenSTA 3.1.0; `openroad` missing | `./bin/mind3 smoke-test` |
 | Readiness gate | **13/13 checks pass**, verdict `EXPERIMENTAL` (live EDA not opted in) | `bash tools/check_readiness.sh` |
+| Live EDA (Linux CI) | Negative controls `SUCCESS`; **8 EDA tests passed, 51 skipped** (hosted runner has no Bubblewrap namespaces); `cdc_execution_result: passed` | [Live EDA run](https://github.com/sagniksengupta24/Mind-3.0/actions/workflows/eda_live.yml) |
 | Generator, last measured (2026-10-02) | **0/20 dev, 0/42 on a partial heldout run (42/120 transcribed), 0% full-verified**; 19/20 and 41/42 failures are `RESPONSE_PARSE_FAILURE` | [`docs/benchmarks.md`](docs/benchmarks.md) |
 | Release-eligible accuracy | **None exists.** Requires ≥100 real heldout tasks plus the release thresholds | [`docs/performance-criteria.md`](docs/performance-criteria.md) |
-| CI | `unit` job: pytest + pyright on Python 3.11 and 3.12 | [Actions](.github/workflows/ci.yml) |
+| CI | `unit` job: pytest + pyright on Python 3.11 and 3.12; Live EDA workflow runs the EDA-marked suite + negative controls on Ubuntu | [Actions](https://github.com/sagniksengupta24/Mind-3.0/actions) |
 
 Two things this snapshot deliberately does **not** claim:
 

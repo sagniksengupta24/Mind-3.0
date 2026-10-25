@@ -165,6 +165,21 @@ def _repair_mode() -> str:
     return "r2" if os.getenv("MIND3_REPAIR_MODE", "").strip().lower() == "r2" else "r1"
 
 
+def _fallback_relevant_signals(
+    report: dict[str, Any],
+) -> dict[str, str | int | float | bool | None]:
+    """Normalize a verifier report's ``relevant_signals`` into a typed mapping.
+
+    Reports are free-form JSON, so non-dict payloads are dropped and non-string
+    keys are ignored rather than coerced (a coerced key would silently point at
+    the wrong signal).
+    """
+    raw = report.get("relevant_signals")
+    if not isinstance(raw, dict):
+        return {}
+    return {k: v for k, v in raw.items() if isinstance(k, str)}
+
+
 _FENCE_REGEX = re.compile(
     r"```(?:verilog|systemverilog|sv)?\s*\n?(.*?)\n?```",
     re.DOTALL | re.IGNORECASE,
@@ -2609,7 +2624,7 @@ class PhaseDriver:
             _v2_decode_on = evidence_v2_enabled() and category == "FORMAL_INVARIANT_BREACH"
             _v2_markdown: str | None = None
             _v2_cycle: int | None = None
-            _v2_relevant: dict[str, str] | None = None
+            _v2_relevant: dict[str, str | int | float | bool | None] | None = None
             if _v2_decode_on:
                 _t_raw = last_report.get("cycle")
                 _t_fail: int | None = _t_raw if isinstance(_t_raw, int) else None
@@ -2691,7 +2706,7 @@ class PhaseDriver:
                 cycle=_v2_cycle if _v2_cycle is not None else (int(cycle_v) if isinstance((cycle_v := last_report.get("cycle")), int) else None),
                 expected_behavior=expected_value,
                 observed_behavior=observed_value,
-                relevant_signals=_v2_relevant if _v2_relevant else ({k: v for k, v in last_report.get("relevant_signals", {}).items() if isinstance(k, str)} if isinstance(last_report.get("relevant_signals"), dict) else {}),
+                relevant_signals=_v2_relevant if _v2_relevant else _fallback_relevant_signals(last_report),
                 reset_state=reset_state_value,
                 clock_state=clock_state_value,
                 property_source=property_source,

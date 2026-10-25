@@ -567,14 +567,14 @@ def _p3c_parse(text: str) -> tuple:
 
     def parse_or() -> tuple:
         left = parse_and()
-        while peek() is not None and peek()[0] == "or":
+        while (tok := peek()) is not None and tok[0] == "or":
             next_token()
             left = ("or", left, parse_and())
         return left
 
     def parse_and() -> tuple:
         left = parse_not()
-        while peek() is not None and peek()[0] == "and":
+        while (tok := peek()) is not None and tok[0] == "and":
             next_token()
             left = ("and", left, parse_not())
         return left
@@ -637,8 +637,9 @@ def _p3c_parse(text: str) -> tuple:
         raise _P3CAbstain(f"unexpected token: {tok[1]!r}")
 
     node = parse_or()
-    if peek() is not None:
-        raise _P3CAbstain(f"trailing tokens: {peek()[1]!r}")
+    trailing = peek()
+    if trailing is not None:
+        raise _P3CAbstain(f"trailing tokens: {trailing[1]!r}")
     return node
 
 

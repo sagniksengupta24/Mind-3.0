@@ -4,8 +4,12 @@ Provides:
 - `mind3 benchmark --suite development-20 --seed 42`
 - `mind3 smoke-test`
 - `mind3 negative-controls`
-- `mind3 bundle export --approval <file>`
-- `mind3 verify --workspace <path>`
+
+Bundle export and release verification are deliberately *not* CLI
+subcommands; the human-approval gate lives in
+`scripts/create_release_approval_template.py` and
+`scripts/export_verified_bundle.py` so it cannot be scripted from inside
+the installed package.
 
 Holdout suites are sealed by convention AND by code: a suite path naming a
 holdout set is refused unless `--unseal` is passed and the suite manifest hash

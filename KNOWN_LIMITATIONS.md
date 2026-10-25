@@ -31,8 +31,12 @@ this file.
   Gate 5 support is `[PENDING-HUMAN]`.
 - **Yosys CDC (Gate 6)**: the macOS Homebrew Yosys and the pinned OSS CAD
   Suite `2026-09-29` linux-arm64 build both lack the `cdc` command
-  (`No such command or cell type: cdc`). Gate 6 fails closed as
-  `CDC_TOOLING_UNAVAILABLE`. CDC verification on a CDC-capable Yosys build is
+  (`No such command or cell type: cdc`). Gate 6 therefore uses a pinned
+  structural checker (`tools/cdc_checker`, `structural_cdc_checker v1.0`) that
+  detects unsafe direct crossings and related rule violations. It caught the
+  `cdc_violation` negative control on 2026-10-26, but it is a rule-based
+  fallback, **not** a full CDC signoff. External `yosys cdc` / `crux` backends
+  are used when present. CDC verification on a CDC-capable Yosys build remains
   `[PENDING-HUMAN]`.
 - **Bubblewrap sandbox** is Linux-only; macOS uses the Seatbelt
   (`sandbox-exec`) sandbox. Outbound-egress blocking was verified on macOS

@@ -312,11 +312,6 @@ def _strip_comments(code: str) -> str:
     return re.sub(r"//[^\n]*", "", code)
 
 
-def _strip_comments(code: str) -> str:
-    code = re.sub(r"/\*.*?\*/", "", code, flags=re.DOTALL)
-    return re.sub(r"//[^\n]*", "", code)
-
-
 def _block_spans(code: str) -> list[tuple[int, int]]:
     """Spans of procedural block bodies (always blocks to their end), nesting-aware."""
     spans: list[tuple[int, int]] = []

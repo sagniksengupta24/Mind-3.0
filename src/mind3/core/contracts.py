@@ -595,9 +595,10 @@ def validate_rtl_against_contract(contract: InterfaceContract, rtl_code: str) ->
     # itself evidence of multi-clock intent.
     input_port_names = {p.name for p in contract.ports if p.direction == PortDirection.INPUT}
     prop_clocks = sorted({
-        getattr(prop, "clock", None)
+        clock
         for prop in [*contract.formal_properties, *contract.sva_properties]
-    } - {None})
+        if (clock := getattr(prop, "clock", None)) is not None
+    })
     multi_clocks = [c for c in prop_clocks if c in input_port_names]
     if len(multi_clocks) >= 2:
         for clk in multi_clocks:

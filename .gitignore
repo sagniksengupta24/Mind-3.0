@@ -8,5 +8,10 @@ artifacts/runs/
 results/v4/runs/
 .mind/
 dist/
+*.egg-info/
 .DS_Store
 audit/manifest_*
+*.whl
+.env
+.env.*
+!.env.example

@@ -20,6 +20,7 @@ from mind3.core.driver import (
     _parse_model_code_response,
     _repair_mode,
 )
+from sandbox_stub import StubSandbox
 
 FAILING_RTL = (
     "module arbiter_02 (\n"
@@ -135,6 +136,7 @@ def test_r2_loop_withholds_code_and_records_mode(monkeypatch, tmp_path) -> None:
         max_repairs=3,
         model="qwen2.5-coder:7b",
         provider="ollama",
+        sandbox=StubSandbox(),
     )
     calls: list[str] = []
 

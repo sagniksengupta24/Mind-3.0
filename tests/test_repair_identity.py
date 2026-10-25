@@ -40,6 +40,7 @@ from mind3.core.driver import (
 )
 from mind3.core.types import PhaseEnum
 from mind3.core.verifier import _is_binary_missing
+from sandbox_stub import StubSandbox
 
 
 ARBITER_RTL = (
@@ -354,6 +355,7 @@ def test_repair_loop_records_unchanged_candidate_and_stays_bounded(
             max_repairs=3,
             model="qwen2.5-coder:7b",
             provider="ollama",
+            sandbox=StubSandbox(),
         )
         # Initial generation: valid module; every repair echoes it identically
         # (modulo the parser's trailing-newline strip, caught by normalization).

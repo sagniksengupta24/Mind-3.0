@@ -4,6 +4,7 @@ from pathlib import Path
 
 from mind3.core.driver import PhaseDriver
 from mind3.core.verifier import SiliconSignoffVerifier
+from sandbox_stub import StubSandbox
 
 
 def _make_driver(tmp_path: Path) -> PhaseDriver:
@@ -13,6 +14,7 @@ def _make_driver(tmp_path: Path) -> PhaseDriver:
         session_id="architect-retry-test",
         workspace=ws,
         verifier=SiliconSignoffVerifier(top_module="t"),
+        sandbox=StubSandbox(),
     )
 
 

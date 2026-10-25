@@ -1,4 +1,5 @@
 from mind3.core.driver import REPAIR_MAX_CHANGED_LINE_RATIO, _repair_diff_stats, _rtl_identity_hash
+from sandbox_stub import StubSandbox
 
 
 def test_successful_parses_do_not_consume_parse_budget(monkeypatch, tmp_path) -> None:
@@ -56,6 +57,7 @@ def test_successful_parses_do_not_consume_parse_budget(monkeypatch, tmp_path) ->
         max_repairs=3,
         model="qwen2.5-coder:7b",
         provider="ollama",
+        sandbox=StubSandbox(),
     )
     monkeypatch.setattr(driver, "_query_model", lambda messages, **kwargs: rtl)
     try:

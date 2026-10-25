@@ -6,6 +6,7 @@ from mind3.core.contracts import contract_from_benchmark_record
 from mind3.core.driver import PhaseDriver
 from mind3.core.types import PhaseEnum
 from mind3.core.verifier import SiliconSignoffVerifier
+from sandbox_stub import StubSandbox
 
 
 def _contract():
@@ -41,6 +42,7 @@ def test_unsupported_property_aborts_before_generation(tmp_path) -> None:
         max_repairs=3,
         model="qwen2.5-coder:7b",
         provider="ollama",
+        sandbox=StubSandbox(),
     )
     calls: list[str] = []
 

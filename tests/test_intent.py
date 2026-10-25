@@ -16,6 +16,7 @@ from mind3.core.intent import (
     parse_intent,
 )
 from mind3.core.verifier import SiliconSignoffVerifier
+from sandbox_stub import StubSandbox
 
 
 def test_keyword_routes_generation_requests() -> None:
@@ -92,6 +93,7 @@ def _make_driver(tmp_path: Path) -> PhaseDriver:
         session_id="intent-test",
         workspace=ws,
         verifier=SiliconSignoffVerifier(top_module="t"),
+        sandbox=StubSandbox(),
     )
 
 

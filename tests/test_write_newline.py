@@ -20,6 +20,7 @@ from mind3.core.verifier import (
     VerificationDomain,
     VerificationResult,
 )
+from sandbox_stub import StubSandbox
 
 
 class _MockVerifier(BaseVerifier):
@@ -35,14 +36,12 @@ class _MockVerifier(BaseVerifier):
 
 
 def _driver(ws: Path) -> PhaseDriver:
-    from mind3.sandbox.macos import MacOSSandbox
-
     return PhaseDriver(
         session_id="newline-test",
         workspace=ws,
         verifier=_MockVerifier(),
         max_repairs=1,
-        sandbox=MacOSSandbox(ws),
+        sandbox=StubSandbox(),
     )
 
 

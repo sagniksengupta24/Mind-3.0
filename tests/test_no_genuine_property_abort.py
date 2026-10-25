@@ -17,6 +17,7 @@ from mind3.core.driver import NON_REPAIRABLE_CATEGORIES, PhaseDriver
 from mind3.core.failure_taxonomy import FailureCategory, classify_failure
 from mind3.core.types import PhaseEnum
 from mind3.core.verifier import SiliconSignoffVerifier
+from sandbox_stub import StubSandbox
 
 
 def _record(properties: list[str]) -> dict:
@@ -60,6 +61,7 @@ def test_vacuous_only_contract_aborts_before_generation(tmp_path) -> None:
         max_repairs=3,
         model="qwen2.5-coder:7b",
         provider="ollama",
+        sandbox=StubSandbox(),
     )
     calls: list[str] = []
 

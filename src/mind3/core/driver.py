@@ -31,7 +31,7 @@ from .contracts import (
     VerificationHarnessGenerator,
     VerificationRepairer,
 )
-from .formal_templates import UnsupportedFormalTemplate
+from .formal_templates import NoGenuineProperty, UnsupportedFormalTemplate
 from .types import (
     AgentAction,
     PhaseEnum,
@@ -592,6 +592,9 @@ NON_REPAIRABLE_CATEGORIES: set[str] = {
     "CDC_TOOLING_UNAVAILABLE",
     "CDC_INCONCLUSIVE",
     "CDC_CHECKER_ERROR",
+    # The contract cannot be satisfied by any RTL: every declared property is
+    # vacuous by construction. Repairs rewrite the DUT, never the contract.
+    "NO_GENUINE_PROPERTY",
 }
 
 
@@ -1951,6 +1954,44 @@ class PhaseDriver:
                     "status": "ABORTED_NON_REPAIRABLE",
                     "error_category": "UNSUPPORTED_FORMAL_PROPERTY",
                     "reason": unsupported_reason,
+                },
+            )
+            return False
+        except NoGenuineProperty as exc:
+            # The contract's properties all classify as vacuous-by-text (for
+            # example the `out_data == out_data` placeholders). No RTL can make
+            # such a contract meaningful, so repair is pointless: abort with the
+            # honest category instead of letting this escape as RUN_EXCEPTION,
+            # which the runner would brand ENVIRONMENT_FAILURE.
+            vacuous_reason = (
+                "Every formal property in the contract is vacuous by construction; "
+                f"the contract cannot verify any RTL: {exc}"
+            )
+            self._emit_trace(
+                PhaseEnum.VERIFY,
+                {
+                    "passed": False,
+                    "domain": "RTL",
+                    "exit_code": 1,
+                    "failure_reason": vacuous_reason,
+                    "error_category": "NO_GENUINE_PROPERTY",
+                    "gate": "Formal harness construction",
+                    "diagnostic": {
+                        "stage": "formal_harness",
+                        "tool": "deterministic_property_classifier",
+                        "error": str(exc),
+                        "source_context": "",
+                    },
+                    "simulated": False,
+                },
+            )
+            self._restore_snapshot()
+            self._emit_trace(
+                PhaseEnum.REPAIR_OR_FINISH,
+                {
+                    "status": "ABORTED_NON_REPAIRABLE",
+                    "error_category": "NO_GENUINE_PROPERTY",
+                    "reason": vacuous_reason,
                 },
             )
             return False

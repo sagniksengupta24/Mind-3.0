@@ -51,6 +51,7 @@ class ClassifiedFailure(BaseModel):
 _FINE_GRAINED_MAP: dict[str, FailureCategory] = {
     # Specification issues
     "EMPTY_FORMAL_PROPERTY_SET": FailureCategory.SPECIFICATION_ERROR,
+    "NO_GENUINE_PROPERTY": FailureCategory.SPECIFICATION_ERROR,
     "UNSUPPORTED_FORMAL_PROPERTY": FailureCategory.SPECIFICATION_ERROR,
     "SPECIFICATION_PARSING_FAILED": FailureCategory.SPECIFICATION_ERROR,
     "INVALID_CONTRACT": FailureCategory.SPECIFICATION_ERROR,

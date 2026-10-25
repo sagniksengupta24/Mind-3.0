@@ -30,6 +30,50 @@ from ..core.verifier import SiliconSignoffVerifier
 from ..sandbox.platform import get_local_sandbox
 
 
+def _code_provenance(repo_root: Path | None = None) -> dict[str, Any]:
+    """Record which code produced a run, so a baseline can never be mislabeled.
+
+    A run is only citable against a commit if that commit is observable in the
+    transcript itself. Returns git commit / dirty state plus SHA-256 digests of
+    the two files whose behaviour most directly determines verdicts. Every
+    field degrades to None/absent instead of raising: provenance recording must
+    never break a benchmark run.
+    """
+    root = (repo_root or Path(__file__).resolve().parents[3]).resolve()
+    info: dict[str, Any] = {
+        "repo_root": str(root),
+        "git_commit": None,
+        "git_dirty": None,
+        "file_sha256": {},
+    }
+    try:
+        commit = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if commit.returncode == 0:
+            info["git_commit"] = commit.stdout.strip() or None
+        status = subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if status.returncode == 0:
+            info["git_dirty"] = bool(status.stdout.strip())
+    except (OSError, subprocess.SubprocessError) as exc:
+        info["git_error"] = str(exc)
+    for rel in ("src/mind3/core/driver.py", "src/mind3/core/verifier.py", "src/mind3/benchmarks/runner.py"):
+        path = root / rel
+        if path.is_file():
+            info["file_sha256"][rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return info
+
+
 class BenchmarkTask(BaseModel):
     """Specification of one benchmark task."""
 
@@ -313,6 +357,7 @@ class BenchmarkRunner:
             "eda_versions": getattr(driver.verifier, "detected_versions", {}),
             "sandbox": type(driver.sandbox).__name__,
             "parser_mode": getattr(driver, "parser_mode", "strict"),
+            "code_provenance": _code_provenance(),
         }
         # C2: decode provenance block. Defensive isinstance guards keep this
         # working with test doubles (MagicMock drivers) as well as live ones.

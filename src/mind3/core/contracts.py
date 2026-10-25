@@ -6,6 +6,7 @@ Prevents tautological testbench hallucination by decoupling RTL synthesis from v
 from __future__ import annotations
 
 import json
+import os
 import re
 from enum import StrEnum
 from typing import Any, Mapping
@@ -810,8 +811,61 @@ class VerificationFailureEvidence(BaseModel):
     repair_history: list[str] = Field(default_factory=list, max_length=3)
 
 
+def repair_invariants_enabled() -> bool:
+    """Whether repair prompts restate synthesis invariants (default OFF)."""
+    return os.getenv("MIND3_REPAIR_INVARIANTS", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 class VerificationRepairer:
     """Builds a constrained repair prompt that receives verifier evidence, not hidden test code."""
+
+    @staticmethod
+    def _invariants_block(contract: InterfaceContract) -> str:
+        """Compact synthesis invariants restated at repair time (flag-gated).
+
+        The generation prompt already states these; repairs historically did
+        not, and observed failures include regressions back to the async-reset
+        idiom and width-mismatched literals during repair turns.
+        """
+        reset = contract.reset
+        clock_name = contract.clock.name if contract.clock is not None else "clk"
+        if reset is None:
+            reset_rule = (
+                "The contract declares no reset port: do not invent one and do not "
+                "add a reset branch."
+            )
+        elif reset.synchronous:
+            active = "!" + reset.name if str(reset.polarity) == "active_low" else reset.name
+            reset_rule = (
+                f"Reset `{reset.name}` is SYNCHRONOUS ({reset.polarity}): write "
+                f"`always_ff @(posedge {clock_name})` and test `{active}` INSIDE the block. "
+                f"Never place `{reset.name}` in the sensitivity list."
+            )
+        else:
+            edge = "negedge" if str(reset.polarity) == "active_low" else "posedge"
+            active = "!" + reset.name if str(reset.polarity) == "active_low" else reset.name
+            reset_rule = (
+                f"Reset `{reset.name}` is ASYNCHRONOUS ({reset.polarity}): use "
+                f"`always_ff @(posedge {clock_name} or {edge} {reset.name})` and test `{active}`."
+            )
+        width_lines = []
+        for port in contract.ports:
+            if port.width == 1:
+                width_lines.append(f"  {port.name}: 1 bit (declare with no range)")
+            else:
+                width_lines.append(f"  {port.name}: {port.width} bits (declare [{port.width - 1}:0])")
+        widths = "\n".join(width_lines) if width_lines else "  (no ports)"
+        return (
+            "\nSynthesis invariants for the corrected module (unchanged interface):\n"
+            f"- {reset_rule}\n"
+            "- Non-blocking (<=) in sequential blocks, blocking (=) in combinational blocks; no inferred latches.\n"
+            "- Width discipline: every literal or expression assigned to / compared with an N-bit signal must be "
+            "exactly N bits. Use `'0` / `'1` or a width-prefixed literal such as 3'b011; never compare an N-bit "
+            "signal with an M-bit constant where M != N.\n"
+            "- Every register assigned in a clocked block must also be assigned in that block's reset branch.\n"
+            "Port widths (exact):\n"
+            f"{widths}\n"
+        )
 
     @staticmethod
     def build_prompt(
@@ -844,6 +898,8 @@ class VerificationRepairer:
             _sens_block = sensitivity_guard_block(contract)
             if _sens_block is not None:
                 system_msg += "\n" + _sens_block
+        if repair_invariants_enabled():
+            system_msg += VerificationRepairer._invariants_block(contract)
         if format_block == "fence":
             system_msg += "\n" + RTLGenerator.FENCE_FORMAT_BLOCK
         elif format_block == "schema":
@@ -896,6 +952,8 @@ class VerificationRepairer:
             _sens_block = sensitivity_guard_block(contract)
             if _sens_block is not None:
                 system_msg += "\n" + _sens_block
+        if repair_invariants_enabled():
+            system_msg += VerificationRepairer._invariants_block(contract)
         if format_block == "fence":
             system_msg += "\n" + RTLGenerator.FENCE_FORMAT_BLOCK
         elif format_block == "schema":

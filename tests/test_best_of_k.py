@@ -71,6 +71,56 @@ def test_reports_unverified_when_all_fail(tmp_path: Path) -> None:
     assert rec["selected_index"] is None
 
 
+def test_resume_reuses_persisted_samples(tmp_path: Path) -> None:
+    (tmp_path / "arbiter_02_s0.json").write_text(
+        json.dumps({"task_id": "arbiter_02", "final_outcome": {"passed": False}}), encoding="utf-8"
+    )
+    (tmp_path / "arbiter_02_s1.json").write_text(
+        json.dumps({"task_id": "arbiter_02", "final_outcome": {"passed": True}}), encoding="utf-8"
+    )
+    runner = _Runner([False])
+    rec = sampler.sample_task(
+        runner,
+        _task(),
+        k=3,
+        temperature=0.7,
+        seed_base=100,
+        model="m",
+        provider="ollama",
+        liberty=None,
+        transcripts_dir=tmp_path,
+        work_root=tmp_path / "ws",
+        existing={0: tmp_path / "arbiter_02_s0.json", 1: tmp_path / "arbiter_02_s1.json"},
+    )
+    assert rec["reused"] == 2
+    assert rec["selected_index"] == 1
+    assert rec["verified"] is True
+    assert [s["passed"] for s in rec["samples"]] == [False, True, False]
+    assert len(runner.calls) == 1
+    assert runner.calls[0]["decode_seed"] == 102
+
+
+def test_resume_rejects_foreign_transcript(tmp_path: Path) -> None:
+    import pytest
+
+    foreign = tmp_path / "foreign.json"
+    foreign.write_text(json.dumps({"task_id": "other_task", "final_outcome": {}}), encoding="utf-8")
+    with pytest.raises(ValueError):
+        sampler.sample_task(
+            _Runner([]),
+            _task(),
+            k=1,
+            temperature=0.7,
+            seed_base=0,
+            model="m",
+            provider="ollama",
+            liberty=None,
+            transcripts_dir=tmp_path,
+            work_root=tmp_path / "ws",
+            existing={0: foreign},
+        )
+
+
 def test_rejects_nonpositive_k(tmp_path: Path) -> None:
     import pytest
 

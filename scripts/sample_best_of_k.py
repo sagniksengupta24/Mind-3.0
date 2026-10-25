@@ -26,13 +26,31 @@ def sample_task(
     transcripts_dir: Path,
     work_root: Path,
     generation_format: str = "text",
+    existing: dict[int, Path] | None = None,
 ) -> dict:
-    """Draw k samples for one task; return selection record (JSON-safe)."""
+    """Draw k samples for one task; return selection record (JSON-safe).
+
+    ``existing`` maps sample index -> previously persisted transcript. Those
+    samples are reused verbatim instead of being redrawn, so an interrupted
+    sweep resumes without spending model calls or altering recorded samples.
+    """
     if k < 1:
         raise ValueError("k must be >= 1")
     samples: list[dict] = []
     selected_index: int | None = None
+    reused = 0
     for i in range(k):
+        prior = (existing or {}).get(i)
+        if prior is not None:
+            payload = json.loads(prior.read_text(encoding="utf-8"))
+            if payload.get("task_id") not in (None, task.task_id):
+                raise ValueError(f"resume transcript {prior} belongs to {payload.get('task_id')!r}, not {task.task_id!r}")
+            passed = bool(payload.get("final_outcome", {}).get("passed"))
+            samples.append({"index": i, "seed": seed_base + i, "passed": passed, "path": str(prior)})
+            reused += 1
+            if passed and selected_index is None:
+                selected_index = i
+            continue
         transcript = runner.run_live_task(
             task,
             model=model,
@@ -60,6 +78,7 @@ def sample_task(
         "samples": samples,
         "selected_index": selected_index,
         "verified": selected_index is not None,
+        "reused": reused,
     }
 
 
@@ -74,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--liberty", default=None)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--generation-format", default="text")
+    parser.add_argument("--resume", action="store_true", help="Reuse sample transcripts already persisted in --out-dir")
     args = parser.parse_args(argv)
 
     import sys
@@ -91,6 +111,12 @@ def main(argv: list[str] | None = None) -> int:
     selections = []
     for index, task in enumerate(tasks, 1):
         print(f"[{index}/{len(tasks)}] {task.task_id}", flush=True)
+        existing: dict[int, Path] = {}
+        if args.resume:
+            for i in range(args.k):
+                candidate_path = transcripts_dir / f"{task.task_id}_s{i}.json"
+                if candidate_path.is_file():
+                    existing[i] = candidate_path
         selections.append(
             sample_task(
                 runner,
@@ -104,9 +130,11 @@ def main(argv: list[str] | None = None) -> int:
                 transcripts_dir=transcripts_dir,
                 work_root=work_root,
                 generation_format=args.generation_format,
+                existing=existing,
             )
         )
     verified = sum(1 for s in selections for _ in [0] if s["verified"])
+    reused = sum(int(s.get("reused") or 0) for s in selections)
     summary = {
         "k": args.k,
         "temperature": args.temperature,
@@ -114,10 +142,11 @@ def main(argv: list[str] | None = None) -> int:
         "model": args.model,
         "tasks": len(selections),
         "verified": verified,
+        "reused_samples": reused,
         "selections": selections,
     }
     (out_dir / "selection.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
-    print(f"best-of-{args.k} @ temp {args.temperature}: {verified}/{len(selections)} verified")
+    print(f"best-of-{args.k} @ temp {args.temperature}: {verified}/{len(selections)} verified (reused {reused} samples)")
     return 0
 
 
